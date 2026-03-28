@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find D:a-joiiprojectsrm-ai -maxdepth 3 -name *AI*IDE* -o -name *PRD* -o -name *技术*)",
+      "Bash(find D:a-joiiprojectsrm-ai -maxdepth 3 -name *.html)",
+      "Bash(powershell -File .specify/scripts/powershell/setup-plan.ps1 -Json)",
+      "Bash(powershell -File .specify/scripts/powershell/update-agent-context.ps1 -AgentType claude)",
+      "Bash(powershell -File .specify/scripts/powershell/check-prerequisites.ps1 -Json)",
+      "Bash(powershell -ExecutionPolicy Bypass -File .specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks)",
+      "Bash(find D:/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide/packages/backend/src -type f -name *.ts)",
+      "Bash(npx tsc:*)",
+      "Bash(find D:/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide/ -type f -name *.ts -o -name *.json -o -name *.js)",
+      "Bash(npm install:*)",
+      "Bash(npx vitest:*)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(pnpm install:*)",
+      "Bash(npm --version)",
+      "Bash(find D:/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide/ -type f -name *.ts -o -name *.tsx)",
+      "Bash(find D:/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide/packages -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\) -not -path */node_modules/*)",
+      "Bash(find D:/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide -name *.ts -path */routes/*)",
+      "Bash(find D:/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide -name *.ts -path */services/*)",
+      "Bash(find D:/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide -name *.tsx -path */pages/*)",
+      "Bash(find D:/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide/packages/backend/tests -name *.test.ts)",
+      "Bash(find D:/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide -name tsc -path */bin/* -not -path */.pnpm/*)",
+      "Bash(node -e \"const ts = require\\(''typescript''\\); const config = ts.readConfigFile\\(''../frontend/tsconfig.json'', ts.sys.readFile\\); console.log\\(''tsconfig loaded:'', !!config\\)\")",
+      "Bash(cd:*)",
+      "Bash(find D:/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide/packages/backend-java/src/main/java/com/appsmith/aiide -type f -name *.java)",
+      "Bash(find D:/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide/packages/backend-java/src/main/java/com/appsmith/aiide/ -name *.java -type f)",
+      "Bash(find D:/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide/packages/backend-java/src/main/java/com/appsmith/aiide/dto/ -name *.java -type f)"
+    ]
+  }
+}

@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+ ~  Copyright 2017 Red Hat, Inc.
+ ~
+ ~  Licensed under the Apache License, Version 2.0 (the "License");
+ ~  you may not use this file except in compliance with the License.
+ ~  You may obtain a copy of the License at
+ ~
+ ~    http://www.apache.org/licenses/LICENSE-2.0
+ ~
+ ~  Unless required by applicable law or agreed to in writing, software
+ ~  distributed under the License is distributed on an "AS IS" BASIS,
+ ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ ~  See the License for the specific language governing permissions and
+ ~  limitations under the License.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.smallrye</groupId>
+    <artifactId>smallrye-parent</artifactId>
+    <version>47</version>
+  </parent>
+
+  <artifactId>smallrye-jwt-parent</artifactId>
+  <version>4.6.2</version>
+
+  <packaging>pom</packaging>
+  <name>SmallRye: MicroProfile JWT Parent</name>
+  <url>http://smallrye.io</url>
+
+  <properties>
+    <version.jakarta.servlet.api>6.1.0</version.jakarta.servlet.api>
+    <version.jakarta.security.enterprise.api>2.0.0</version.jakarta.security.enterprise.api>
+    <version.eclipse.microprofile.jwt>2.1</version.eclipse.microprofile.jwt>
+    <version.microprofile.config>3.0</version.microprofile.config>
+    <version.jose4j>0.9.6</version.jose4j>
+
+    <!-- Testing -->
+    <version.junit4>4.13.2</version.junit4>
+    <version.mokito>5.18.0</version.mokito>
+    <version.bouncycastle>1.70</version.bouncycastle>
+    <version.smallrye.testing>2.3.1</version.smallrye.testing>
+    <version.smallrye.config>3.1.2</version.smallrye.config>
+    <version.parsson>1.1.7</version.parsson>
+  </properties>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+
+  <issueManagement>
+    <system>GitHub</system>
+    <url>https://github.com/smallrye/smallrye-jwt/issues</url>
+  </issueManagement>
+
+  <scm>
+    <connection>scm:git:git@github.com:smallrye/smallrye-jwt.git</connection>
+    <developerConnection>scm:git:git@github.com:smallrye/smallrye-jwt.git</developerConnection>
+    <url>https://github.com/smallrye/smallrye-jwt/</url>
+    <tag>4.6.2</tag>
+  </scm>
+
+  <modules>
+    <module>implementation</module>
+  </modules>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>jakarta.servlet</groupId>
+        <artifactId>jakarta.servlet-api</artifactId>
+        <version>${version.jakarta.servlet.api}</version>
+      </dependency>
+      <dependency>
+        <groupId>jakarta.security.enterprise</groupId>
+        <artifactId>jakarta.security.enterprise-api</artifactId>
+        <version>${version.jakarta.security.enterprise.api}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.microprofile.jwt</groupId>
+        <artifactId>microprofile-jwt-auth-api</artifactId>
+        <version>${version.eclipse.microprofile.jwt}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.annotation.versioning</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.microprofile.config</groupId>
+        <artifactId>microprofile-config-api</artifactId>
+        <version>${version.microprofile.config}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bitbucket.b_c</groupId>
+        <artifactId>jose4j</artifactId>
+        <version>${version.jose4j}</version>
+      </dependency>
+
+      <!-- Dependencies provided by the project -->
+      <dependency>
+        <groupId>io.smallrye</groupId>
+        <artifactId>smallrye-jwt</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.smallrye</groupId>
+        <artifactId>smallrye-jwt-common</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.smallrye</groupId>
+        <artifactId>smallrye-jwt-build</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.smallrye</groupId>
+        <artifactId>smallrye-jwt-jaxrs</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.smallrye</groupId>
+        <artifactId>smallrye-jwt-http-mechanism</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.smallrye</groupId>
+        <artifactId>smallrye-jwt-cdi-extension</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <!-- Unit/Integration test dependencies -->
+      <dependency>
+        <groupId>io.smallrye.testing</groupId>
+        <artifactId>smallrye-testing-bom</artifactId>
+        <version>${version.smallrye.testing}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>${version.junit4}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>${version.mokito}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk15on</artifactId>
+        <version>${version.bouncycastle}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.smallrye.config</groupId>
+        <artifactId>smallrye-config</artifactId>
+        <version>${version.smallrye.config}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.parsson</groupId>
+        <artifactId>parsson</artifactId>
+        <version>${version.parsson}</version>
+        <scope>test</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <profiles>
+    <profile>
+      <id>unpublished</id>
+      <activation>
+        <property>
+          <name>performRelease</name>
+          <value>!true</value>
+        </property>
+      </activation>
+      <modules>
+        <module>testsuite</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>coverage</id>
+      <properties>
+        <argLine>@{jacocoArgLine}</argLine>
+        <!--suppress UnresolvedMavenProperty -->
+        <sonar.coverage.jacoco.xmlReportPaths>
+          ${maven.multiModuleProjectDirectory}/coverage/target/site/jacoco-aggregate/jacoco.xml
+        </sonar.coverage.jacoco.xmlReportPaths>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+          </plugin>
+        </plugins>
+      </build>
+      <modules>
+        <module>coverage</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>release</id>
+      <activation>
+        <property>
+          <name>!release.maven.bug.always.be.active</name>
+        </property>
+      </activation>
+      <modules>
+        <module>release</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>sonar</id>
+      <properties>
+        <sonar.projectName>SmallRye JWT</sonar.projectName>
+        <sonar.projectKey>io.smallrye:smallrye-jwt</sonar.projectKey>
+        <sonar.moduleKey>${project.artifactId}</sonar.moduleKey>
+        <!--suppress UnresolvedMavenProperty -->
+        <sonar.coverage.jacoco.xmlReportPaths>
+          ${maven.multiModuleProjectDirectory}/coverage/target/site/jacoco-aggregate/jacoco.xml
+        </sonar.coverage.jacoco.xmlReportPaths>
+      </properties>
+    </profile>
+  </profiles>
+</project>

@@ -1,0 +1,15 @@
+package com.appsmith.aiide.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CheckoutStepEvent {
+
+    public String step;
+    public String status;
+    public String message;
+}

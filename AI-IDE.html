@@ -1,0 +1,2041 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Appsmith AI-IDE</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Outfit:wght@600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080a0f;--bg2:#0d1018;--s1:#111420;--s2:#171c2b;--s3:#1d2336;
+  --b1:#232840;--b2:#2e3554;--b3:#3a4268;
+  --acc:#4f7dff;--acc-dim:rgba(79,125,255,.12);--acc-glow:rgba(79,125,255,.35);
+  --v2:#8b5cf6;--v2-dim:rgba(139,92,246,.12);--v2-glow:rgba(139,92,246,.3);
+  --grn:#10b981;--grn-dim:rgba(16,185,129,.1);
+  --amb:#f59e0b;--amb-dim:rgba(245,158,11,.1);
+  --red:#ef4444;--red-dim:rgba(239,68,68,.1);
+  --cyn:#06b6d4;--cyn-dim:rgba(6,182,212,.1);
+  --t1:#e8edf8;--t2:#8892aa;--t3:#454e6a;--t4:#272d42;
+  --r:8px;--r2:12px;
+  --nav-w:48px;
+  --chat-h:300px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);display:flex;flex-direction:row}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--b1);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:var(--b2)}
+
+/* ═══ LEFT NAV ═══ */
+.left-nav{width:var(--nav-w);background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px;flex-shrink:0;z-index:100}
+.nav-logo{width:30px;height:30px;background:linear-gradient(135deg,var(--acc),var(--v2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 0 14px var(--acc-glow);margin-bottom:8px;flex-shrink:0}
+.nav-divider{width:26px;height:1px;background:var(--b1);margin:4px 0;flex-shrink:0}
+.nav-item{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;transition:all .15s;border:1px solid transparent;position:relative;flex-shrink:0;color:var(--t3)}
+.nav-item:hover{background:var(--s2);color:var(--t2);border-color:var(--b1)}
+.nav-item.on{background:var(--acc-dim);border-color:rgba(79,125,255,.3);color:var(--acc)}
+.nav-tip{position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);background:var(--s2);border:1px solid var(--b2);border-radius:6px;padding:4px 9px;font-family:'Outfit',sans-serif;font-weight:600;font-size:10.5px;color:var(--t1);white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:200;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.nav-item:hover .nav-tip{opacity:1}
+.nav-bottom{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:6px}
+.nav-ava{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--v2));display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;font-family:'Outfit',sans-serif;cursor:pointer;position:relative}
+.nav-ava:hover .nav-tip{opacity:1}
+
+/* ═══ MAIN ═══ */
+.main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* ═══ TOPBAR ═══ */
+.topbar{height:38px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 10px;gap:6px;flex-shrink:0;z-index:100}
+.page-name-pill{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--acc);background:var(--acc-dim);border:1px solid rgba(79,125,255,.3);border-radius:5px;padding:2px 8px;white-space:nowrap}
+.topbar-tabs{display:flex;gap:1px;flex:1;overflow:hidden;min-width:0}
+.ttab{font-family:'IBM Plex Mono',monospace;font-size:10.5px;padding:3px 10px;border-radius:5px;color:var(--t3);cursor:pointer;border:1px solid transparent;transition:all .1s;white-space:nowrap;display:flex;align-items:center;gap:3px}
+.ttab:hover{color:var(--t1);background:var(--s2)}
+.ttab.on{background:var(--bg);color:var(--t1);border-color:var(--b1)}
+.ttab-d{width:4px;height:4px;border-radius:50%;background:var(--amb);flex-shrink:0}
+.ttab-x{font-size:10px;color:var(--t3);border-radius:2px;width:12px;height:12px;display:flex;align-items:center;justify-content:center}
+.ttab-x:hover{background:var(--s3);color:var(--t1)}
+.topbar-r{margin-left:auto;display:flex;align-items:center;gap:6px;flex-shrink:0}
+.save-btn{font-family:'Outfit',sans-serif;font-weight:700;font-size:10.5px;padding:3px 10px;border-radius:5px;background:var(--acc);color:#fff;border:none;cursor:pointer;transition:all .15s;box-shadow:0 1px 7px var(--acc-glow);white-space:nowrap;position:relative}
+.save-btn:hover{background:#6090ff;transform:translateY(-1px)}
+.save-btn::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 7px);right:0;background:#1a1f30;color:var(--t2);font-family:'DM Sans',sans-serif;font-size:10px;white-space:nowrap;padding:5px 9px;border-radius:5px;border:1px solid var(--b2);pointer-events:none;opacity:0;transition:opacity .15s;z-index:200}
+.save-btn:hover::after{opacity:1}
+.save-btn-dis{font-family:'Outfit',sans-serif;font-weight:700;font-size:10.5px;padding:3px 10px;border-radius:5px;background:var(--grn-dim);color:var(--grn);border:1px solid rgba(16,185,129,.3);cursor:default;white-space:nowrap}
+.ed-unsaved{font-size:10px;color:var(--amb);font-family:'IBM Plex Mono',monospace}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;padding:2px 8px;border-radius:16px;border:1px solid;font-weight:500}
+.pill-grn{color:var(--grn);background:var(--grn-dim);border-color:rgba(16,185,129,.25)}
+.pill-dot{width:4px;height:4px;border-radius:50%;background:currentColor;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* btns */
+.btn{font-family:'Outfit',sans-serif;font-weight:700;font-size:10.5px;padding:4px 11px;border-radius:var(--r);border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-p{background:var(--acc);color:#fff;box-shadow:0 2px 10px var(--acc-glow)}
+.btn-p:hover{background:#6090ff;transform:translateY(-1px)}
+.btn-g{background:transparent;color:var(--t2);border:1px solid var(--b1)}
+.btn-g:hover{border-color:var(--b2);color:var(--t1)}
+.btn-v{background:var(--v2-dim);color:var(--v2);border:1px solid rgba(139,92,246,.3)}
+.btn-v:hover{background:rgba(139,92,246,.2)}
+.btn-grn{background:var(--grn-dim);color:var(--grn);border:1px solid rgba(16,185,129,.3)}
+.btn-grn:hover{background:rgba(16,185,129,.2)}
+.btn-red{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.btn-red:hover{background:rgba(239,68,68,.2)}
+.btn-amb{background:var(--amb-dim);color:var(--amb);border:1px solid rgba(245,158,11,.3)}
+.btn-amb:hover{background:rgba(245,158,11,.2)}
+.btn-sm{padding:2px 8px;font-size:10px}
+
+/* ═══ VIEWS ═══ */
+.view{display:none;flex:1;overflow:hidden;flex-direction:column}
+.view.on{display:flex}
+
+/* ═══ PAGE CHECKOUT ═══ */
+.checkout-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.checkout-hero{padding:22px 26px 14px;flex-shrink:0}
+.checkout-hero h1{font-family:'Outfit',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.5px;margin-bottom:4px}
+.checkout-hero p{font-size:12px;color:var(--t2)}
+.checkout-toolbar{padding:0 26px 11px;display:flex;align-items:center;gap:9px;flex-shrink:0}
+.search-box{display:flex;align-items:center;gap:7px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:5px 10px;flex:1;max-width:320px;transition:border-color .2s}
+.search-box:focus-within{border-color:var(--acc)}
+.search-box input{background:transparent;border:none;outline:none;color:var(--t1);font-size:11.5px;font-family:'DM Sans',sans-serif;width:100%}
+.search-box input::placeholder{color:var(--t3)}
+.filter-tabs{display:flex;gap:2px}
+.ftab{font-size:11px;padding:4px 10px;border-radius:5px;color:var(--t3);cursor:pointer;border:1px solid transparent;font-weight:500;transition:all .15s}
+.ftab:hover{color:var(--t2)}
+.ftab.on{color:var(--t1);background:var(--s2);border-color:var(--b1)}
+.page-grid{flex:1;overflow-y:auto;padding:0 26px 18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;align-content:start}
+.page-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r2);padding:13px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.page-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--acc);transform:scaleX(0);transition:transform .25s;transform-origin:left}
+.page-card:hover{border-color:var(--b2);background:var(--s2);transform:translateY(-1px)}
+.page-card.sel{border-color:rgba(79,125,255,.5);background:rgba(79,125,255,.06)}
+.page-card.sel::after{transform:scaleX(1)}
+.page-card.locked{opacity:.5;cursor:not-allowed}
+.page-card.locked:hover{transform:none;border-color:var(--b1);background:var(--s1)}
+.pc-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.pc-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.ic-b{background:var(--acc-dim)}.ic-p{background:var(--v2-dim)}.ic-g{background:var(--grn-dim)}.ic-o{background:var(--amb-dim)}.ic-c{background:var(--cyn-dim)}
+.pc-info{flex:1;min-width:0}
+.pc-name{font-family:'Outfit',sans-serif;font-weight:700;font-size:12.5px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-branch{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--t3)}
+.pc-badge{margin-left:auto;flex-shrink:0}
+.badge{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:2px 6px;border-radius:4px;font-weight:600;border:1px solid}
+.badge-free{color:var(--grn);background:var(--grn-dim);border-color:rgba(16,185,129,.25)}
+.badge-busy{color:var(--red);background:var(--red-dim);border-color:rgba(239,68,68,.25)}
+.badge-me{color:var(--acc);background:var(--acc-dim);border-color:rgba(79,125,255,.3)}
+.pc-meta{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--t3);flex-wrap:wrap}
+.pc-files{margin-top:7px;padding-top:7px;border-top:1px solid var(--b1);display:flex;gap:4px;flex-wrap:wrap}
+.file-chip{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:1px 6px;background:var(--s3);border:1px solid var(--b1);border-radius:4px;color:var(--t3)}
+.pc-sel-mark{position:absolute;top:10px;right:10px;width:15px;height:15px;border-radius:50%;border:2px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:8px;transition:all .15s}
+.page-card.sel .pc-sel-mark{background:var(--acc);border-color:var(--acc);color:#fff}
+.checkout-footer{padding:11px 26px;border-top:1px solid var(--b1);background:var(--s1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.co-hint{font-size:10.5px;color:var(--t3)}.co-hint strong{color:var(--t2)}
+.co-actions{display:flex;gap:7px}
+
+/* ═══ LOADING ═══ */
+.loading-screen{position:fixed;inset:0;background:rgba(8,10,15,.9);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:500}
+.loading-screen.on{display:flex}
+.spin{width:36px;height:36px;border:2px solid var(--b2);border-top-color:var(--acc);border-radius:50%;animation:rot .7s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.load-h{font-family:'Outfit',sans-serif;font-weight:700;font-size:14px}
+.load-sub{font-size:11px;color:var(--t2);margin-top:-10px}
+.steps{display:flex;flex-direction:column;gap:5px;width:230px}
+.step{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--t3);transition:color .3s}
+.step.done{color:var(--grn)}.step.act{color:var(--t1)}
+.lsi{width:15px;text-align:center;font-size:11px;flex-shrink:0}
+
+/* ═══ IDE WORKSPACE ═══ */
+.ide-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.ide-top-area{flex:1;display:flex;overflow:hidden;min-height:0}
+.ide-left{width:190px;background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sl-section{padding:5px 0;border-bottom:1px solid var(--b1)}
+.sl-label{font-family:'Outfit',sans-serif;font-weight:700;font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--t4);padding:0 9px 4px}
+.fi{display:flex;align-items:center;gap:5px;padding:4px 9px;font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:var(--t2);cursor:pointer;border-left:2px solid transparent;transition:all .1s;white-space:nowrap;overflow:hidden}
+.fi:hover{background:var(--s2);color:var(--t1)}
+.fi.on{background:rgba(79,125,255,.07);color:var(--acc);border-left-color:var(--acc)}
+.fi-mod{width:5px;height:5px;border-radius:50%;background:var(--amb);margin-left:auto;flex-shrink:0}
+.fdir{display:flex;align-items:center;gap:5px;padding:3px 9px;font-size:9.5px;font-family:'IBM Plex Mono',monospace;color:var(--t3);cursor:pointer}
+.fdir:hover{color:var(--t2)}
+.fdir-arrow{font-size:8px;width:10px;display:inline-block;transition:transform .18s;flex-shrink:0}
+.fdir-children.collapsed{display:none}
+.sl-info{padding:7px 9px;display:flex;flex-direction:column;gap:5px;overflow-y:auto;flex:1}
+.si-row{display:flex;justify-content:space-between;align-items:center;font-size:10px}
+.si-k{color:var(--t3)}.si-v{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--t2)}
+.si-v.a{color:var(--acc)}.si-v.w{color:var(--amb)}.si-v.g{color:var(--grn)}
+.ide-editor{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.diff-notice{background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.2);border-left:3px solid var(--grn);margin:6px 10px;border-radius:6px;padding:5px 10px;font-size:11px;display:flex;align-items:center;gap:7px;flex-shrink:0}
+.dn-txt{flex:1;color:var(--t2)}.dn-txt strong{color:var(--grn)}
+.btn-apply{font-family:'Outfit',sans-serif;font-weight:700;font-size:9.5px;padding:3px 8px;background:rgba(16,185,129,.14);color:var(--grn);border:1px solid rgba(16,185,129,.3);border-radius:5px;cursor:pointer}
+.btn-apply:hover{background:rgba(16,185,129,.25)}
+.btn-dis{font-size:9.5px;padding:3px 7px;background:transparent;color:var(--t3);border:1px solid var(--b1);border-radius:5px;cursor:pointer}
+.ed-wrap{flex:1;display:flex;overflow:hidden}
+.ln{width:42px;padding:14px 7px 14px 0;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--t4);line-height:1.7;flex-shrink:0;user-select:none;background:var(--bg);overflow:hidden;pointer-events:none}
+.ed-body{flex:1;position:relative;overflow:hidden;background:var(--bg)}
+.hl-layer,.code-edit{position:absolute;top:0;left:0;width:100%;height:100%;padding:14px 12px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;line-height:1.7;tab-size:2;white-space:pre;overflow:auto;box-sizing:border-box;margin:0;border:none;outline:none}
+.hl-layer{background:var(--bg);color:var(--t1);pointer-events:none;user-select:none;z-index:1}
+.hl-layer::-webkit-scrollbar{display:none}
+.code-edit{background:transparent;color:transparent;caret-color:var(--acc);resize:none;z-index:2;-webkit-text-fill-color:transparent}
+.kw{color:#a78bfa}.fn{color:#60a5fa}.str{color:#86efac}.num{color:#fb923c}.cm{color:#374461;font-style:italic}.tp{color:#34d399}
+
+/* ═══ BOTTOM CHAT PANEL ═══ */
+.chat-panel{height:var(--chat-h);min-height:110px;max-height:72vh;background:var(--bg2);border-top:1px solid var(--b1);display:flex;flex-direction:column;flex-shrink:0;position:relative}
+.resize-handle{height:6px;background:transparent;cursor:ns-resize;position:absolute;top:-3px;left:0;right:0;z-index:50}
+.resize-handle::after{content:'';position:absolute;top:2px;left:50%;transform:translateX(-50%);width:30px;height:3px;background:var(--b2);border-radius:2px;transition:background .15s}
+.resize-handle:hover::after,.resize-handle.dragging::after{background:var(--acc)}
+.resize-handle:hover{background:rgba(79,125,255,.05)}
+.chat-hd{height:34px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 10px;gap:7px;flex-shrink:0}
+.ch-ai-ico{width:20px;height:20px;border-radius:5px;background:linear-gradient(135deg,var(--acc),var(--v2));display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+.ch-title{font-family:'Outfit',sans-serif;font-weight:700;font-size:11.5px}
+.ch-ctx-row{flex:1;display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:0 4px;overflow:hidden}
+.ctx-c{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:1px 5px;border-radius:4px;border:1px solid;white-space:nowrap}
+.ctx-c.file{background:var(--acc-dim);color:var(--acc);border-color:rgba(79,125,255,.25)}
+.ctx-c.sk{background:var(--v2-dim);color:var(--v2);border-color:rgba(139,92,246,.25)}
+.ctx-c.dep{background:var(--amb-dim);color:var(--amb);border-color:rgba(245,158,11,.25)}
+.chat-hd-acts{margin-left:auto;display:flex;align-items:center;gap:2px;flex-shrink:0}
+.hd-act-btn{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;transition:all .15s;border:1px solid transparent;color:var(--t3);position:relative;flex-shrink:0;user-select:none}
+.hd-act-btn:hover{background:var(--s2);color:var(--t2);border-color:var(--b1)}
+.hd-act-btn.active{background:var(--acc-dim);border-color:rgba(79,125,255,.3);color:var(--acc)}
+.hd-act-btn.sk-active{background:var(--v2-dim);border-color:rgba(139,92,246,.3);color:var(--v2)}
+.hd-act-btn.amb{color:var(--amb)}
+.hd-act-btn.amb:hover{background:var(--amb-dim);border-color:rgba(245,158,11,.3)}
+.hd-act-btn::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);right:0;background:rgba(23,28,43,.98);color:var(--t1);font-family:'Outfit',sans-serif;font-weight:600;font-size:10px;white-space:nowrap;padding:3px 7px;border-radius:5px;border:1px solid var(--b2);pointer-events:none;opacity:0;transition:opacity .15s;z-index:300}
+.hd-act-btn:hover::after{opacity:1}
+.act-cnt{position:absolute;top:-3px;right:-3px;width:13px;height:13px;border-radius:50%;background:var(--v2);color:#fff;font-size:7px;font-weight:800;font-family:'Outfit',sans-serif;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--s1)}
+.minimize-btn{font-size:14px;font-weight:700;color:var(--t3)}
+.minimize-btn:hover{color:var(--t1)}
+.chat-panel.minimized .chat-body{display:none}
+.chat-panel.minimized .inp-area{display:none}
+.chat-panel.minimized{height:34px!important}
+.chat-panel.minimized .minimize-btn{transform:rotate(180deg)}
+
+/* ── CHAT BODY ── */
+.chat-body{flex:1;display:flex;overflow:hidden;min-height:0}
+.chat-main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.msgs-col{flex:1;overflow-y:auto;padding:9px 12px;display:flex;flex-direction:column;gap:7px;min-width:0}
+.msg{display:flex;flex-direction:column;gap:2px}
+.msg.a{align-items:flex-start}
+.msg.u{align-items:flex-end}
+.bbl{max-width:80%;padding:7px 9px;border-radius:8px;font-size:11.5px;line-height:1.6}
+.msg.a .bbl{background:var(--s2);color:var(--t1);border:1px solid var(--b1);border-bottom-left-radius:2px}
+.msg.u .bbl{background:var(--acc);color:#fff;border-bottom-right-radius:2px}
+.mt{font-size:9px;color:var(--t3);padding:0 2px}
+.code-snip{margin-top:5px;background:var(--bg);border:1px solid var(--b1);border-radius:6px;overflow:hidden}
+.cs-h{padding:3px 8px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--b1);display:flex;justify-content:space-between;font-size:9px;color:var(--t3)}
+.cs-h span.g{color:var(--grn)}
+.cs-body{padding:6px 8px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;line-height:1.65;color:var(--t2);overflow-x:auto}
+.m-acts{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.m-btn{font-size:9.5px;padding:2px 8px;border-radius:4px;border:1px solid var(--b1);background:transparent;color:var(--t2);cursor:pointer;transition:all .1s;font-family:'DM Sans',sans-serif}
+.m-btn:hover{border-color:var(--acc);color:var(--acc)}
+.m-btn.pri{background:var(--acc-dim);border-color:rgba(79,125,255,.3);color:var(--acc)}
+.typing-wrap{display:flex;align-items:center;gap:5px;padding:7px 9px;background:var(--s2);border:1px solid var(--b1);border-radius:8px;border-bottom-left-radius:2px;width:fit-content}
+.tdots{display:flex;gap:3px}
+.td{width:4px;height:4px;border-radius:50%;background:var(--acc);animation:bnc 1.2s infinite}
+.td:nth-child(2){animation-delay:.2s}.td:nth-child(3){animation-delay:.4s}
+@keyframes bnc{0%,60%,100%{transform:translateY(0);opacity:.3}30%{transform:translateY(-4px);opacity:1}}
+
+/* ── INPUT AREA ── */
+.inp-area{padding:8px 10px;border-top:1px solid var(--b1);flex-shrink:0;position:relative}
+.inp-box{background:var(--bg);border:1px solid var(--b1);border-radius:7px;padding:7px 9px;display:flex;flex-direction:column;gap:5px;transition:border-color .2s}
+.inp-box:focus-within{border-color:var(--acc);box-shadow:0 0 0 2px rgba(79,125,255,.07)}
+.inp-box textarea{background:transparent;border:none;outline:none;color:var(--t1);font-family:'DM Sans',sans-serif;font-size:11.5px;line-height:1.5;resize:none;width:100%;max-height:80px}
+.inp-box textarea::placeholder{color:var(--t3)}
+.inp-ft{display:flex;align-items:center;justify-content:space-between;gap:4px}
+.inp-left-acts{display:flex;align-items:center;gap:4px;flex:1;min-width:0;overflow:hidden}
+.hints{display:flex;gap:3px;flex-wrap:wrap}
+.ht{font-size:9px;padding:2px 5px;background:var(--s2);border:1px solid var(--b1);border-radius:4px;color:var(--t3);cursor:pointer;transition:all .1s}
+.ht:hover{border-color:var(--acc);color:var(--acc)}
+.send{width:24px;height:24px;border-radius:6px;background:var(--acc);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .15s;flex-shrink:0;box-shadow:0 2px 7px var(--acc-glow)}
+.send:hover{background:#6090ff;transform:translateY(-1px)}
+.inp-act-btn{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;background:transparent;border:1px solid transparent;color:var(--t3);transition:all .15s;flex-shrink:0}
+.inp-act-btn:hover{background:var(--s2);border-color:var(--b1);color:var(--t2)}
+
+/* ── ATTACHMENT ── */
+.attach-strip{display:flex;gap:5px;flex-wrap:wrap;padding:5px 0 3px;border-bottom:1px solid var(--b1);margin-bottom:4px}
+.attach-item{display:flex;align-items:center;gap:4px;background:var(--s2);border:1px solid var(--b1);border-radius:5px;padding:3px 7px;font-size:9.5px;color:var(--t2);font-family:'IBM Plex Mono',monospace}
+.attach-item-ico{font-size:11px}
+.attach-item-name{max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.attach-item-x{color:var(--t3);cursor:pointer;font-size:12px;line-height:1;margin-left:2px}
+.attach-item-x:hover{color:var(--red)}
+
+/* ════════════════════════════════════════════
+   UNIFIED SKILL DRAWER  (原 skill抽屉 + 模板入口)
+   ════════════════════════════════════════════ */
+.sk-drawer{position:absolute;top:0;right:0;bottom:0;width:280px;background:var(--s1);border-left:1px solid var(--b2);z-index:30;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s cubic-bezier(.16,1,.3,1);box-shadow:-8px 0 30px rgba(0,0,0,.4)}
+.sk-drawer.on{transform:translateX(0)}
+
+/* drawer header with tabs */
+.skd-hd{padding:0 11px;border-bottom:1px solid var(--b1);display:flex;align-items:stretch;gap:0;flex-shrink:0;height:38px}
+.skd-tab{display:flex;align-items:center;gap:5px;padding:0 10px;font-family:'Outfit',sans-serif;font-weight:700;font-size:10.5px;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.skd-tab:hover{color:var(--t2)}
+.skd-tab.on{color:var(--v2);border-bottom-color:var(--v2)}
+.skd-close{margin-left:auto;width:20px;height:20px;border-radius:4px;border:1px solid var(--b1);background:transparent;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;align-self:center}
+.skd-close:hover{background:var(--s2);color:var(--t1)}
+
+/* drawer panel visibility */
+.skd-panel{display:none;flex-direction:column;flex:1;overflow:hidden}
+.skd-panel.on{display:flex}
+
+/* ── PANEL A: skill 选择列表 ── */
+.skd-search{padding:6px 9px;border-bottom:1px solid var(--b1);flex-shrink:0}
+.skd-si{background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:5px 8px;display:flex;align-items:center;gap:5px}
+.skd-si:focus-within{border-color:var(--acc)}
+.skd-si input{background:transparent;border:none;outline:none;color:var(--t1);font-size:10.5px;flex:1;font-family:'DM Sans',sans-serif}
+.skd-si input::placeholder{color:var(--t3)}
+.skd-list{flex:1;overflow-y:auto;padding:5px}
+.sdi{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:6px;cursor:pointer;border:1px solid transparent;margin-bottom:2px;transition:all .1s}
+.sdi:hover{background:var(--s2)}
+.sdi.on{background:var(--acc-dim);border-color:rgba(79,125,255,.25)}
+.sdi-ico{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.sdi-info{flex:1;min-width:0}
+.sdi-name{font-family:'Outfit',sans-serif;font-weight:700;font-size:10.5px;margin-bottom:1px;display:flex;align-items:center;gap:4px}
+.sdi-desc{font-size:9px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sdi-chk{width:14px;height:14px;border-radius:50%;border:2px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:8px;flex-shrink:0;transition:all .1s}
+.sdi.on .sdi-chk{background:var(--acc);border-color:var(--acc);color:#fff}
+/* has-tpl badge */
+.tpl-badge{font-size:7.5px;padding:0 4px;border-radius:3px;background:var(--v2-dim);color:var(--v2);border:1px solid rgba(139,92,246,.25);font-family:'IBM Plex Mono',monospace;font-weight:600;white-space:nowrap}
+.skd-footer{padding:8px 9px;border-top:1px solid var(--b1);flex-shrink:0}
+.active-chips{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:5px;min-height:18px}
+.ach{display:flex;align-items:center;gap:3px;font-size:9px;padding:2px 6px;border-radius:5px;background:var(--v2-dim);border:1px solid rgba(139,92,246,.25);color:var(--v2);font-family:'Outfit',sans-serif;font-weight:600}
+.ach-x{cursor:pointer;opacity:.7;font-size:11px;line-height:1}
+.ach-x:hover{opacity:1}
+
+/* ── PANEL B: 快速调用 (触发模板) ── */
+.skd-invoke-list{flex:1;overflow-y:auto;padding:5px}
+.skd-invoke-empty{padding:20px 12px;text-align:center;color:var(--t3);font-size:10.5px}
+.invoke-item{padding:7px 9px;border-radius:7px;cursor:pointer;border:1px solid transparent;margin-bottom:4px;transition:all .12s;position:relative}
+.invoke-item:hover{background:var(--s2);border-color:var(--b1)}
+.invoke-item-hd{display:flex;align-items:center;gap:7px;margin-bottom:4px}
+.invoke-item-ico{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.invoke-item-name{font-family:'Outfit',sans-serif;font-weight:700;font-size:10.5px;flex:1}
+.invoke-item-cat{font-size:8px;padding:1px 5px;border-radius:3px;border:1px solid;font-family:'IBM Plex Mono',monospace;font-weight:600}
+.invoke-direct-btn{font-size:9px;padding:2px 7px;border-radius:4px;background:var(--grn-dim);border:1px solid rgba(16,185,129,.3);color:var(--grn);cursor:pointer;font-family:'Outfit',sans-serif;font-weight:700;transition:all .1s;white-space:nowrap}
+.invoke-direct-btn:hover{background:rgba(16,185,129,.2)}
+.invoke-tpl-btn{font-size:9px;padding:2px 7px;border-radius:4px;background:var(--v2-dim);border:1px solid rgba(139,92,246,.3);color:var(--v2);cursor:pointer;font-family:'Outfit',sans-serif;font-weight:700;transition:all .1s;white-space:nowrap}
+.invoke-tpl-btn:hover{background:rgba(139,92,246,.2)}
+.invoke-desc{font-size:9.5px;color:var(--t3);line-height:1.5}
+.invoke-fields-preview{display:flex;gap:3px;flex-wrap:wrap;margin-top:3px}
+.ifield-tag{font-size:8.5px;padding:1px 5px;background:var(--s3);border:1px solid var(--b1);border-radius:3px;color:var(--t3);font-family:'IBM Plex Mono',monospace}
+
+/* ═══ SKILL TEMPLATE FILL MODAL ═══ */
+.tpl-modal-bg{position:fixed;inset:0;background:rgba(8,10,15,.7);backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:stretch;z-index:200}
+.tpl-modal-bg.on{display:flex;animation:fadeIn .18s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+/* modal slides up from bottom of chat panel */
+.tpl-modal{background:var(--s1);border:1px solid var(--b2);border-radius:12px 12px 0 0;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 -12px 50px rgba(0,0,0,.6);animation:slideUp .22s cubic-bezier(.16,1,.3,1)}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.tpl-modal-hd{padding:13px 16px 0;flex-shrink:0}
+.tpl-modal-drag{width:36px;height:3px;background:var(--b2);border-radius:2px;margin:0 auto 10px;cursor:grab}
+.tpl-modal-title-row{display:flex;align-items:center;gap:9px;margin-bottom:4px}
+.tpl-modal-ico{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.tpl-modal-name{font-family:'Outfit',sans-serif;font-weight:800;font-size:14px;flex:1}
+.tpl-modal-close{width:22px;height:22px;border-radius:5px;border:1px solid var(--b1);background:transparent;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px}
+.tpl-modal-close:hover{background:var(--s2);color:var(--t1)}
+.tpl-modal-subdesc{font-size:10.5px;color:var(--t3);padding:0 0 10px 39px}
+
+/* preview strip */
+.tpl-preview-strip{margin:0 16px 0;background:var(--bg);border:1px solid var(--b1);border-left:3px solid var(--v2);border-radius:6px;padding:8px 10px;font-size:10.5px;line-height:1.7;color:var(--t2);word-break:break-word;max-height:70px;overflow-y:auto}
+.tpl-preview-strip .slot{color:var(--v2);font-family:'IBM Plex Mono',monospace;font-size:9.5px;background:var(--v2-dim);padding:0 3px;border-radius:3px}
+.tpl-preview-strip .filled{color:var(--grn);font-family:'IBM Plex Mono',monospace;font-size:9.5px;background:var(--grn-dim);padding:0 3px;border-radius:3px}
+
+/* fields */
+.tpl-modal-body{overflow-y:auto;flex:1;padding:10px 16px;display:flex;flex-direction:column;gap:10px}
+.tpl-field{display:flex;flex-direction:column;gap:3px}
+.tpl-field-lbl{font-size:10.5px;color:var(--t2);font-weight:600;display:flex;align-items:center;gap:4px}
+.tpl-field-req{color:var(--red);font-size:9px}
+.tpl-field-hint{font-size:9px;color:var(--t3)}
+.tpl-input{background:var(--bg);border:1px solid var(--b1);border-radius:6px;padding:6px 9px;color:var(--t1);font-size:11px;font-family:'DM Sans',sans-serif;outline:none;width:100%;transition:border-color .2s}
+.tpl-input:focus{border-color:var(--v2);box-shadow:0 0 0 2px var(--v2-dim)}
+.tpl-textarea{background:var(--bg);border:1px solid var(--b1);border-radius:6px;padding:6px 9px;color:var(--t1);font-size:11px;font-family:'DM Sans',sans-serif;outline:none;width:100%;resize:none;line-height:1.5;transition:border-color .2s}
+.tpl-textarea:focus{border-color:var(--v2);box-shadow:0 0 0 2px var(--v2-dim)}
+.tpl-select{background:var(--bg);border:1px solid var(--b1);border-radius:6px;padding:6px 9px;color:var(--t1);font-size:11px;font-family:'DM Sans',sans-serif;outline:none;width:100%;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='5'%3E%3Cpath d='M0 0l4.5 5L9 0z' fill='%23454e6a'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;transition:border-color .2s}
+.tpl-select:focus{border-color:var(--v2);box-shadow:0 0 0 2px var(--v2-dim)}
+.tpl-chips{display:flex;flex-wrap:wrap;gap:5px}
+.tpl-chip{font-size:10px;padding:3px 9px;border-radius:12px;border:1px solid var(--b2);color:var(--t3);cursor:pointer;transition:all .12s;user-select:none;font-weight:500}
+.tpl-chip:hover{border-color:var(--v2);color:var(--v2)}
+.tpl-chip.on{background:var(--v2-dim);border-color:rgba(139,92,246,.4);color:var(--v2);font-weight:600}
+
+/* footer */
+.tpl-modal-ft{padding:10px 16px 14px;border-top:1px solid var(--b1);display:flex;gap:8px;flex-shrink:0;justify-content:flex-end}
+.tpl-submit-btn{font-family:'Outfit',sans-serif;font-weight:800;font-size:11px;padding:7px 18px;background:linear-gradient(135deg,var(--v2),var(--acc));color:#fff;border:none;border-radius:7px;cursor:pointer;transition:all .15s;box-shadow:0 3px 14px var(--v2-glow);white-space:nowrap}
+.tpl-submit-btn:hover{transform:translateY(-1px);box-shadow:0 5px 20px var(--v2-glow)}
+.tpl-cancel-btn{font-family:'Outfit',sans-serif;font-weight:700;font-size:11px;padding:7px 18px;background:transparent;color:var(--t3);border:1px solid var(--b1);border-radius:7px;cursor:pointer;transition:all .1s;white-space:nowrap}
+.tpl-cancel-btn:hover{color:var(--t1);border-color:var(--b2)}
+
+/* ── intent match bar above input ── */
+.intent-bar{display:none;align-items:center;gap:6px;padding:5px 10px 4px;border-bottom:1px solid var(--b1);animation:slideDown .15s ease}
+.intent-bar.on{display:flex}
+@keyframes slideDown{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.intent-dot{width:5px;height:5px;border-radius:50%;background:var(--v2);animation:blink 1.4s infinite;flex-shrink:0}
+.intent-label{font-size:9.5px;color:var(--t3);flex:1}
+.intent-label strong{color:var(--v2)}
+.intent-use-btn{font-family:'Outfit',sans-serif;font-weight:700;font-size:9px;padding:2px 8px;border-radius:4px;background:var(--v2-dim);color:var(--v2);border:1px solid rgba(139,92,246,.3);cursor:pointer;transition:all .1s;white-space:nowrap}
+.intent-use-btn:hover{background:rgba(139,92,246,.2)}
+.intent-dismiss{color:var(--t3);cursor:pointer;font-size:13px;line-height:1;padding:1px 3px;border-radius:3px;flex-shrink:0}
+.intent-dismiss:hover{background:var(--s3);color:var(--t2)}
+
+/* statusbar */
+.statusbar{height:20px;background:var(--acc);display:flex;align-items:center;padding:0 10px;gap:9px;font-size:9.5px;color:rgba(255,255,255,.85);flex-shrink:0;z-index:50}
+.sb-r{margin-left:auto;display:flex;gap:9px}
+
+/* ═══ DEPS PAGE ═══ */
+.deps-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.page-inner{flex:1;overflow-y:auto;padding:20px 26px}
+.pg-h{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.pg-h-left h2{font-family:'Outfit',sans-serif;font-weight:800;font-size:17px;letter-spacing:-.4px;margin-bottom:3px}
+.pg-h-left p{font-size:11.5px;color:var(--t2)}
+.pg-h-right{display:flex;gap:7px;align-items:center}
+.sec-h{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+.sec-h-title{font-family:'Outfit',sans-serif;font-weight:700;font-size:10.5px;color:var(--t2);white-space:nowrap}
+.sec-h-line{flex:1;height:1px;background:var(--b1)}
+.sec-h-cnt{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--t3);white-space:nowrap}
+.acc{color:var(--acc)}
+.dep-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:20px}
+.dep-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r2);padding:13px;display:flex;flex-direction:column;gap:9px;transition:all .2s}
+.dep-card:hover{border-color:var(--b2)}
+.dep-c-head{display:flex;align-items:center;gap:9px}
+.dep-ico{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.dep-c-info{flex:1;min-width:0}
+.dep-ns{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:12.5px;color:var(--acc);margin-bottom:2px}
+.dep-name{font-size:10.5px;color:var(--t2)}
+.dep-c-acts{display:flex;gap:4px;align-items:center;flex-shrink:0}
+.dep-status{font-size:9.5px;color:var(--grn);display:flex;align-items:center;gap:3px}
+.dep-url{display:flex;align-items:center;gap:5px;background:var(--s3);border:1px solid var(--b1);border-radius:5px;padding:4px 8px;font-size:9.5px}
+.dep-url-txt{font-family:'IBM Plex Mono',monospace;color:var(--t3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dep-url-copy{color:var(--t3);cursor:pointer;flex-shrink:0}
+.dep-url-copy:hover{color:var(--acc)}
+.dep-meta{display:flex;align-items:center;gap:9px;font-size:9.5px}
+.dep-ver{font-family:'IBM Plex Mono',monospace;color:var(--grn);background:var(--grn-dim);padding:1px 5px;border-radius:3px;border:1px solid rgba(16,185,129,.2)}
+.dep-last{color:var(--t3)}
+.dep-preview{border-top:1px solid var(--b1);padding-top:9px}
+.dp-head{display:flex;justify-content:space-between;font-size:9.5px;color:var(--t3);margin-bottom:4px}
+.dp-body{background:var(--bg);border:1px solid var(--b1);border-radius:5px;overflow:hidden}
+.dp-body pre{padding:7px 8px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;line-height:1.65;color:var(--t2);overflow-x:auto}
+.update-log{display:flex;flex-direction:column}
+.log-item{display:flex;align-items:flex-start;gap:7px;padding:5px 0;border-bottom:1px solid var(--b1);font-size:10.5px}
+.log-item:last-child{border-bottom:none}
+.log-icon{font-size:11px;flex-shrink:0;margin-top:1px}
+.log-txt{flex:1;color:var(--t2);line-height:1.5}
+.log-txt strong{color:var(--t1)}
+.log-time{font-size:9px;color:var(--t3);white-space:nowrap;font-family:'IBM Plex Mono',monospace}
+
+/* ═══ SKILLS PAGE (管理视图) ═══ */
+.skills-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.skill-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-bottom:18px}
+/* Skill 卡片 — 只展示摘要，编辑在抽屉里 */
+.sk-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r2);padding:13px;display:flex;flex-direction:column;gap:9px;transition:all .2s;position:relative;overflow:hidden}
+.sk-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--acc);opacity:0;transition:opacity .2s}
+.sk-card:hover{border-color:var(--b2)}
+.sk-card.en::before{opacity:1}.sk-card.en{border-color:rgba(79,125,255,.25);background:rgba(79,125,255,.03)}
+.sk-c-head{display:flex;align-items:flex-start;gap:9px}
+.sk-ico{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.sk-c-info{flex:1;min-width:0}
+.sk-c-name{font-family:'Outfit',sans-serif;font-weight:700;font-size:12px;display:flex;align-items:center;gap:5px;margin-bottom:3px;flex-wrap:wrap}
+.sk-c-desc{font-size:10.5px;color:var(--t2);line-height:1.5}
+.toggle{width:32px;height:17px;background:var(--s3);border:1px solid var(--b1);border-radius:9px;position:relative;cursor:pointer;transition:all .2s;flex-shrink:0}
+.toggle.on{background:var(--acc);border-color:var(--acc)}
+.tk{width:11px;height:11px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.toggle.on .tk{transform:translateX(15px)}
+.sk-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.stag{font-size:9px;padding:1px 5px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-weight:600;border:1px solid}
+.stag-cat{color:var(--t2);background:var(--s2);border-color:var(--b1)}
+.stag-ver{color:var(--grn);background:var(--grn-dim);border-color:rgba(16,185,129,.2)}
+.stag-new{color:var(--amb);background:var(--amb-dim);border-color:rgba(245,158,11,.2)}
+.stag-beta{color:var(--v2);background:var(--v2-dim);border-color:rgba(139,92,246,.2)}
+.stag-tpl{color:var(--v2);background:var(--v2-dim);border-color:rgba(139,92,246,.3)}
+/* 卡片底部操作行 */
+.sk-card-ft{display:flex;align-items:center;gap:6px;padding-top:8px;border-top:1px solid var(--b1)}
+.sk-prompt-preview{flex:1;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--t3);line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;cursor:pointer}
+.sk-prompt-preview:hover{color:var(--t2)}
+.sk-edit-btn{font-family:'Outfit',sans-serif;font-weight:700;font-size:9.5px;padding:3px 9px;border-radius:5px;background:transparent;border:1px solid var(--b1);color:var(--t2);cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.sk-edit-btn:hover{border-color:var(--v2);color:var(--v2);background:var(--v2-dim)}
+.sk-tpl-count{font-size:9px;color:var(--t3);white-space:nowrap}
+.sk-usage{display:flex;align-items:center;font-size:9.5px;color:var(--t3);gap:6px}
+
+/* ═══ SKILL EDIT DRAWER ═══ */
+.sk-edit-drawer{position:fixed;top:0;right:0;bottom:0;width:480px;background:var(--s1);border-left:1px solid var(--b2);z-index:300;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .28s cubic-bezier(.16,1,.3,1);box-shadow:-12px 0 40px rgba(0,0,0,.5)}
+.sk-edit-drawer.on{transform:translateX(0)}
+.sk-edit-overlay{position:fixed;inset:0;background:rgba(8,10,15,.6);backdrop-filter:blur(4px);z-index:299;display:none;animation:fadeIn .2s ease}
+.sk-edit-overlay.on{display:block}
+
+/* drawer header */
+.sed-hd{padding:14px 16px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.sed-ico{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.sed-title-wrap{flex:1;min-width:0}
+.sed-title{font-family:'Outfit',sans-serif;font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sed-subtitle{font-size:10px;color:var(--t3);margin-top:1px}
+.sed-close{width:24px;height:24px;border-radius:6px;border:1px solid var(--b1);background:transparent;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:all .1s}
+.sed-close:hover{background:var(--s2);color:var(--t1)}
+
+/* drawer tabs */
+.sed-tabs{display:flex;border-bottom:1px solid var(--b1);flex-shrink:0;padding:0 16px}
+.sed-tab{padding:9px 12px;font-family:'Outfit',sans-serif;font-weight:700;font-size:10.5px;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.sed-tab:hover{color:var(--t2)}
+.sed-tab.on{color:var(--v2);border-bottom-color:var(--v2)}
+
+/* tab panels */
+.sed-panel{display:none;flex-direction:column;flex:1;overflow:hidden}
+.sed-panel.on{display:flex}
+.sed-body{flex:1;overflow-y:auto;padding:16px}
+.sed-section{margin-bottom:18px}
+.sed-section-title{font-size:9px;font-family:'Outfit',sans-serif;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t4);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.sed-section-title::after{content:'';flex:1;height:1px;background:var(--b1)}
+
+/* prompt editor */
+.sed-prompt-area{background:var(--bg);border:1px solid var(--b1);border-radius:7px;padding:10px 12px;font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:var(--t2);outline:none;width:100%;resize:none;min-height:100px;line-height:1.7;transition:border-color .2s}
+.sed-prompt-area:focus{border-color:var(--v2);box-shadow:0 0 0 2px var(--v2-dim)}
+.sed-prompt-hint{font-size:9px;color:var(--t3);margin-top:5px;line-height:1.5}
+.sed-prompt-hint .slot{color:var(--v2);font-family:'IBM Plex Mono',monospace;font-size:9px;background:var(--v2-dim);padding:0 3px;border-radius:3px}
+
+/* basic info fields */
+.sed-field-row{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.sed-field-label{font-size:10px;color:var(--t2);font-weight:600;display:flex;align-items:center;gap:5px}
+.sed-field-label .opt{font-weight:400;color:var(--t3);font-size:9px}
+.sed-input{background:var(--bg);border:1px solid var(--b1);border-radius:6px;padding:6px 9px;color:var(--t1);font-size:11px;font-family:'DM Sans',sans-serif;outline:none;width:100%;transition:border-color .2s}
+.sed-input:focus{border-color:var(--v2)}
+.sed-select{background:var(--bg);border:1px solid var(--b1);border-radius:6px;padding:6px 9px;color:var(--t1);font-size:11px;font-family:'DM Sans',sans-serif;outline:none;width:100%;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='5'%3E%3Cpath d='M0 0l4.5 5L9 0z' fill='%23454e6a'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center}
+.sed-select:focus{border-color:var(--v2)}
+.sed-keywords-wrap{display:flex;flex-wrap:wrap;gap:5px;margin-top:3px}
+.sed-kw-tag{display:flex;align-items:center;gap:3px;font-size:9.5px;padding:2px 7px;border-radius:12px;background:var(--s3);border:1px solid var(--b1);color:var(--t2)}
+.sed-kw-del{cursor:pointer;color:var(--t3);font-size:11px;line-height:1}
+.sed-kw-del:hover{color:var(--red)}
+.sed-kw-add{display:flex;align-items:center;gap:5px;margin-top:5px}
+.sed-kw-inp{background:var(--bg);border:1px solid var(--b1);border-radius:5px;padding:3px 7px;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--t1);outline:none;flex:1;transition:border-color .2s}
+.sed-kw-inp:focus{border-color:var(--v2)}
+
+/* template params tab */
+.sed-fields-list{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.sed-field-item{border-radius:8px;border:1px solid var(--b1);background:var(--s3);overflow:hidden;transition:border-color .15s}
+.sed-field-item:hover{border-color:var(--b2)}
+.sed-field-item.expanded{border-color:rgba(139,92,246,.4);background:var(--s2)}
+.sed-fi-summary{display:flex;align-items:center;gap:7px;padding:7px 10px;cursor:pointer;user-select:none}
+.sed-fi-ico{font-size:13px;flex-shrink:0}
+.sed-fi-label{font-family:'Outfit',sans-serif;font-weight:700;font-size:11px;flex:1}
+.sed-field-item.expanded .sed-fi-label{color:var(--v2)}
+.sed-fi-type-badge{font-size:8px;padding:1px 6px;border-radius:3px;background:var(--v2-dim);color:var(--v2);border:1px solid rgba(139,92,246,.2);font-family:'IBM Plex Mono',monospace;font-weight:600}
+.sed-fi-req{font-size:8px;padding:1px 5px;border-radius:3px;background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.2);font-family:'IBM Plex Mono',monospace;font-weight:600}
+.sed-fi-expand{font-size:10px;color:var(--t3);transition:transform .15s;flex-shrink:0}
+.sed-field-item.expanded .sed-fi-expand{transform:rotate(180deg);color:var(--v2)}
+.sed-fi-del{color:var(--t3);cursor:pointer;font-size:15px;line-height:1;padding:1px 4px;border-radius:3px;flex-shrink:0}
+.sed-fi-del:hover{color:var(--red);background:var(--red-dim)}
+.sed-fi-config{display:none;padding:0 10px 10px;flex-direction:column;gap:9px}
+.sed-field-item.expanded .sed-fi-config{display:flex;border-top:1px solid var(--b1);padding-top:9px}
+.sfc-row{display:flex;flex-direction:column;gap:3px}
+.sfc-label{font-size:9px;font-family:'Outfit',sans-serif;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--t4)}
+.sfc-input{background:var(--bg);border:1px solid var(--b1);border-radius:5px;padding:5px 8px;font-size:10.5px;font-family:'DM Sans',sans-serif;color:var(--t1);outline:none;width:100%;transition:border-color .2s}
+.sfc-input:focus{border-color:var(--v2)}
+.sfc-check{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:10.5px;color:var(--t2);user-select:none}
+.sfc-check input{accent-color:var(--v2);width:13px;height:13px;cursor:pointer}
+.sfc-options-list{display:flex;flex-direction:column;gap:4px;max-height:150px;overflow-y:auto}
+.sfc-opt-row{display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--b1);border-radius:6px;padding:4px 8px}
+.sfc-opt-val{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--t2);flex:1}
+.sfc-opt-default{font-size:8px;padding:1px 5px;border-radius:3px;background:var(--grn-dim);color:var(--grn);border:1px solid rgba(16,185,129,.2);font-family:'IBM Plex Mono',monospace}
+.sfc-opt-set-def{font-size:10px;color:var(--t3);cursor:pointer;padding:1px 5px;border-radius:3px;transition:all .1s}
+.sfc-opt-set-def:hover{color:var(--grn);background:var(--grn-dim)}
+.sfc-opt-del{color:var(--t3);cursor:pointer;font-size:13px;line-height:1;padding:1px 3px;border-radius:3px}
+.sfc-opt-del:hover{color:var(--red);background:var(--red-dim)}
+.sfc-add-opt-row{display:flex;align-items:center;gap:5px;margin-top:3px}
+.sfc-add-opt-inp{background:var(--bg);border:1px solid var(--b1);border-radius:5px;padding:4px 8px;font-size:10.5px;font-family:'DM Sans',sans-serif;color:var(--t1);outline:none;flex:1;transition:border-color .2s}
+.sfc-add-opt-inp:focus{border-color:var(--v2)}
+.sfc-add-opt-btn{font-family:'Outfit',sans-serif;font-weight:700;font-size:10px;padding:3px 9px;border-radius:5px;background:var(--v2-dim);color:var(--v2);border:1px solid rgba(139,92,246,.3);cursor:pointer;white-space:nowrap;transition:all .1s}
+.sfc-add-opt-btn:hover{background:rgba(139,92,246,.2)}
+.sfc-empty-opts{font-size:9.5px;color:var(--t3);padding:6px 0;text-align:center}
+
+/* add field row */
+.sed-add-field-row{display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--s3);border:1px dashed var(--b2);border-radius:7px;margin-top:2px}
+.sed-new-field-inp{background:var(--bg);border:1px solid var(--b1);border-radius:5px;padding:5px 8px;font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:var(--t1);outline:none;flex:1;transition:border-color .2s}
+.sed-new-field-inp:focus{border-color:var(--v2)}
+.sed-new-field-type{background:var(--bg);border:1px solid var(--b1);border-radius:5px;padding:5px 8px;font-size:10px;color:var(--t1);outline:none;cursor:pointer;appearance:none;min-width:80px}
+.sed-new-field-type:focus{border-color:var(--v2)}
+
+/* drawer footer */
+.sed-ft{padding:12px 16px;border-top:1px solid var(--b1);display:flex;gap:8px;flex-shrink:0}
+.sed-save-btn{flex:1;font-family:'Outfit',sans-serif;font-weight:800;font-size:11.5px;padding:8px 14px;background:linear-gradient(135deg,var(--v2),var(--acc));color:#fff;border:none;border-radius:7px;cursor:pointer;transition:all .15s;box-shadow:0 3px 14px var(--v2-glow)}
+.sed-save-btn:hover{transform:translateY(-1px);box-shadow:0 5px 20px var(--v2-glow)}
+.sed-cancel-btn{font-family:'Outfit',sans-serif;font-weight:700;font-size:11px;padding:8px 12px;background:transparent;color:var(--t3);border:1px solid var(--b1);border-radius:7px;cursor:pointer;transition:all .1s}
+.sed-cancel-btn:hover{color:var(--t1);border-color:var(--b2)}
+.sed-del-btn{font-family:'Outfit',sans-serif;font-weight:700;font-size:11px;padding:8px 12px;background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.3);border-radius:7px;cursor:pointer;transition:all .1s}
+.sed-del-btn:hover{background:rgba(239,68,68,.15)}
+
+/* 残留旧CSS兼容 */
+.sk-prompt-section{display:none}
+.pr-textarea{background:var(--bg);border:1px solid var(--b1);border-radius:5px;padding:6px 8px;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--t2);outline:none;width:100%;resize:vertical;min-height:52px;line-height:1.6;transition:border-color .2s}
+.pr-textarea:focus{border-color:var(--acc)}
+/* ── FIELD CONFIG EDITOR ── */
+.sk-tpl-fields{display:flex;flex-direction:column;gap:4px}
+.sk-field-row{border-radius:7px;border:1px solid var(--b1);background:var(--s3);overflow:hidden;transition:border-color .15s}
+.sk-field-row:hover{border-color:var(--b2)}
+.sk-field-row.expanded{border-color:rgba(139,92,246,.35);background:var(--s2)}
+.sk-field-summary{display:flex;align-items:center;gap:6px;padding:5px 8px;cursor:pointer;user-select:none}
+.sk-field-ico{font-size:11px;flex-shrink:0}
+.sk-field-name{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--t2);flex:1;font-weight:600}
+.sk-field-row.expanded .sk-field-name{color:var(--v2)}
+.sk-field-type{font-size:8px;padding:1px 5px;border-radius:3px;background:var(--v2-dim);color:var(--v2);border:1px solid rgba(139,92,246,.2);font-family:'IBM Plex Mono',monospace;font-weight:600;white-space:nowrap}
+.sk-field-req-badge{font-size:7.5px;padding:0 4px;border-radius:3px;background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.2);font-family:'IBM Plex Mono',monospace;font-weight:600}
+.sk-field-expand-ico{font-size:9px;color:var(--t3);transition:transform .15s;flex-shrink:0}
+.sk-field-row.expanded .sk-field-expand-ico{transform:rotate(180deg);color:var(--v2)}
+.sk-field-del{color:var(--t3);cursor:pointer;font-size:14px;line-height:1;padding:1px 4px;border-radius:3px;flex-shrink:0}
+.sk-field-del:hover{color:var(--red);background:var(--red-dim)}
+.sk-field-config{display:none;padding:0 8px 8px;flex-direction:column;gap:7px}
+.sk-field-row.expanded .sk-field-config{display:flex;padding-top:6px;border-top:1px solid var(--b1)}
+.sfc-row{display:flex;flex-direction:column;gap:3px}
+.sfc-label{font-size:9px;font-family:'Outfit',sans-serif;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--t4)}
+.sfc-input{background:var(--bg);border:1px solid var(--b1);border-radius:5px;padding:4px 7px;font-size:10px;font-family:'DM Sans',sans-serif;color:var(--t1);outline:none;width:100%;transition:border-color .2s}
+.sfc-input:focus{border-color:var(--v2)}
+.sfc-check{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:10px;color:var(--t2);user-select:none}
+.sfc-check input{accent-color:var(--v2);width:12px;height:12px;cursor:pointer}
+.sfc-options-list{display:flex;flex-direction:column;gap:3px;max-height:120px;overflow-y:auto}
+.sfc-opt-row{display:flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--b1);border-radius:5px;padding:3px 7px}
+.sfc-opt-val{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--t2);flex:1}
+.sfc-opt-default{font-size:8px;padding:0 4px;border-radius:3px;background:var(--grn-dim);color:var(--grn);border:1px solid rgba(16,185,129,.2);font-family:'IBM Plex Mono',monospace}
+.sfc-opt-set-def{font-size:8px;color:var(--t3);cursor:pointer;padding:1px 4px;border-radius:3px;transition:all .1s}
+.sfc-opt-set-def:hover{color:var(--grn);background:var(--grn-dim)}
+.sfc-opt-del{color:var(--t3);cursor:pointer;font-size:12px;line-height:1;padding:1px 3px;border-radius:2px}
+.sfc-opt-del:hover{color:var(--red);background:var(--red-dim)}
+.sfc-add-opt-row{display:flex;align-items:center;gap:4px;margin-top:2px}
+.sfc-add-opt-inp{background:var(--bg);border:1px solid var(--b1);border-radius:5px;padding:3px 7px;font-size:10px;font-family:'DM Sans',sans-serif;color:var(--t1);outline:none;flex:1;transition:border-color .2s}
+.sfc-add-opt-inp:focus{border-color:var(--v2)}
+.sfc-add-opt-btn{font-family:'Outfit',sans-serif;font-weight:700;font-size:9px;padding:2px 8px;border-radius:4px;background:var(--v2-dim);color:var(--v2);border:1px solid rgba(139,92,246,.3);cursor:pointer;white-space:nowrap}
+.sfc-add-opt-btn:hover{background:rgba(139,92,246,.2)}
+.sfc-empty-opts{font-size:9px;color:var(--t3);padding:4px 0;text-align:center}
+.add-field-row{display:flex;align-items:center;gap:5px;margin-top:2px}
+.add-field-inp{background:var(--bg);border:1px solid var(--b1);border-radius:5px;padding:4px 7px;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--t1);outline:none;flex:1;transition:border-color .2s}
+.add-field-inp:focus{border-color:var(--v2)}
+.add-field-type{background:var(--bg);border:1px solid var(--b1);border-radius:5px;padding:4px 7px;font-size:10px;color:var(--t1);outline:none;cursor:pointer;appearance:none;min-width:72px}
+.sk-usage{display:flex;align-items:center;font-size:9.5px;color:var(--t3);gap:6px}
+.ubar{flex:1;height:3px;background:var(--s3);border-radius:2px;overflow:hidden}
+.ufill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--acc),var(--v2));transition:width .5s}
+
+/* toast */
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--s2);border:1px solid var(--b2);border-radius:7px;padding:7px 15px;font-size:11px;color:var(--t1);box-shadow:0 8px 28px rgba(0,0,0,.5);opacity:0;transition:all .3s;z-index:999;white-space:nowrap;pointer-events:none}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.grn{border-color:rgba(16,185,129,.35);color:var(--grn)}
+.toast.red{border-color:rgba(239,68,68,.35);color:var(--red)}
+.toast.v2{border-color:rgba(139,92,246,.35);color:var(--v2)}
+
+/* modal (dep) */
+.modal-bg{position:fixed;inset:0;background:rgba(8,10,15,.8);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:400}
+.modal-bg.on{display:flex}
+.modal{background:var(--s1);border:1px solid var(--b2);border-radius:12px;width:440px;box-shadow:0 40px 80px rgba(0,0,0,.6);overflow:hidden;animation:su .22s cubic-bezier(.16,1,.3,1)}
+@keyframes su{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-h{padding:15px 17px 0;margin-bottom:11px}
+.modal-h h3{font-family:'Outfit',sans-serif;font-weight:800;font-size:14px;margin-bottom:3px}
+.modal-h p{font-size:11px;color:var(--t2)}
+.modal-body{padding:0 17px 17px;display:flex;flex-direction:column;gap:8px}
+.modal-f{padding:10px 17px;border-top:1px solid var(--b1);display:flex;gap:6px;justify-content:flex-end}
+.form-row{display:flex;flex-direction:column;gap:3px}
+.form-label{font-size:10.5px;color:var(--t2);font-weight:500}
+.form-input{background:var(--bg);border:1px solid var(--b1);border-radius:5px;padding:6px 9px;color:var(--t1);font-size:11.5px;font-family:'DM Sans',sans-serif;outline:none;width:100%;transition:border-color .2s}
+.form-input:focus{border-color:var(--acc)}
+.form-hint{font-size:9.5px;color:var(--t3)}
+</style>
+</head>
+<body>
+
+<!-- ═══ LEFT NAV ═══ -->
+<div class="left-nav">
+  <div class="nav-logo">⬡</div>
+  <div class="nav-item" id="n0" onclick="go(0)">📋<div class="nav-tip">Page 签出</div></div>
+  <div class="nav-item on" id="n1" onclick="go(1)">⌨<div class="nav-tip">IDE 工作区</div></div>
+  <div class="nav-item" id="n2" onclick="go(2)">📦<div class="nav-tip">依赖库管理</div></div>
+  <div class="nav-item" id="n3" onclick="go(3)">⚡<div class="nav-tip">Skill 管理</div></div>
+  <div class="nav-divider"></div>
+  <div class="nav-item" onclick="showToast('AI 文档功能开发中...','')">📚<div class="nav-tip">AI 文档</div></div>
+  <div class="nav-bottom">
+    <div class="nav-ava">YU<div class="nav-tip" style="left:calc(100% + 10px)">于洋 · 开发者</div></div>
+  </div>
+</div>
+
+<!-- ═══ MAIN ═══ -->
+<div class="main-area">
+
+<div class="topbar">
+  <div id="tr1-grp" style="display:flex;flex-direction:row;gap:5px;align-items:center">
+    <div style="display:flex;flex-direction:column;gap:1px;padding-right:8px;border-right:1px solid var(--b1)">
+      <span style="font-family:'Outfit',sans-serif;font-size:8px;color:var(--t4);letter-spacing:.8px;text-transform:uppercase;line-height:1">程序</span>
+      <span class="page-name-pill" style="font-size:11px">DashboardPage</span>
+    </div>
+    <button class="btn btn-g btn-sm" onclick="go(0)">↩ 切换</button>
+    <button class="btn btn-red btn-sm" onclick="doCheckin()">⬆ 签入</button>
+  </div>
+  <div class="topbar-tabs" id="tt-ide">
+    <div class="ttab" id="tab-canvas" onclick="switchTab('canvas.json','json',this)">canvas.json<span class="ttab-x" onclick="closeTab(event,'canvas')">×</span></div>
+    <div class="ttab" id="tab-COMMON" onclick="switchTab('COMMON.js','js',this)">COMMON.js<span class="ttab-x" onclick="closeTab(event,'COMMON')">×</span></div>
+    <div class="ttab on" id="tab-PROCESS" onclick="switchTab('PROCESS.js','js',this)"><span class="ttab-d"></span>PROCESS.js<span class="ttab-x" onclick="closeTab(event,'PROCESS')">×</span></div>
+  </div>
+  <div class="topbar-r" id="tr-ide">
+    <span class="ed-unsaved" id="ed-unsaved" style="display:none">● 未保存</span>
+    <button class="save-btn" id="btn-save" onclick="saveFile()" data-tip="保存到容器本地，签入后推送至 GitLab" style="display:none">↓ 保存</button>
+    <button class="save-btn-dis" id="btn-save-dis">✓ 已保存</button>
+    <div class="pill pill-grn"><span class="pill-dot"></span>容器运行中</div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading-screen" id="ld">
+  <div class="spin"></div>
+  <div class="load-h" id="ld-h">正在初始化开发环境</div>
+  <div class="load-sub" id="ld-s">User Management</div>
+  <div class="steps">
+    <div class="step done" id="s1"><span class="lsi">✅</span> 锁定 Page，标记签出状态</div>
+    <div class="step act" id="s2"><span class="lsi">⏳</span> 创建 Docker 容器...</div>
+    <div class="step" id="s3"><span class="lsi">○</span> git clone dev 分支代码</div>
+    <div class="step" id="s4"><span class="lsi">○</span> 加载外部依赖库代码</div>
+    <div class="step" id="s5"><span class="lsi">○</span> 启动 Claude AI 服务</div>
+    <div class="step" id="s6"><span class="lsi">○</span> 等待健康检查通过</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ADD DEP MODAL -->
+<div class="modal-bg" id="addDepModal">
+  <div class="modal">
+    <div class="modal-h"><h3>添加依赖库</h3><p>配置新的动态依赖库，AI 将自动加载该库代码到上下文</p></div>
+    <div class="modal-body">
+      <div class="form-row"><div class="form-label">库名（命名空间）*</div><input class="form-input" placeholder="例如：com、utils、sdk" id="dep-ns-inp"><div class="form-hint">代码中调用时使用的变量名，如 com.set_error()</div></div>
+      <div class="form-row"><div class="form-label">代码地址 URL *</div><input class="form-input" placeholder="https://cdn.example.com/lib.js" id="dep-url-inp"></div>
+      <div class="form-row"><div class="form-label">版本备注</div><input class="form-input" placeholder="例如：v2.3.1" id="dep-ver-inp"></div>
+      <div class="form-row"><div class="form-label">描述</div><input class="form-input" placeholder="库的用途说明" id="dep-desc-inp"></div>
+    </div>
+    <div class="modal-f">
+      <button class="btn btn-g" onclick="closeDepModal()">取消</button>
+      <button class="btn btn-p" onclick="addDep()">添加并加载</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SKILL TEMPLATE FILL MODAL ═══ -->
+<div class="tpl-modal-bg" id="tplModal" onclick="tplModalBgClick(event)">
+  <div class="tpl-modal" id="tplModalInner">
+    <div class="tpl-modal-hd">
+      <div class="tpl-modal-drag"></div>
+      <div class="tpl-modal-title-row">
+        <div class="tpl-modal-ico" id="tplModalIco"></div>
+        <div class="tpl-modal-name" id="tplModalName"></div>
+        <button class="tpl-modal-close" onclick="closeTplModal()">×</button>
+      </div>
+      <div class="tpl-modal-subdesc" id="tplModalDesc"></div>
+    </div>
+    <div class="tpl-preview-strip" id="tplPreview"></div>
+    <div class="tpl-modal-body" id="tplModalBody"></div>
+    <div class="tpl-modal-ft">
+      <button class="tpl-cancel-btn" onclick="closeTplModal()">取消</button>
+      <button class="tpl-submit-btn" id="tplSubmitBtn" onclick="submitTpl()">⚡ 生成提示词并发送</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ VIEW 0: PAGE CHECKOUT ═══ -->
+<div class="view" id="v0">
+<div class="checkout-wrap">
+  <div class="checkout-hero">
+    <h1>选择开发目标</h1>
+    <p>选择一个 Appsmith Page 进行签出，系统将创建专属 Docker 环境并从 GitLab dev 分支拉取代码</p>
+  </div>
+  <div class="checkout-toolbar">
+    <div class="search-box"><span style="color:var(--t3);font-size:12px">🔍</span><input placeholder="搜索 Page 名称..." id="pg-search" oninput="filterPages(this.value)"></div>
+    <div class="filter-tabs">
+      <div class="ftab on" onclick="setFilter('all',this)">全部</div>
+      <div class="ftab" onclick="setFilter('free',this)">空闲</div>
+      <div class="ftab" onclick="setFilter('mine',this)">我的签出</div>
+    </div>
+  </div>
+  <div class="page-grid" id="pg-grid">
+    <div class="page-card" data-status="free" onclick="selCard(this)">
+      <div class="pc-head"><div class="pc-icon ic-p">👤</div><div class="pc-info"><div class="pc-name">User Management</div><div class="pc-branch">⎇ dev · 上次修改 1d 前</div></div><div class="pc-badge"><span class="badge badge-free">空闲</span></div></div>
+      <div class="pc-files"><span class="file-chip">canvas.json</span><span class="file-chip">COMMON.js</span><span class="file-chip">PROCESS.js</span></div>
+      <div class="pc-sel-mark"></div>
+    </div>
+    <div class="page-card locked" data-status="busy">
+      <div class="pc-head"><div class="pc-icon ic-o">📦</div><div class="pc-info"><div class="pc-name">Order Processing</div><div class="pc-branch">⎇ dev · 由 zhangwei 签出中</div></div><div class="pc-badge"><span class="badge badge-busy">已签出</span></div></div>
+      <div class="pc-files"><span class="file-chip">canvas.json</span><span class="file-chip">PROCESS.js</span></div>
+      <div class="pc-sel-mark">🔒</div>
+    </div>
+    <div class="page-card" data-status="free" onclick="selCard(this)">
+      <div class="pc-head"><div class="pc-icon ic-g">📈</div><div class="pc-info"><div class="pc-name">Analytics Report</div><div class="pc-branch">⎇ dev · 上次修改 5d 前</div></div><div class="pc-badge"><span class="badge badge-free">空闲</span></div></div>
+      <div class="pc-files"><span class="file-chip">canvas.json</span><span class="file-chip">COMMON.js</span><span class="file-chip">PROCESS.js</span></div>
+      <div class="pc-sel-mark"></div>
+    </div>
+    <div class="page-card" data-status="mine" onclick="selCard(this)">
+      <div class="pc-head"><div class="pc-icon ic-b">🔔</div><div class="pc-info"><div class="pc-name">Notification Center</div><div class="pc-branch">⎇ dev · 由你签出（昨天）</div></div><div class="pc-badge"><span class="badge badge-me">我的签出</span></div></div>
+      <div class="pc-files"><span class="file-chip">canvas.json</span><span class="file-chip">COMMON.js</span><span class="file-chip">PROCESS.js</span></div>
+      <div class="pc-sel-mark"></div>
+    </div>
+  </div>
+  <div class="checkout-footer">
+    <div class="co-hint">💡 签出后将从 <strong>GitLab dev 分支</strong> clone 代码，并加载 <strong>依赖库 + AI 上下文</strong></div>
+    <div class="co-actions">
+      <button class="btn btn-g" onclick="showToast('已取消','')">取消</button>
+      <button class="btn btn-p" onclick="startCheckout()">签出并进入 IDE →</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══ VIEW 1: IDE WORKSPACE ═══ -->
+<div class="view on" id="v1">
+<div class="ide-wrap">
+  <div class="ide-top-area">
+    <!-- LEFT -->
+    <div class="ide-left">
+      <div class="sl-section">
+        <div class="sl-label">仓库文件树</div>
+        <div class="fdir" onclick="toggleDir(this)" data-open="true" style="cursor:pointer;user-select:none">
+          <span class="fdir-arrow">▾</span>📁&nbsp;DashboardPage/
+        </div>
+        <div class="fdir-children" id="dir-root">
+          <div class="fi" onclick="openFile('canvas.json','json')" data-file="canvas.json"><span style="color:var(--acc)">📄</span>&nbsp;canvas.json<span class="fi-mod"></span></div>
+          <div class="fdir" onclick="toggleDir(this)" data-open="true" style="padding-left:16px;cursor:pointer;user-select:none">
+            <span class="fdir-arrow">▾</span>📁&nbsp;JsObjects/
+          </div>
+          <div class="fdir-children" id="dir-js">
+            <div class="fi" style="padding-left:26px" onclick="openFile('COMMON.js','js')" data-file="COMMON.js"><span style="color:var(--v2)">⚡</span>&nbsp;COMMON.js</div>
+            <div class="fi on" style="padding-left:26px" onclick="openFile('PROCESS.js','js')" data-file="PROCESS.js"><span style="color:var(--v2)">⚡</span>&nbsp;PROCESS.js</div>
+          </div>
+        </div>
+      </div>
+      <div class="sl-section" style="border:none;flex:1;display:flex;flex-direction:column;overflow:hidden">
+        <div class="sl-label" style="margin-top:4px">快捷操作</div>
+        <div style="padding:4px 7px;display:flex;flex-direction:column;gap:3px">
+          <button class="btn btn-g" style="font-size:9.5px;padding:3px 8px;width:100%;text-align:left" onclick="go(2)">📦 管理依赖库</button>
+          <button class="btn btn-g" style="font-size:9.5px;padding:3px 8px;width:100%;text-align:left" onclick="go(3)">⚡ Skill 管理</button>
+        </div>
+        <div class="sl-info" style="margin-top:auto">
+          <div class="si-row"><span class="si-k">分支</span><span class="si-v a">dev</span></div>
+          <div class="si-row"><span class="si-k">改动</span><span class="si-v w">+12 −3</span></div>
+          <div class="si-row"><span class="si-k">容器</span><span class="si-v g">运行中</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EDITOR -->
+    <div class="ide-editor">
+      <div class="diff-notice" id="dn">
+        <span>✨</span>
+        <div class="dn-txt"><strong>AI 建议</strong>：已在 PROCESS.js 第 14–22 行添加 <code style="background:rgba(255,255,255,.07);padding:1px 4px;border-radius:3px;font-size:9.5px">com.set_error()</code> 错误处理</div>
+        <button class="btn-apply" onclick="applyDiff()">✓ 应用修改</button>
+        <button class="btn-dis" onclick="document.getElementById('dn').style.display='none'">忽略</button>
+      </div>
+      <div class="ed-wrap">
+        <div class="ln" id="ln"></div>
+        <div class="ed-body">
+          <pre class="hl-layer" id="hl-layer" aria-hidden="true"></pre>
+          <textarea class="code-edit" id="code-edit" spellcheck="false" autocorrect="off" autocapitalize="off" oninput="onCodeInput()" onscroll="syncScroll()" onkeydown="onCodeKey(event)"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ BOTTOM CHAT PANEL ═══ -->
+  <div class="chat-panel" id="chat-panel">
+    <div class="resize-handle" id="resize-handle"></div>
+    <div class="chat-hd">
+      <div class="ch-ai-ico">🤖</div>
+      <div class="ch-title">Claude AI</div>
+      <div class="ch-ctx-row" id="ch-ctx">
+        <span class="ctx-c file">PROCESS.js</span>
+        <span class="ctx-c dep">com.js</span>
+        <span class="ctx-c dep">utils.js</span>
+        <span class="ctx-c sk">🔍 代码审查</span>
+        <span class="ctx-c sk">🛡 错误处理</span>
+      </div>
+      <div class="chat-hd-acts">
+        <div class="hd-act-btn amb" onclick="refreshDepsInline()" data-tip="更新依赖">↻</div>
+        <div class="hd-act-btn" id="sk-act-btn" onclick="openSkDraw()" data-tip="Skill 面板">
+          ⚡<span class="act-cnt" id="sk-cnt">4</span>
+        </div>
+        <div class="hd-act-btn" onclick="toggleAttach()" data-tip="添加附件">📎</div>
+        <div class="hd-act-btn" onclick="clearMsgs()" data-tip="清空对话">🗑</div>
+        <div style="width:1px;height:14px;background:var(--b2);margin:0 2px;flex-shrink:0"></div>
+        <div class="hd-act-btn minimize-btn" onclick="toggleChatMin()" id="chat-min-btn" data-tip="最小化">⌃</div>
+      </div>
+    </div>
+
+    <div class="chat-body">
+      <div class="chat-main">
+        <div class="msgs-col" id="msgs">
+          <div class="msg a">
+            <div class="bbl">👋 已加载 <strong>DashboardPage</strong> 完整仓库上下文（canvas.json · COMMON.js · PROCESS.js），已注入依赖库 <code style="background:rgba(255,255,255,.08);padding:1px 4px;border-radius:3px;font-size:9.5px">com</code> <code style="background:rgba(255,255,255,.08);padding:1px 4px;border-radius:3px;font-size:9.5px">utils</code>，当前激活 <strong>4 个 Skill</strong>。<br><br>💡 在输入框中描述任务，系统将自动匹配相关 Skill；若 Skill 配置了<strong>模板参数</strong>，将弹出参数填写表单。</div>
+            <span class="mt">14:32</span>
+          </div>
+          <div class="msg u">
+            <div class="bbl">帮我在 PROCESS.js 的 fetchData 函数里加上错误处理，失败时用 com.set_error() 通知</div>
+            <span class="mt">14:38</span>
+          </div>
+          <div class="msg a">
+            <div class="bbl">
+              已用 <span style="background:var(--v2-dim);color:var(--v2);padding:1px 5px;border-radius:3px;font-size:9px;font-family:'IBM Plex Mono',monospace">🛡 错误处理</span> 在 PROCESS.js 第 14–22 行添加了 try/catch：
+              <div class="code-snip">
+                <div class="cs-h"><span>PROCESS.js 差异预览</span><span class="g">+5 行</span></div>
+                <div class="cs-body"><span style="color:var(--grn)">+ try {</span>
+  const res = await Api1.run(params);
+  storeValue('data', res.result);
+<span style="color:var(--grn)">+ } catch (err) {</span>
+<span style="color:var(--grn)">+   com.set_error('NETWORK_ERROR');</span>
+<span style="color:var(--grn)">+   console.error('fetchData fail:', err);</span>
+<span style="color:var(--grn)">+ }</span></div>
+              </div>
+              <div class="m-acts">
+                <button class="m-btn pri" onclick="applyDiff()">✓ 应用到代码</button>
+                <button class="m-btn" onclick="fas('继续优化重试逻辑')">继续优化</button>
+              </div>
+            </div>
+            <span class="mt">14:38</span>
+          </div>
+          <div class="msg a" id="typing" style="display:none">
+            <div class="typing-wrap"><div class="tdots"><div class="td"></div><div class="td"></div><div class="td"></div></div><span style="font-size:9.5px;color:var(--t3)">Claude 正在思考...</span></div>
+          </div>
+        </div>
+
+        <!-- input area -->
+        <div class="inp-area" id="inp-area">
+          <!-- intent match bar -->
+          <div class="intent-bar" id="intent-bar">
+            <div class="intent-dot"></div>
+            <span class="intent-label">识别到 Skill：<strong id="intent-sk-name"></strong> — 该 Skill 含模板参数</span>
+            <button class="intent-use-btn" onclick="openIntentTpl()">填写参数</button>
+            <span class="intent-dismiss" onclick="dismissIntent()">×</span>
+          </div>
+          <div class="attach-strip" id="attach-strip" style="display:none"></div>
+          <div class="inp-box">
+            <textarea id="inp" placeholder="描述任务… 系统将自动匹配 Skill 并识别是否需要填写模板参数" rows="2" onkeydown="hk(event)" oninput="onInpInput(this.value)"></textarea>
+            <div class="inp-ft">
+              <div class="inp-left-acts">
+                <button class="inp-act-btn" onclick="toggleAttach()" id="attach-btn" title="添加附件">📎</button>
+                <div class="hints">
+                  <span class="ht" onclick="fas('分析 canvas.json 布局优化')">布局优化</span>
+                  <span class="ht" onclick="fas('为 COMMON.js 添加工具函数')">工具函数</span>
+                  <span class="ht" onclick="fas('com 库有哪些可用方法')">查询依赖</span>
+                </div>
+              </div>
+              <button class="send" onclick="sendMsg()">↑</button>
+            </div>
+          </div>
+          <input type="file" id="file-input" style="display:none" multiple onchange="handleFiles(this.files)">
+        </div>
+      </div>
+
+      <!-- ═══ UNIFIED SKILL DRAWER ═══ -->
+      <div class="sk-drawer" id="skd">
+        <!-- tab header -->
+        <div class="skd-hd">
+          <div class="skd-tab on" id="skd-tab-sel" onclick="switchSkdTab('sel')">⚡ 选择 Skill</div>
+          <div class="skd-tab" id="skd-tab-invoke" onclick="switchSkdTab('invoke')">🚀 快速调用</div>
+          <button class="skd-close" onclick="closeSkDraw()">×</button>
+        </div>
+
+        <!-- Panel A: skill selection list -->
+        <div class="skd-panel on" id="skd-panel-sel">
+          <div class="skd-search"><div class="skd-si"><span style="font-size:9.5px;color:var(--t3)">🔍</span><input placeholder="搜索 Skill..." oninput="filterSkills(this.value)" id="skd-search-inp"></div></div>
+          <div class="skd-list" id="skd-list"></div>
+          <div class="skd-footer">
+            <div style="font-size:9px;color:var(--t3);margin-bottom:4px">已选 Skill（将注入 AI 上下文）：</div>
+            <div class="active-chips" id="ach"></div>
+            <button class="btn btn-p" style="width:100%;margin-top:6px;font-size:10.5px;padding:5px" onclick="confirmSkills()">✓ 确认并应用</button>
+          </div>
+        </div>
+
+        <!-- Panel B: quick invoke (trigger skill with template) -->
+        <div class="skd-panel" id="skd-panel-invoke">
+          <div style="padding:7px 9px;border-bottom:1px solid var(--b1);font-size:9.5px;color:var(--t3);flex-shrink:0">
+            点击直接触发 Skill；带 <span style="color:var(--v2)">模板参数</span> 的 Skill 将弹出填写表单
+          </div>
+          <div class="skd-invoke-list" id="skd-invoke-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div><!-- /v1 -->
+
+<!-- ═══ VIEW 2: DEPENDENCIES ═══ -->
+<div class="view" id="v2">
+<div class="deps-wrap"><div class="page-inner">
+  <div class="pg-h">
+    <div class="pg-h-left"><h2>依赖库管理</h2><p>配置 Page 运行时动态加载的外部库，AI 将自动读取库代码以理解接口用法</p></div>
+    <div class="pg-h-right"><button class="btn btn-g" onclick="showAddDep()">+ 添加依赖库</button><button class="btn btn-amb" onclick="refreshAllDeps()">↻ 全部更新</button></div>
+  </div>
+  <div class="sec-h"><div class="sec-h-title">📦 已配置依赖库</div><div class="sec-h-line"></div><div class="sec-h-cnt" id="dep-cnt">2 个</div></div>
+  <div class="dep-grid" id="dep-grid">
+    <div class="dep-card">
+      <div class="dep-c-head"><div class="dep-ico ic-b">📦</div><div class="dep-c-info"><div class="dep-ns">com</div><div class="dep-name">公共工具库 · 错误处理 / 网络请求 / 状态管理</div></div><div class="dep-c-acts"><div class="dep-status"><span style="width:5px;height:5px;border-radius:50%;background:var(--grn);display:inline-block;margin-right:3px"></span>已加载</div><button class="btn btn-amb btn-sm" onclick="refreshDep(this,'com')">↻</button><button class="btn btn-red btn-sm" onclick="removeDep(this)">✕</button></div></div>
+      <div class="dep-url"><span class="dep-url-txt">https://cdn.example.com/libs/com.v2.3.1.js</span><span class="dep-url-copy" onclick="showToast('链接已复制 ✓','grn')">⎘</span></div>
+      <div class="dep-meta"><span class="dep-ver">v2.3.1</span><span class="dep-last">上次更新：10 分钟前</span></div>
+      <div class="dep-preview"><div class="dp-head"><span>接口预览</span><span class="acc">com</span></div><div class="dp-body"><pre><span class="cm">// com 库主要接口</span>
+<span class="fn">com</span>.<span class="fn">set_error</span>(<span class="str">'NETWORK_ERROR'</span>)
+<span class="fn">com</span>.<span class="fn">request</span>(<span class="str">'/api/data'</span>, opts)
+<span class="fn">com</span>.<span class="fn">setState</span>(key, value)</pre></div></div>
+    </div>
+    <div class="dep-card">
+      <div class="dep-c-head"><div class="dep-ico ic-g">🔧</div><div class="dep-c-info"><div class="dep-ns">utils</div><div class="dep-name">通用工具函数库 · 格式化 / 日期 / 数据处理</div></div><div class="dep-c-acts"><div class="dep-status"><span style="width:5px;height:5px;border-radius:50%;background:var(--grn);display:inline-block;margin-right:3px"></span>已加载</div><button class="btn btn-amb btn-sm" onclick="refreshDep(this,'utils')">↻</button><button class="btn btn-red btn-sm" onclick="removeDep(this)">✕</button></div></div>
+      <div class="dep-url"><span class="dep-url-txt">https://cdn.example.com/libs/utils.v1.0.4.js</span><span class="dep-url-copy" onclick="showToast('链接已复制 ✓','grn')">⎘</span></div>
+      <div class="dep-meta"><span class="dep-ver">v1.0.4</span><span class="dep-last">上次更新：1 小时前</span></div>
+      <div class="dep-preview"><div class="dp-head"><span>接口预览</span><span class="acc">utils</span></div><div class="dp-body"><pre><span class="cm">// utils 库主要接口</span>
+<span class="fn">utils</span>.<span class="fn">formatDate</span>(date, fmt)
+<span class="fn">utils</span>.<span class="fn">formatCurrency</span>(val, cur)</pre></div></div>
+    </div>
+  </div>
+  <div class="sec-h"><div class="sec-h-title">📋 更新日志</div><div class="sec-h-line"></div></div>
+  <div class="update-log" id="upd-log">
+    <div class="log-item"><span class="log-icon">✅</span><div class="log-txt"><strong>com</strong> 已更新至 v2.3.1，新增 <code style="background:var(--s3);padding:1px 3px;border-radius:3px">com.setState()</code> 接口</div><span class="log-time">14:32</span></div>
+    <div class="log-item"><span class="log-icon">✅</span><div class="log-txt"><strong>utils</strong> 已加载 v1.0.4，3 个接口已注入 AI 上下文</div><span class="log-time">13:58</span></div>
+    <div class="log-item"><span class="log-icon">ℹ️</span><div class="log-txt">Docker 容器启动，自动加载所有依赖库代码</div><span class="log-time">13:45</span></div>
+  </div>
+</div></div>
+</div>
+
+<!-- ═══ VIEW 3: SKILL MANAGEMENT ═══ -->
+<div class="view" id="v3">
+<div class="skills-wrap"><div class="page-inner">
+  <div class="pg-h">
+    <div class="pg-h-left"><h2>Skill 管理</h2><p>管理 AI 能力模块。点击卡片上的「编辑」可配置系统 Prompt、触发关键词和模板参数。</p></div>
+    <div class="pg-h-right"><button class="btn btn-g" onclick="showToast('导入功能开发中...','')">导入 Skill</button><button class="btn btn-p" onclick="openSkEditDrawer(null)">+ 新建 Skill</button></div>
+  </div>
+  <div class="sec-h"><div class="sec-h-title">✅ 已启用</div><div class="sec-h-line"></div><div class="sec-h-cnt" id="sk-en-cnt">2 个</div></div>
+  <div class="skill-grid" id="sk-en-grid">
+
+    <div class="sk-card en" data-skill-id="error-handle">
+      <div class="sk-c-head">
+        <div class="sk-ico ic-p">🛡</div>
+        <div class="sk-c-info">
+          <div class="sk-c-name">错误处理 <span class="stag stag-ver">v1.3</span> <span class="stag stag-tpl">🧩 含模板</span></div>
+          <div class="sk-c-desc">注入标准 try/catch 和 com.set_error() 模式，支持按函数定制参数</div>
+        </div>
+        <div class="toggle on" onclick="togSk(this,'error-handle')"><div class="tk"></div></div>
+      </div>
+      <div class="sk-meta"><span class="stag stag-cat">PROCESS.js</span><span class="stag stag-new">常用</span></div>
+      <div class="sk-card-ft">
+        <span class="sk-prompt-preview" onclick="openSkEditDrawer('error-handle')">所有异步操作必须使用 try/catch，catch 中调用 com.set_error({{错误码}}) 并记录详情…</span>
+        <span class="sk-tpl-count" id="tpl-count-error-handle">3 个参数</span>
+        <button class="sk-edit-btn" onclick="openSkEditDrawer('error-handle')">编辑</button>
+      </div>
+      <div class="sk-usage"><span>使用次数：89</span><div class="ubar"><div class="ufill" style="width:60%"></div></div></div>
+    </div>
+
+    <div class="sk-card en" data-skill-id="code-review">
+      <div class="sk-c-head">
+        <div class="sk-ico ic-b">🔍</div>
+        <div class="sk-c-info">
+          <div class="sk-c-name">代码审查 <span class="stag stag-ver">v2.1</span> <span class="stag stag-tpl">🧩 含模板</span></div>
+          <div class="sk-c-desc">分析代码质量、潜在 Bug 和性能问题，支持指定文件和审查维度</div>
+        </div>
+        <div class="toggle on" onclick="togSk(this,'code-review')"><div class="tk"></div></div>
+      </div>
+      <div class="sk-meta"><span class="stag stag-cat">代码质量</span><span class="stag stag-cat">Appsmith</span></div>
+      <div class="sk-card-ft">
+        <span class="sk-prompt-preview" onclick="openSkEditDrawer('code-review')">你是一位 Appsmith 代码审查专家。请审查 {{目标文件}} 的 {{审查范围}}…</span>
+        <span class="sk-tpl-count" id="tpl-count-code-review">4 个参数</span>
+        <button class="sk-edit-btn" onclick="openSkEditDrawer('code-review')">编辑</button>
+      </div>
+      <div class="sk-usage"><span>使用次数：127</span><div class="ubar"><div class="ufill" style="width:85%"></div></div></div>
+    </div>
+
+  </div>
+  <div class="sec-h" style="margin-top:6px"><div class="sec-h-title">○ 可用 Skill</div><div class="sec-h-line"></div></div>
+  <div class="skill-grid" id="sk-avail-grid">
+    <div class="sk-card" data-skill-id="widget-gen">
+      <div class="sk-c-head"><div class="sk-ico ic-g">🎨</div><div class="sk-c-info"><div class="sk-c-name">Widget 生成 <span class="stag stag-beta">beta</span></div><div class="sk-c-desc">根据描述生成 canvas.json Widget 配置</div></div><div class="toggle" onclick="togSk(this,'widget-gen')"><div class="tk"></div></div></div>
+      <div class="sk-meta"><span class="stag stag-cat">canvas.json</span></div>
+      <div class="sk-card-ft">
+        <span class="sk-prompt-preview" onclick="openSkEditDrawer('widget-gen')">根据描述生成标准的 Appsmith canvas.json Widget 配置，确保字段命名符合 Appsmith v2 规范。</span>
+        <button class="sk-edit-btn" onclick="openSkEditDrawer('widget-gen')">编辑</button>
+      </div>
+      <div class="sk-usage"><span>使用次数：34</span><div class="ubar"><div class="ufill" style="width:23%"></div></div></div>
+    </div>
+    <div class="sk-card" data-skill-id="doc-gen">
+      <div class="sk-c-head"><div class="sk-ico ic-c">📝</div><div class="sk-c-info"><div class="sk-c-name">文档生成 <span class="stag stag-ver">v1.0</span></div><div class="sk-c-desc">自动为函数和模块生成 JSDoc 注释</div></div><div class="toggle" onclick="togSk(this,'doc-gen')"><div class="tk"></div></div></div>
+      <div class="sk-meta"><span class="stag stag-cat">COMMON.js</span><span class="stag stag-cat">PROCESS.js</span></div>
+      <div class="sk-card-ft">
+        <span class="sk-prompt-preview" onclick="openSkEditDrawer('doc-gen')">为所有导出函数生成完整的 JSDoc 注释，包含参数类型、返回值说明和使用示例，中文描述。</span>
+        <button class="sk-edit-btn" onclick="openSkEditDrawer('doc-gen')">编辑</button>
+      </div>
+      <div class="sk-usage"><span>使用次数：21</span><div class="ubar"><div class="ufill" style="width:14%"></div></div></div>
+    </div>
+  </div>
+</div></div>
+</div>
+
+<!-- ═══ SKILL EDIT DRAWER ═══ -->
+<div class="sk-edit-overlay" id="skEditOverlay" onclick="closeSkEditDrawer()"></div>
+<div class="sk-edit-drawer" id="skEditDrawer">
+  <!-- header -->
+  <div class="sed-hd">
+    <div class="sed-ico" id="sedIco"></div>
+    <div class="sed-title-wrap">
+      <div class="sed-title" id="sedTitle">编辑 Skill</div>
+      <div class="sed-subtitle" id="sedSubtitle"></div>
+    </div>
+    <button class="sed-close" onclick="closeSkEditDrawer()">×</button>
+  </div>
+  <!-- tabs -->
+  <div class="sed-tabs">
+    <div class="sed-tab on" id="sed-tab-basic" onclick="switchSedTab('basic')">基本信息</div>
+    <div class="sed-tab" id="sed-tab-prompt" onclick="switchSedTab('prompt')">系统 Prompt</div>
+    <div class="sed-tab" id="sed-tab-params" onclick="switchSedTab('params')">模板参数 <span id="sed-param-cnt" style="font-size:9px;color:var(--t3);margin-left:3px"></span></div>
+  </div>
+  <!-- panel: 基本信息 -->
+  <div class="sed-panel on" id="sed-panel-basic">
+    <div class="sed-body">
+      <div class="sed-section">
+        <div class="sed-section-title">基础配置</div>
+        <div class="sed-field-row">
+          <div class="sed-field-label">Skill 名称</div>
+          <input class="sed-input" id="sed-name" placeholder="如：代码审查">
+        </div>
+        <div class="sed-field-row">
+          <div class="sed-field-label">描述 <span class="opt">（简短说明用途）</span></div>
+          <input class="sed-input" id="sed-desc" placeholder="分析代码质量、潜在 Bug 和性能问题">
+        </div>
+        <div class="sed-field-row">
+          <div class="sed-field-label">图标 Emoji</div>
+          <input class="sed-input" id="sed-ico-inp" placeholder="🔍" style="width:80px;font-size:18px;text-align:center">
+        </div>
+        <div class="sed-field-row">
+          <div class="sed-field-label">分类</div>
+          <select class="sed-select" id="sed-cat">
+            <option>质量</option><option>功能</option><option>UI</option><option>集成</option><option>文档</option><option>测试</option><option>性能</option><option>工具</option>
+          </select>
+        </div>
+      </div>
+      <div class="sed-section">
+        <div class="sed-section-title">触发关键词</div>
+        <div style="font-size:9.5px;color:var(--t3);margin-bottom:8px">用户输入包含以下关键词时，系统自动识别并匹配此 Skill</div>
+        <div class="sed-keywords-wrap" id="sed-keywords"></div>
+        <div class="sed-kw-add" style="margin-top:8px">
+          <input class="sed-kw-inp" id="sed-kw-inp" placeholder="输入关键词…" onkeydown="if(event.key==='Enter'){event.preventDefault();addKeyword()}">
+          <button class="btn btn-v btn-sm" onclick="addKeyword()">+ 添加</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- panel: 系统 Prompt -->
+  <div class="sed-panel" id="sed-panel-prompt">
+    <div class="sed-body">
+      <div class="sed-section">
+        <div class="sed-section-title">系统 Prompt</div>
+        <div style="font-size:9.5px;color:var(--t3);margin-bottom:8px;line-height:1.6">该 Prompt 将注入 AI 上下文。使用 <span class="slot" style="color:var(--v2);background:var(--v2-dim);padding:0 4px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:9px">{{参数名}}</span> 引用模板参数，触发时由用户填写后自动替换。</div>
+        <textarea class="sed-prompt-area" id="sed-prompt" rows="8" placeholder="在此输入系统 Prompt…&#10;&#10;示例：&#10;请对 {{目标文件}} 进行代码审查，重点关注 {{审查维度}}。"></textarea>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+          <span style="font-size:9px;color:var(--t3)">已用占位符：</span>
+          <div id="sed-prompt-slots" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- panel: 模板参数 -->
+  <div class="sed-panel" id="sed-panel-params">
+    <div class="sed-body">
+      <div style="font-size:9.5px;color:var(--t3);margin-bottom:12px;line-height:1.6;background:var(--s3);border:1px solid var(--b1);border-radius:6px;padding:8px 10px">
+        🧩 配置触发此 Skill 时弹出的参数填写表单。参数名需与系统 Prompt 中的 <span style="color:var(--v2);font-family:'IBM Plex Mono',monospace;font-size:9px">{{占位符}}</span> 对应。
+      </div>
+      <div class="sed-fields-list" id="sed-fields-list"></div>
+      <div class="sed-add-field-row">
+        <input class="sed-new-field-inp" id="sed-new-field-inp" placeholder="新参数名，如：目标文件" onkeydown="if(event.key==='Enter'){event.preventDefault();sedAddField()}">
+        <select class="sed-new-field-type" id="sed-new-field-type">
+          <option value="text">文本输入</option>
+          <option value="textarea">多行文本</option>
+          <option value="select">下拉选择</option>
+          <option value="chips">多选标签</option>
+        </select>
+        <button class="btn btn-v btn-sm" onclick="sedAddField()">+ 添加</button>
+      </div>
+    </div>
+  </div>
+  <!-- footer -->
+  <div class="sed-ft">
+    <button class="sed-del-btn" id="sed-del-btn" onclick="sedDeleteSkill()">删除</button>
+    <button class="sed-cancel-btn" onclick="closeSkEditDrawer()">取消</button>
+    <button class="sed-save-btn" onclick="sedSave()">✓ 保存更改</button>
+  </div>
+</div>
+
+<!-- statusbar -->
+<div class="statusbar" id="sb" style="display:none">
+  <span>PROCESS.js</span><span>⎇ dev</span><span>行 14，列 1</span><span>JavaScript</span>
+  <div class="sb-r"><span>+12 −3</span><span>UTF-8</span></div>
+</div>
+
+</div><!-- /main-area -->
+
+<script>
+/* ═══════════════════════════════════════════════════
+   UNIFIED SKILL DATA  (单一数据源，同时驱动选择列表、快速调用、意图识别、模板表单)
+   ═══════════════════════════════════════════════════ */
+const SKILLS = [
+  {
+    id: 'error-handle', name: '错误处理', ico: '🛡', bg: 'ic-p', cat: '功能',
+    desc: '注入标准 try/catch 和 com.set_error() 模式',
+    keywords: ['错误','异常','try','catch','error','set_error','失败','捕获','处理'],
+    prompt: '所有异步操作必须使用 try/catch，catch 中调用 com.set_error({{错误码}}) 并记录详情。目标函数：{{目标函数}}，额外处理：{{额外操作}}。',
+    // fields 定义模板参数；无 fields 属性 = 无模板，直接触发
+    fields: [
+      { id:'func',  label:'目标函数', type:'text',   required:true,  placeholder:'如 fetchData, handleSubmit', token:'目标函数' },
+      { id:'code',  label:'错误码',   type:'select', required:false,
+        options:['NETWORK_ERROR','AUTH_ERROR','VALIDATION_ERROR','SERVER_ERROR','TIMEOUT_ERROR','UNKNOWN_ERROR'], token:'错误码' },
+      { id:'extra', label:'额外操作', type:'chips',  required:false,
+        options:['console.error 记录','重置 loading 状态','清空表单数据','显示重试按钮','回滚数据'], token:'额外操作' }
+    ]
+  },
+  {
+    id: 'code-review', name: '代码审查', ico: '🔍', bg: 'ic-b', cat: '质量',
+    desc: '分析代码质量、潜在 Bug 和性能问题',
+    keywords: ['审查','review','检查','质量','bug','分析','代码','问题'],
+    prompt: '请审查 {{目标文件}} 的 {{审查范围}}，重点关注 {{审查维度}}，输出格式：{{输出格式}}。',
+    fields: [
+      { id:'file',  label:'目标文件',   type:'text',   required:true,  placeholder:'如 PROCESS.js 或 全部文件', token:'目标文件' },
+      { id:'scope', label:'审查范围',   type:'text',   required:false, placeholder:'如 fetchData 函数，或填"全部"', token:'审查范围' },
+      { id:'dims',  label:'审查维度',   type:'chips',  required:false,
+        options:['Bug 风险','性能','安全性','可读性','错误处理','命名规范'], token:'审查维度' },
+      { id:'fmt',   label:'输出格式',   type:'select', required:false,
+        options:['逐条列出问题并给出修复建议','仅列出问题清单','直接输出修复后的完整代码'], token:'输出格式' }
+    ]
+  },
+  {
+    id: 'widget-gen', name: 'Widget 生成', ico: '🎨', bg: 'ic-g', cat: 'UI',
+    desc: '根据描述生成 canvas.json Widget 配置',
+    keywords: ['widget','组件','canvas','按钮','表格','表单','生成','input','select'],
+    prompt: '根据描述生成标准的 Appsmith canvas.json Widget 配置，确保字段命名符合 Appsmith v2 规范。'
+    // 无 fields → 无模板，直接注入 prompt 触发
+  },
+  {
+    id: 'api-integrate', name: 'API 集成', ico: '🔌', bg: 'ic-o', cat: '集成',
+    desc: '生成 Datasource 配置和 Query 调用代码',
+    keywords: ['api','接口','请求','datasource','query','调用','http','数据源'],
+    prompt: '根据描述生成 Appsmith Datasource 配置和对应的 Query 调用代码，包含完整的错误处理。',
+    fields: [
+      { id:'apiname', label:'接口名称',  type:'text',   required:true,  placeholder:'如 getUserList', token:'接口名称' },
+      { id:'method',  label:'请求方式',  type:'select', required:false, options:['GET','POST','PUT','DELETE','PATCH'], token:'请求方式' },
+      { id:'path',    label:'接口路径',  type:'text',   required:false, placeholder:'如 /api/v1/users', token:'接口路径' },
+      { id:'trigger', label:'触发时机',  type:'select', required:false, options:['页面加载','按钮点击','表单提交','数据变更'], token:'触发时机' }
+    ]
+  },
+  {
+    id: 'doc-gen', name: '文档生成', ico: '📝', bg: 'ic-c', cat: '文档',
+    desc: '自动为函数和模块生成 JSDoc 注释',
+    keywords: ['注释','文档','jsdoc','doc','说明','comment'],
+    prompt: '为所有导出函数生成完整的 JSDoc 注释，包含参数类型、返回值说明和使用示例，中文描述。'
+  },
+  {
+    id: 'test-gen', name: '测试生成', ico: '🧪', bg: 'ic-b', cat: '测试',
+    desc: '生成 Jest 单元测试用例',
+    keywords: ['测试','test','jest','单元','用例','spec'],
+    prompt: '为指定函数编写 Jest 单元测试，覆盖正常场景、边界值和异常情况。',
+    fields: [
+      { id:'func',   label:'测试函数', type:'text',   required:true,  placeholder:'如 fetchData，或填"全部"', token:'测试函数' },
+      { id:'scenes', label:'覆盖场景', type:'chips',  required:false,
+        options:['正常返回','空参数','网络异常','超时','边界值'], token:'覆盖场景' },
+      { id:'mock',   label:'Mock 策略', type:'select', required:false,
+        options:['Mock 所有外部依赖','仅 Mock API 请求','不使用 Mock'], token:'Mock 策略' }
+    ]
+  },
+  {
+    id: 'perf', name: '性能分析', ico: '⚡', bg: 'ic-o', cat: '性能',
+    desc: '检测冗余调用和性能瓶颈',
+    keywords: ['性能','慢','优化','冗余','卡顿','perf','加载'],
+    prompt: '分析代码性能瓶颈，检测冗余 API 调用、重复渲染、同步阻塞等问题，给出优化建议。'
+  },
+  {
+    id: 'i18n', name: '国际化助手', ico: '🌐', bg: 'ic-p', cat: '工具',
+    desc: 'canvas.json 文案提取与国际化',
+    keywords: ['国际化','i18n','多语言','翻译','文案','locale'],
+    prompt: '提取 canvas.json 中的所有文案字符串，生成标准 i18n 资源文件格式，并替换原始硬编码文案。'
+  }
+];
+
+/* ═══ ENABLED SET ═══ */
+let selSkills = new Set(['code-review','error-handle','widget-gen','api-integrate']);
+
+/* ═══ CHIP STATE for template modal ═══ */
+let modalChipState = {};  // { fieldId: Set<string> }
+let modalSkillId = null;
+
+/* ═══ INTENT DETECTION ═══ */
+let intentTimer = null;
+let intentMatchId = null;
+let intentDismissed = false;
+
+function detectIntent(text) {
+  if (!text || text.length < 2) return null;
+  const t = text.toLowerCase();
+  // Only match against enabled skills
+  let best = null, bestScore = 0;
+  SKILLS.filter(s => selSkills.has(s.id)).forEach(sk => {
+    let score = 0;
+    sk.keywords.forEach(kw => { if (t.includes(kw)) score += kw.length; });
+    if (score > bestScore) { bestScore = score; best = sk; }
+  });
+  return bestScore >= 2 ? best : null;
+}
+
+function onInpInput(val) {
+  intentDismissed = false;
+  clearTimeout(intentTimer);
+  intentTimer = setTimeout(() => {
+    const m = detectIntent(val);
+    if (m && m.fields && m.fields.length > 0 && val.length >= 3) {
+      intentMatchId = m.id;
+      document.getElementById('intent-sk-name').textContent = m.ico + ' ' + m.name;
+      document.getElementById('intent-bar').classList.add('on');
+    } else {
+      hideIntentBar();
+    }
+  }, 300);
+}
+
+function hideIntentBar() {
+  document.getElementById('intent-bar').classList.remove('on');
+  intentMatchId = null;
+}
+function dismissIntent() { hideIntentBar(); intentDismissed = true; }
+function openIntentTpl() {
+  if (!intentMatchId) return;
+  hideIntentBar();
+  closeSkDraw();
+  openTplModal(intentMatchId);
+}
+
+/* ═══ TEMPLATE MODAL ═══ */
+function openTplModal(skillId) {
+  const sk = SKILLS.find(s => s.id === skillId);
+  if (!sk || !sk.fields || sk.fields.length === 0) return;
+  modalSkillId = skillId;
+  modalChipState = {};
+  sk.fields.forEach((f, i) => { if (f.type === 'chips') modalChipState['idx_' + i] = new Set(); });
+
+  document.getElementById('tplModalIco').className = 'tpl-modal-ico ' + sk.bg;
+  document.getElementById('tplModalIco').textContent = sk.ico;
+  document.getElementById('tplModalName').textContent = sk.name;
+  document.getElementById('tplModalDesc').textContent = sk.desc;
+
+  renderTplPreview(sk, {});
+  renderTplFields(sk);
+
+  document.getElementById('tplModal').classList.add('on');
+}
+
+function closeTplModal() {
+  document.getElementById('tplModal').classList.remove('on');
+  modalSkillId = null;
+}
+
+function tplModalBgClick(e) {
+  if (e.target === document.getElementById('tplModal')) closeTplModal();
+}
+
+function renderTplPreview(sk, vals) {
+  let text = sk.prompt;
+  sk.fields.forEach((f, i) => {
+    const v = getTplFieldVal(f, i);
+    const token = f.token || f.label;
+    const display = v
+      ? `<span class="filled">${esc(v)}</span>`
+      : `<span class="slot">{{${token}}}</span>`;
+    text = text.split('{{' + token + '}}').join(display);
+  });
+  document.getElementById('tplPreview').innerHTML = text.replace(/\n/g, '<br>');
+}
+
+function refreshPreview() {
+  const sk = SKILLS.find(s => s.id === modalSkillId);
+  if (sk) renderTplPreview(sk, {});
+}
+
+function renderTplFields(sk) {
+  const body = document.getElementById('tplModalBody');
+  // Use index-based stable IDs so options work regardless of field.id value
+  body.innerHTML = sk.fields.map((f, i) => buildTplField(f, i)).join('');
+  sk.fields.forEach((f, i) => {
+    const eid = 'tplf_' + i;
+    if (f.type === 'text' || f.type === 'textarea') {
+      const el = document.getElementById(eid);
+      if (el) el.addEventListener('input', refreshPreview);
+    } else if (f.type === 'select') {
+      const el = document.getElementById(eid);
+      if (el) el.addEventListener('change', refreshPreview);
+    }
+  });
+}
+
+function buildTplField(f, idx) {
+  const eid = 'tplf_' + idx;
+  const req = f.required ? '<span class="tpl-field-req">*</span>' : '';
+  let ctrl = '';
+  const typeIco = { text:'✏️', textarea:'📄', select:'☑️', chips:'🏷️' }[f.type] || '✏️';
+  const typeName = { text:'文本', textarea:'多行文本', select:'下拉', chips:'多选' }[f.type] || '';
+  if (f.type === 'text') {
+    ctrl = `<input class="tpl-input" id="${eid}" placeholder="${esc(f.placeholder || '')}" autocomplete="off">`;
+  } else if (f.type === 'textarea') {
+    ctrl = `<textarea class="tpl-textarea" id="${eid}" rows="2" placeholder="${esc(f.placeholder || '')}"></textarea>`;
+  } else if (f.type === 'select') {
+    const opts = (f.options || []).map((o, oi) => {
+      const def = (typeof o === 'object' ? o.isDefault : oi === 0);
+      const val = typeof o === 'string' ? o : o.val;
+      return `<option value="${esc(val)}"${def?' selected':''}>${esc(val)}</option>`;
+    }).join('');
+    if (!opts) {
+      ctrl = `<div style="font-size:9.5px;color:var(--t3);padding:5px 0">该参数暂无可选项，请在 Skill 管理页配置</div>`;
+    } else {
+      ctrl = `<select class="tpl-select" id="${eid}">${opts}</select>`;
+    }
+  } else if (f.type === 'chips') {
+    if (!f.options || !f.options.length) {
+      ctrl = `<div style="font-size:9.5px;color:var(--t3);padding:5px 0">该参数暂无可选标签，请在 Skill 管理页配置</div>`;
+    } else {
+      const chips = f.options.map(o => {
+        const val = typeof o === 'string' ? o : o.val;
+        return `<div class="tpl-chip" data-fidx="${idx}" data-val="${esc(val)}" onclick="toggleChip(${idx},this)">${esc(val)}</div>`;
+      }).join('');
+      ctrl = `<div class="tpl-chips" id="${eid}">${chips}</div>`;
+    }
+  }
+  // hint for select showing options count
+  const optHint = (f.type === 'select' || f.type === 'chips') && f.options && f.options.length
+    ? `<span style="font-size:9px;color:var(--t3);margin-left:4px">${f.options.length} 个选项</span>` : '';
+  return `<div class="tpl-field">
+    <div class="tpl-field-lbl">${typeIco} ${esc(f.label)}${req}${optHint}</div>
+    ${ctrl}
+  </div>`;
+}
+
+function toggleChip(fidx, el) {
+  const v = el.dataset.val;
+  const key = 'idx_' + fidx;
+  if (!modalChipState[key]) modalChipState[key] = new Set();
+  if (modalChipState[key].has(v)) { modalChipState[key].delete(v); el.classList.remove('on'); }
+  else { modalChipState[key].add(v); el.classList.add('on'); }
+  refreshPreview();
+}
+
+function getTplFieldVal(f, idx) {
+  if (idx === undefined) idx = _getCurrentFieldIdx(f);
+  if (f.type === 'chips') {
+    const key = 'idx_' + idx;
+    const s = modalChipState[key];
+    return s && s.size > 0 ? [...s].join('、') : '';
+  }
+  const el = document.getElementById('tplf_' + idx);
+  return el ? el.value.trim() : '';
+}
+function _getCurrentFieldIdx(f) {
+  const sk = SKILLS.find(s => s.id === modalSkillId);
+  if (!sk || !sk.fields) return 0;
+  return sk.fields.indexOf(f);
+}
+
+function submitTpl() {
+  const sk = SKILLS.find(s => s.id === modalSkillId);
+  if (!sk) return;
+  const missing = sk.fields.filter((f, i) => f.required && !getTplFieldVal(f, i)).map(f => f.label);
+  if (missing.length) { showToast('请填写必填项：' + missing.join('、'), 'red'); return; }
+
+  let prompt = sk.prompt;
+  sk.fields.forEach((f, i) => {
+    const token = f.token || f.label;
+    const v = getTplFieldVal(f, i) || '[' + token + ']';
+    prompt = prompt.split('{{' + token + '}}').join(v);
+  });
+
+  closeTplModal();
+  document.getElementById('inp').value = prompt;
+  hideIntentBar();
+  sendMsg();
+  showToast('⚡ 已用「' + sk.name + '」Skill 发送', 'v2');
+}
+
+/* ═══ DIRECT SKILL TRIGGER (no template) ═══ */
+function triggerSkillDirect(skillId) {
+  const sk = SKILLS.find(s => s.id === skillId);
+  if (!sk) return;
+  const inp = document.getElementById('inp');
+  const current = inp.value.trim();
+  const msg = current || '请根据当前代码上下文执行：' + sk.name;
+  inp.value = msg;
+  closeSkDraw();
+  sendMsg();
+  showToast('⚡ 已触发「' + sk.name + '」Skill', 'v2');
+}
+
+/* ═══ SKILL DRAWER ═══ */
+function openSkDraw() {
+  renderSkDraw('');
+  renderInvokeList();
+  document.getElementById('skd').classList.add('on');
+  document.getElementById('sk-act-btn').classList.add('sk-active');
+  document.getElementById('skd-search-inp').focus();
+}
+function closeSkDraw() {
+  document.getElementById('skd').classList.remove('on');
+  document.getElementById('sk-act-btn').classList.remove('sk-active');
+}
+
+function switchSkdTab(tab) {
+  ['sel','invoke'].forEach(t => {
+    document.getElementById('skd-tab-'+t).classList.toggle('on', t===tab);
+    document.getElementById('skd-panel-'+t).classList.toggle('on', t===tab);
+  });
+  if (tab === 'invoke') renderInvokeList();
+}
+
+/* Panel A: selection list */
+function renderSkDraw(q) {
+  const list = document.getElementById('skd-list');
+  list.innerHTML = '';
+  const filtered = SKILLS.filter(s => !q || s.name.includes(q) || s.desc.includes(q));
+  filtered.forEach(sk => {
+    const on = selSkills.has(sk.id);
+    const hasTpl = sk.fields && sk.fields.length > 0;
+    const tplBadge = hasTpl ? `<span class="tpl-badge">🧩 模板</span>` : '';
+    list.innerHTML += `<div class="sdi${on?' on':''}" onclick="togDrawSk('${sk.id}',this)">
+      <div class="sdi-ico ${sk.bg}">${sk.ico}</div>
+      <div class="sdi-info">
+        <div class="sdi-name">${sk.name} ${tplBadge}</div>
+        <div class="sdi-desc">${sk.desc}</div>
+      </div>
+      <div class="sdi-chk">${on?'✓':''}</div>
+    </div>`;
+  });
+  renderAch();
+}
+
+function filterSkills(v) { renderSkDraw(v); }
+
+function togDrawSk(id, el) {
+  selSkills.has(id)
+    ? (selSkills.delete(id), el.classList.remove('on'), el.querySelector('.sdi-chk').textContent='')
+    : (selSkills.add(id), el.classList.add('on'), el.querySelector('.sdi-chk').textContent='✓');
+  renderAch();
+}
+function rmAch(id) { selSkills.delete(id); renderSkDraw(document.getElementById('skd-search-inp').value); }
+function renderAch() {
+  const el = document.getElementById('ach'); el.innerHTML = '';
+  if (!selSkills.size) { el.innerHTML='<span style="font-size:9px;color:var(--t3)">未选择 Skill</span>'; return; }
+  selSkills.forEach(id => {
+    const s = SKILLS.find(x => x.id===id); if (!s) return;
+    el.innerHTML += `<div class="ach">${s.ico} ${s.name}<span class="ach-x" onclick="rmAch('${id}')">×</span></div>`;
+  });
+}
+function confirmSkills() {
+  closeSkDraw();
+  document.getElementById('sk-cnt').textContent = selSkills.size;
+  const ctx = document.getElementById('ch-ctx');
+  ctx.querySelectorAll('.ctx-c.sk').forEach(e => e.remove());
+  selSkills.forEach(id => {
+    const s = SKILLS.find(x => x.id===id); if (!s) return;
+    const c = document.createElement('span'); c.className='ctx-c sk'; c.textContent = s.ico+' '+s.name.slice(0,4); ctx.appendChild(c);
+  });
+  addAiMsg(`✅ Skill 配置已更新，当前启用 <strong>${selSkills.size} 个 Skill</strong>。`);
+  showToast(`已应用 ${selSkills.size} 个 Skill ✓`, 'grn');
+}
+
+/* Panel B: invoke list */
+function renderInvokeList() {
+  const list = document.getElementById('skd-invoke-list');
+  const enabled = SKILLS.filter(s => selSkills.has(s.id));
+  if (!enabled.length) {
+    list.innerHTML = '<div class="skd-invoke-empty">暂未启用任何 Skill<br>请先在「选择 Skill」标签页中选择</div>';
+    return;
+  }
+  list.innerHTML = enabled.map(sk => {
+    const hasTpl = sk.fields && sk.fields.length > 0;
+    const catColor = {质量:'var(--acc)',功能:'var(--v2)',UI:'var(--grn)',集成:'var(--amb)',文档:'var(--cyn)',测试:'var(--v2)',性能:'var(--amb)',工具:'var(--t2)'}[sk.cat]||'var(--t3)';
+    const fieldTags = hasTpl ? sk.fields.map(f=>`<span class="ifield-tag">${f.label}</span>`).join('') : '';
+    const actionBtns = hasTpl
+      ? `<button class="invoke-tpl-btn" onclick="openTplModal('${sk.id}');closeSkDraw()">🧩 填写参数</button>
+         <button class="invoke-direct-btn" onclick="triggerSkillDirect('${sk.id}')">▶ 直接触发</button>`
+      : `<button class="invoke-direct-btn" onclick="triggerSkillDirect('${sk.id}')">▶ 触发</button>`;
+    return `<div class="invoke-item">
+      <div class="invoke-item-hd">
+        <div class="invoke-item-ico ${sk.bg}">${sk.ico}</div>
+        <div class="invoke-item-name">${sk.name}</div>
+        <span class="invoke-item-cat" style="color:${catColor};background:${catColor}1a;border-color:${catColor}44">${sk.cat}</span>
+        ${actionBtns}
+      </div>
+      <div class="invoke-desc">${sk.desc}${hasTpl?`<br><span style="color:var(--v2);font-size:9px">需填写参数：</span>`:''}${fieldTags}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════
+   SKILL MANAGEMENT PAGE — EDIT DRAWER SYSTEM
+   ═══════════════════════════════════════════════════ */
+
+let enCnt = 2;
+
+function togSk(tog, id) {
+  const on = !tog.classList.contains('on'); tog.classList.toggle('on');
+  const card = tog.closest('.sk-card'), name = card.querySelector('.sk-c-name').textContent.replace(/v[\d.]+|beta|new|🧩.*/gi,'').trim();
+  if (on) {
+    enCnt++; card.classList.add('en');
+    document.getElementById('sk-en-grid').appendChild(card);
+    selSkills.add(id); showToast(`${name} 已启用 ✓`,'grn');
+  } else {
+    enCnt = Math.max(0,enCnt-1); card.classList.remove('en');
+    selSkills.delete(id); showToast(`${name} 已禁用`,'');
+  }
+  document.getElementById('sk-en-cnt').textContent = enCnt + ' 个';
+  document.getElementById('sk-cnt').textContent = selSkills.size;
+}
+
+/* ════════════════════════════════════
+   SKILL EDIT DRAWER
+   ════════════════════════════════════ */
+let sedSkillId = null;   // 当前编辑的 skill id（null = 新建）
+let sedFields  = [];     // 当前编辑中的参数列表
+let sedKeywords = [];    // 当前编辑中的关键词
+let sedFldUid  = 0;      // uid 计数器
+
+const TYPE_META = {
+  text:     { ico:'✏️', label:'文本输入',  hasOptions:false },
+  textarea: { ico:'📄', label:'多行文本',  hasOptions:false },
+  select:   { ico:'☑️', label:'下拉选择',  hasOptions:true  },
+  chips:    { ico:'🏷️', label:'多选标签',  hasOptions:true  }
+};
+
+/* ── Open drawer ── */
+function openSkEditDrawer(skId) {
+  sedSkillId = skId;
+  const sk = skId ? SKILLS.find(s => s.id === skId) : null;
+
+  // populate header
+  const ico = sk ? sk.ico : '⚡';
+  document.getElementById('sedIco').textContent = ico;
+  document.getElementById('sedIco').className = 'sed-ico ' + (sk ? sk.bg : 'ic-b');
+  document.getElementById('sedTitle').textContent = sk ? sk.name : '新建 Skill';
+  document.getElementById('sedSubtitle').textContent = sk ? `ID: ${sk.id}` : '配置完成后将添加到列表';
+  document.getElementById('sed-del-btn').style.display = sk ? 'block' : 'none';
+
+  // populate basic info
+  document.getElementById('sed-name').value = sk ? sk.name : '';
+  document.getElementById('sed-desc').value = sk ? sk.desc : '';
+  document.getElementById('sed-ico-inp').value = ico;
+  const catSel = document.getElementById('sed-cat');
+  if (sk) { for (let i=0;i<catSel.options.length;i++) if (catSel.options[i].value===sk.cat) { catSel.selectedIndex=i; break; } }
+
+  // populate keywords
+  sedKeywords = sk ? [...(sk.keywords||[])] : [];
+  renderSedKeywords();
+
+  // populate prompt
+  document.getElementById('sed-prompt').value = sk ? sk.prompt : '';
+  updatePromptSlots();
+  document.getElementById('sed-prompt').addEventListener('input', updatePromptSlots);
+
+  // populate params
+  sedFields = sk && sk.fields
+    ? sk.fields.map((f,i) => ({
+        uid: 'sed_' + (sedFldUid++),
+        label: f.label, type: f.type,
+        required: !!f.required,
+        placeholder: f.placeholder || '',
+        options: (f.options||[]).map((o,j) => ({ val: typeof o==='string'?o:o.val, isDefault: typeof o==='object'?o.isDefault:j===0 })),
+        token: f.token || f.label
+      }))
+    : [];
+  renderSedFields();
+  updateSedParamCnt();
+
+  // show
+  switchSedTab('basic');
+  document.getElementById('skEditDrawer').classList.add('on');
+  document.getElementById('skEditOverlay').classList.add('on');
+  setTimeout(() => document.getElementById('sed-name').focus(), 80);
+}
+
+function closeSkEditDrawer() {
+  document.getElementById('skEditDrawer').classList.remove('on');
+  document.getElementById('skEditOverlay').classList.remove('on');
+  // remove stale prompt listener
+  const p = document.getElementById('sed-prompt');
+  p.removeEventListener('input', updatePromptSlots);
+}
+
+function switchSedTab(tab) {
+  ['basic','prompt','params'].forEach(t => {
+    document.getElementById('sed-tab-'+t).classList.toggle('on', t===tab);
+    document.getElementById('sed-panel-'+t).classList.toggle('on', t===tab);
+  });
+}
+
+/* ── Keywords ── */
+function renderSedKeywords() {
+  const wrap = document.getElementById('sed-keywords');
+  wrap.innerHTML = sedKeywords.map((kw,i) =>
+    `<span class="sed-kw-tag">${esc(kw)}<span class="sed-kw-del" onclick="removeKeyword(${i})">×</span></span>`
+  ).join('');
+}
+function addKeyword() {
+  const inp = document.getElementById('sed-kw-inp');
+  const v = inp.value.trim();
+  if (!v) return;
+  if (!sedKeywords.includes(v)) sedKeywords.push(v);
+  inp.value = '';
+  renderSedKeywords();
+}
+function removeKeyword(i) { sedKeywords.splice(i,1); renderSedKeywords(); }
+
+/* ── Prompt slot detection ── */
+function updatePromptSlots() {
+  const txt = document.getElementById('sed-prompt').value;
+  const matches = [...txt.matchAll(/\{\{([^}]+)\}\}/g)].map(m => m[1]);
+  const unique = [...new Set(matches)];
+  document.getElementById('sed-prompt-slots').innerHTML = unique.map(s =>
+    `<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:var(--v2-dim);color:var(--v2);border:1px solid rgba(139,92,246,.25);font-family:'IBM Plex Mono',monospace">${esc(s)}</span>`
+  ).join('');
+}
+
+/* ── Fields list ── */
+function renderSedFields() {
+  const list = document.getElementById('sed-fields-list');
+  if (!sedFields.length) {
+    list.innerHTML = `<div style="font-size:9.5px;color:var(--t3);padding:8px 0;text-align:center">暂无参数 — 添加后触发此 Skill 时将弹出填写表单</div>`;
+    return;
+  }
+  list.innerHTML = sedFields.map(f => buildSedFieldItem(f)).join('');
+}
+
+function buildSedFieldItem(f) {
+  const meta = TYPE_META[f.type] || TYPE_META.text;
+  const reqBadge = f.required ? `<span class="sed-fi-req">必填</span>` : '';
+  const optCount = meta.hasOptions ? `<span style="font-size:8px;color:var(--t3);margin-left:2px">${f.options.length}项</span>` : '';
+  const configHtml = buildSedFieldConfig(f, meta);
+  return `<div class="sed-field-item" id="sedf_${f.uid}">
+    <div class="sed-fi-summary" onclick="toggleSedField('${f.uid}')">
+      <span class="sed-fi-ico">${meta.ico}</span>
+      <span class="sed-fi-label">${esc(f.label)}</span>
+      ${reqBadge}
+      <span class="sed-fi-type-badge">${meta.label}${optCount}</span>
+      <span class="sed-fi-expand">▾</span>
+      <span class="sed-fi-del" onclick="event.stopPropagation();sedDelField('${f.uid}')">×</span>
+    </div>
+    <div class="sed-fi-config">${configHtml}</div>
+  </div>`;
+}
+
+function buildSedFieldConfig(f, meta) {
+  let h = '';
+  h += `<div class="sfc-row"><div class="sfc-label">参数名称</div>
+    <input class="sfc-input" value="${esc(f.label)}" onchange="sedUpdLabel('${f.uid}',this.value)"></div>`;
+  h += `<label class="sfc-check"><input type="checkbox" ${f.required?'checked':''} onchange="sedUpdRequired('${f.uid}',this.checked)"> 必填（提交时验证不能为空）</label>`;
+  if (!meta.hasOptions) {
+    h += `<div class="sfc-row"><div class="sfc-label">占位提示文字</div>
+      <input class="sfc-input" value="${esc(f.placeholder)}" placeholder="输入框提示…" onchange="sedUpdPlaceholder('${f.uid}',this.value)"></div>`;
+  }
+  if (meta.hasOptions) {
+    const typeWord = f.type==='select' ? '下拉选项' : '可选标签';
+    const hint = f.type==='select' ? '（★ 设为默认）' : '（支持多选）';
+    h += `<div class="sfc-row"><div class="sfc-label">${typeWord} <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:8.5px;color:var(--t3)">${hint}</span></div>
+      <div class="sfc-options-list" id="sedopts_${f.uid}">${renderSedOptRows(f)}</div>
+      <div class="sfc-add-opt-row">
+        <input class="sfc-add-opt-inp" id="sednewopts_${f.uid}" placeholder="输入选项…" onkeydown="if(event.key==='Enter'){event.preventDefault();sedAddOpt('${f.uid}')}">
+        <button class="sfc-add-opt-btn" onclick="sedAddOpt('${f.uid}')">+ 添加</button>
+      </div></div>`;
+  }
+  h += `<div class="sfc-row"><div class="sfc-label">Prompt 占位符 <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:8.5px;color:var(--t3)">（Prompt 中 {{token}} 引用）</span></div>
+    <input class="sfc-input" value="${esc(f.token)}" onchange="sedUpdToken('${f.uid}',this.value)" style="font-family:'IBM Plex Mono',monospace;font-size:10px"></div>`;
+  return h;
+}
+
+function renderSedOptRows(f) {
+  if (!f.options || !f.options.length) return `<div class="sfc-empty-opts">暂无选项</div>`;
+  return f.options.map((o,i) =>
+    `<div class="sfc-opt-row">
+      <span class="sfc-opt-val">${esc(o.val)}</span>
+      ${o.isDefault?'<span class="sfc-opt-default">默认</span>':''}
+      <span class="sfc-opt-set-def" onclick="sedSetDef('${f.uid}',${i})">★</span>
+      <span class="sfc-opt-del" onclick="sedDelOpt('${f.uid}',${i})">×</span>
+    </div>`
+  ).join('');
+}
+
+function toggleSedField(uid) {
+  document.getElementById('sedf_'+uid).classList.toggle('expanded');
+}
+
+/* ── Field CRUD ── */
+function findSedField(uid) { return sedFields.find(f=>f.uid===uid); }
+function sedUpdLabel(uid,v){ const f=findSedField(uid); if(!f)return; f.label=v.trim()||f.label; document.querySelector(`#sedf_${uid} .sed-fi-label`).textContent=f.label; }
+function sedUpdRequired(uid,v){ const f=findSedField(uid); if(!f)return; f.required=v; const badge=document.querySelector(`#sedf_${uid} .sed-fi-req`); if(v&&!badge){document.querySelector(`#sedf_${uid} .sed-fi-summary`).insertBefore(Object.assign(document.createElement('span'),{className:'sed-fi-req',textContent:'必填'}),document.querySelector(`#sedf_${uid} .sed-fi-type-badge`));}else if(!v&&badge)badge.remove(); }
+function sedUpdPlaceholder(uid,v){ const f=findSedField(uid); if(f)f.placeholder=v; }
+function sedUpdToken(uid,v){ const f=findSedField(uid); if(f)f.token=v.trim()||f.token; }
+function sedAddOpt(uid) {
+  const inp=document.getElementById('sednewopts_'+uid); if(!inp)return;
+  const v=inp.value.trim(); if(!v){showToast('请输入选项','red');return;}
+  const f=findSedField(uid); if(!f)return;
+  f.options.push({val:v,isDefault:f.options.length===0}); inp.value='';
+  document.getElementById('sedopts_'+uid).innerHTML=renderSedOptRows(f);
+  updateSedFieldBadge(uid,f);
+}
+function sedDelOpt(uid,idx) {
+  const f=findSedField(uid); if(!f)return;
+  f.options.splice(idx,1);
+  if(f.options.length&&!f.options.some(o=>o.isDefault))f.options[0].isDefault=true;
+  document.getElementById('sedopts_'+uid).innerHTML=renderSedOptRows(f);
+  updateSedFieldBadge(uid,f);
+}
+function sedSetDef(uid,idx) {
+  const f=findSedField(uid); if(!f)return;
+  f.options.forEach((o,i)=>o.isDefault=i===idx);
+  document.getElementById('sedopts_'+uid).innerHTML=renderSedOptRows(f);
+  showToast('已设为默认','grn');
+}
+function updateSedFieldBadge(uid,f) {
+  const meta=TYPE_META[f.type]||TYPE_META.text;
+  const el=document.querySelector(`#sedf_${uid} .sed-fi-type-badge`);
+  if(el)el.innerHTML=`${meta.label}<span style="font-size:8px;color:var(--t3);margin-left:2px">${f.options.length}项</span>`;
+}
+function sedDelField(uid) {
+  const idx=sedFields.findIndex(f=>f.uid===uid);
+  if(idx>=0){sedFields.splice(idx,1);renderSedFields();updateSedParamCnt();}
+}
+function sedAddField() {
+  const nameInp=document.getElementById('sed-new-field-inp');
+  const typeInp=document.getElementById('sed-new-field-type');
+  const name=nameInp?nameInp.value.trim():'', type=typeInp?typeInp.value:'text';
+  if(!name){showToast('请输入参数名','red');return;}
+  const uid='sed_'+(sedFldUid++);
+  const nf={uid,label:name,type,required:false,placeholder:'',options:[],token:name};
+  if(type==='select')nf.options=[{val:'选项A',isDefault:true},{val:'选项B',isDefault:false}];
+  if(type==='chips') nf.options=[{val:'标签A',isDefault:false},{val:'标签B',isDefault:false}];
+  sedFields.push(nf);
+  if(nameInp)nameInp.value='';
+  renderSedFields();
+  updateSedParamCnt();
+  setTimeout(()=>{const row=document.getElementById('sedf_'+uid);if(row){row.classList.add('expanded');row.scrollIntoView({behavior:'smooth',block:'nearest'});}},30);
+  showToast(`参数「${name}」已添加`,'grn');
+}
+function updateSedParamCnt() {
+  document.getElementById('sed-param-cnt').textContent = sedFields.length ? `(${sedFields.length})` : '';
+}
+
+/* ── Save ── */
+function sedSave() {
+  const name = document.getElementById('sed-name').value.trim();
+  if (!name) { showToast('请填写 Skill 名称','red'); switchSedTab('basic'); return; }
+  const prompt = document.getElementById('sed-prompt').value.trim();
+  const ico = document.getElementById('sed-ico-inp').value.trim() || '⚡';
+  const desc = document.getElementById('sed-desc').value.trim();
+  const cat = document.getElementById('sed-cat').value;
+
+  const fields = sedFields.map(f => ({
+    id: f.uid, label: f.label, type: f.type,
+    required: f.required, placeholder: f.placeholder,
+    options: f.options.map(o=>o.val), token: f.token
+  }));
+
+  if (sedSkillId) {
+    // update existing
+    const sk = SKILLS.find(s => s.id === sedSkillId);
+    if (sk) {
+      sk.name = name; sk.desc = desc; sk.ico = ico; sk.cat = cat;
+      sk.prompt = prompt; sk.keywords = [...sedKeywords];
+      sk.fields = fields.length ? fields : undefined;
+      // update card
+      const card = document.querySelector(`[data-skill-id="${sedSkillId}"]`);
+      if (card) {
+        card.querySelector('.sk-c-name').childNodes[0].textContent = name + ' ';
+        card.querySelector('.sk-c-desc').textContent = desc;
+        card.querySelector('.sk-prompt-preview').textContent = prompt.slice(0,80)+'…';
+        const cnt = card.querySelector('.sk-tpl-count');
+        if (cnt) cnt.textContent = fields.length ? fields.length+' 个参数' : '';
+        // update tpl badge
+        const tplBadge = card.querySelector('.stag-tpl');
+        if (fields.length && !tplBadge) {
+          card.querySelector('.sk-c-name').insertAdjacentHTML('beforeend','<span class="stag stag-tpl">🧩 含模板</span>');
+        } else if (!fields.length && tplBadge) tplBadge.remove();
+      }
+    }
+    showToast(`「${name}」已更新 ✓`,'grn');
+  } else {
+    showToast('新建 Skill 功能开发中…','');
+  }
+  closeSkEditDrawer();
+}
+
+function sedDeleteSkill() {
+  if (!sedSkillId) return;
+  const sk = SKILLS.find(s=>s.id===sedSkillId);
+  if (!sk) return;
+  if (!confirm(`确认删除「${sk.name}」Skill？此操作不可恢复。`)) return;
+  const idx = SKILLS.findIndex(s=>s.id===sedSkillId);
+  if (idx>=0) SKILLS.splice(idx,1);
+  const card = document.querySelector(`[data-skill-id="${sedSkillId}"]`);
+  if (card) card.remove();
+  selSkills.delete(sedSkillId);
+  closeSkEditDrawer();
+  showToast(`「${sk.name}」已删除`,'red');
+}
+
+/* ═══ NAV ═══ */
+function go(i) {
+  for (let j=0;j<4;j++) {
+    document.getElementById('v'+j).classList.toggle('on',j===i);
+    document.getElementById('n'+j).classList.toggle('on',j===i);
+  }
+  const ide = i===1;
+  ['tr1-grp','tt-ide','tr-ide'].forEach(id=>document.getElementById(id).style.display=ide?'flex':'none');
+  document.getElementById('sb').style.display = ide?'flex':'none';
+}
+go(1);
+
+/* ═══ RESIZE HANDLE ═══ */
+(()=>{
+  const panel=document.getElementById('chat-panel'), handle=document.getElementById('resize-handle');
+  let drag=false,startY=0,startH=0;
+  handle.addEventListener('mousedown',e=>{drag=true;startY=e.clientY;startH=panel.offsetHeight;handle.classList.add('dragging');document.body.style.userSelect='none';document.body.style.cursor='ns-resize';});
+  document.addEventListener('mousemove',e=>{if(!drag)return;const newH=Math.max(110,Math.min(window.innerHeight*.72,startH+(startY-e.clientY)));panel.style.height=newH+'px';});
+  document.addEventListener('mouseup',()=>{if(!drag)return;drag=false;handle.classList.remove('dragging');document.body.style.userSelect='';document.body.style.cursor='';});
+})();
+
+/* ═══ FILE TREE ═══ */
+function toggleDir(el){
+  const open=el.dataset.open==='true';el.dataset.open=open?'false':'true';
+  const arrow=el.querySelector('.fdir-arrow');if(arrow)arrow.style.transform=open?'rotate(-90deg)':'';
+  const nx=el.nextElementSibling;if(nx&&nx.classList.contains('fdir-children'))nx.classList.toggle('collapsed',open);
+}
+
+/* ═══ CODE EDITOR ═══ */
+const CODE={
+  'PROCESS.js':`// PROCESS.js — 业务流程逻辑\n\nexport async function fetchData() {\n  const params = {\n    dateRange: appsmith.store.dateFilter,\n    userId: appsmith.store.currentUser,\n  };\n  showAlert('加载中...', 'info');\n  try {\n    const res = await Api1.run(params);\n    storeValue('data', res.result);\n    showAlert('数据加载成功', 'success');\n  } catch (err) {\n    com.set_error('NETWORK_ERROR');\n    console.error('fetchData fail:', err);\n  }\n  storeValue('lastUpdated', new Date().toISOString());\n}\n\nexport function handleSelect() {\n  const row = MetricsTable.selectedRow;\n  if (isEmpty(row)) return;\n  storeValue('selectedItem', row);\n}`,
+  'COMMON.js':`// COMMON.js — 公共工具函数\n\nexport function isEmpty(val) {\n  if (val === null || val === undefined) return true;\n  if (typeof val === 'string') return val.trim() === '';\n  if (Array.isArray(val)) return val.length === 0;\n  return false;\n}\n\nexport function formatDate(date, fmt = 'YYYY-MM-DD') {\n  const d = new Date(date);\n  return fmt\n    .replace('YYYY', d.getFullYear())\n    .replace('MM', String(d.getMonth()+1).padStart(2,'0'))\n    .replace('DD', String(d.getDate()).padStart(2,'0'));\n}`,
+  'canvas.json':`{\n  "widgetName": "DashboardPage",\n  "version": 35,\n  "children": [\n    {\n      "widgetId": "w1",\n      "type": "TABLE_WIDGET_V2",\n      "widgetName": "MetricsTable",\n      "tableData": "{{fetchData.data}}"\n    },\n    {\n      "widgetId": "w2",\n      "type": "BUTTON_WIDGET",\n      "widgetName": "RefreshBtn",\n      "label": "刷新数据",\n      "onClick": "{{fetchData.run()}}"\n    }\n  ]\n}`
+};
+let curFile='PROCESS.js',modified={};
+function hlCode(code){
+  return code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/(\/\/[^\n]*)/g,'<span class="cm">$1</span>')
+    .replace(/\b(export|async|function|const|let|var|if|return|try|catch|new|await)\b/g,'<span class="kw">$1</span>')
+    .replace(/\b(console|Date|Array|Object)\b/g,'<span class="tp">$1</span>')
+    .replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)\s*(?=\()/g,'<span class="fn">$1</span>')
+    .replace(/('([^'\\]|\\.)*'|"([^"\\]|\\.)*")/g,'<span class="str">$1</span>')
+    .replace(/\b(\d+\.?\d*)\b/g,'<span class="num">$1</span>');
+}
+function renderCode(code){
+  document.getElementById('hl-layer').innerHTML=hlCode(code);
+  document.getElementById('code-edit').value=code;
+  const lines=code.split('\n').length;
+  document.getElementById('ln').innerHTML=Array.from({length:lines},(_,i)=>`<div>${i+1}</div>`).join('');
+}
+function onCodeInput(){
+  const ce=document.getElementById('code-edit');
+  document.getElementById('hl-layer').innerHTML=hlCode(ce.value);
+  const lines=ce.value.split('\n').length;
+  document.getElementById('ln').innerHTML=Array.from({length:lines},(_,i)=>`<div>${i+1}</div>`).join('');
+  modified[curFile]=true;updateSave();
+}
+function syncScroll(){const ce=document.getElementById('code-edit'),hl=document.getElementById('hl-layer');if(hl&&ce){hl.scrollTop=ce.scrollTop;hl.scrollLeft=ce.scrollLeft;}}
+function onCodeKey(e){if(e.key==='Tab'){e.preventDefault();const c=document.getElementById('code-edit'),s=c.selectionStart;c.value=c.value.substring(0,s)+'  '+c.value.substring(c.selectionEnd);c.selectionStart=c.selectionEnd=s+2;onCodeInput();}}
+function updateSave(){
+  const u=!!modified[curFile];
+  document.getElementById('ed-unsaved').style.display=u?'inline':'none';
+  document.getElementById('btn-save').style.display=u?'inline-flex':'none';
+  document.getElementById('btn-save-dis').style.display=u?'none':'inline-flex';
+}
+function saveFile(){modified[curFile]=false;updateSave();showToast(curFile+' 已保存 ✓','grn');}
+function switchTab(f,t,el){
+  curFile=f;
+  document.querySelectorAll('.ttab').forEach(e=>e.classList.remove('on'));el.classList.add('on');
+  document.querySelectorAll('.fi').forEach(e=>e.classList.toggle('on',e.dataset.file===f));
+  renderCode(CODE[f]||'');updateSave();
+  const fc=document.querySelector('.ctx-c.file');if(fc)fc.textContent=f;
+}
+function closeTab(e,id){e.stopPropagation();const t=document.getElementById('tab-'+id);if(t)t.remove();}
+function openFile(f,t){const el=document.getElementById('tab-'+f.replace('.',''));if(el)switchTab(f,t,el);}
+renderCode(CODE['PROCESS.js']);
+
+/* ═══ CHECKOUT ═══ */
+let selEl=null;
+function selCard(el){if(el.classList.contains('locked'))return;if(selEl)selEl.classList.remove('sel');el.classList.add('sel');selEl=el;}
+function filterPages(q){document.querySelectorAll('.page-card').forEach(c=>{c.style.display=(!q||c.querySelector('.pc-name').textContent.toLowerCase().includes(q.toLowerCase()))?'':'none';});}
+function setFilter(f,el){document.querySelectorAll('.ftab').forEach(e=>e.classList.remove('on'));el.classList.add('on');document.querySelectorAll('.page-card').forEach(c=>{c.style.display=(f==='all'||(f==='free'&&c.dataset.status==='free')||(f==='mine'&&c.dataset.status==='mine'))?'':'none';});}
+function startCheckout(){
+  if(!selEl){showToast('请先选择一个 Page','red');return;}
+  const name=selEl.querySelector('.pc-name').textContent;
+  document.getElementById('ld-s').textContent=name;
+  document.getElementById('ld').classList.add('on');
+  const steps=[{id:'s1',t:'锁定 Page，标记签出状态'},{id:'s2',t:'创建 Docker 容器'},{id:'s3',t:'git clone dev 分支代码'},{id:'s4',t:'加载外部依赖库代码'},{id:'s5',t:'启动 Claude AI 服务'},{id:'s6',t:'健康检查通过'}];
+  ['s1','s2','s3','s4','s5','s6'].forEach((id,i)=>{const e=document.getElementById(id);e.className='step'+(i===1?' act':'');e.innerHTML=`<span class="lsi">${i===0?'✅':i===1?'⏳':'○'}</span> ${steps[i].t}`;});
+  let i=0;
+  function nxt(){if(i>=steps.length){setTimeout(()=>{document.getElementById('ld').classList.remove('on');go(1);showToast('进入 IDE：'+name,'grn');},600);return;}const el=document.getElementById(steps[i].id);el.className='step done';el.innerHTML=`<span class="lsi">✅</span> ${steps[i].t}`;i++;setTimeout(nxt,700);}
+  setTimeout(nxt,400);
+}
+function doCheckin(){showToast('正在签入并推送至 GitLab dev...','');setTimeout(()=>showToast('签入成功，代码已推送 ✓','grn'),1800);}
+function applyDiff(){document.getElementById('dn').style.display='none';modified[curFile]=true;updateSave();showToast('代码已应用，请保存后签入 ✓','grn');}
+
+/* ═══ CHAT ═══ */
+function fas(t){document.getElementById('inp').value=t;intentDismissed=false;onInpInput(t);}
+function hk(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
+function addAiMsg(html){
+  const msgs=document.getElementById('msgs');
+  const t=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+  msgs.insertAdjacentHTML('beforeend',`<div class="msg a"><div class="bbl">${html}</div><span class="mt">${t}</span></div>`);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+function addUserMsg(text){
+  const msgs=document.getElementById('msgs');
+  const t=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+  msgs.insertAdjacentHTML('beforeend',`<div class="msg u"><div class="bbl">${text}</div><span class="mt">${t}</span></div>`);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+function sendMsg(){
+  const inp=document.getElementById('inp');const val=inp.value.trim();if(!val)return;
+  hideIntentBar();
+  addUserMsg(val);inp.value='';intentDismissed=false;
+  const ty=document.getElementById('typing');ty.style.display='flex';
+  document.getElementById('msgs').scrollTop=99999;
+  setTimeout(()=>{ty.style.display='none';addAiMsg('好的，我来查看 /workspace 中的代码文件。<br><br>发现以下几个主要问题：<br><br><strong>PROCESS.js</strong> — 第 14 行 fetchData 缺少 loading 状态重置，建议在 finally 块中加入清理逻辑。<br><br><strong>COMMON.js</strong> — formatDate 函数时区处理有风险，建议使用 toLocaleDateString 替代。<br><br>需要我针对某个问题生成修复代码吗？');},1600);
+}
+
+/* ═══ DEPS ═══ */
+function refreshDep(btn,name){btn.disabled=true;btn.textContent='...';setTimeout(()=>{btn.disabled=false;btn.textContent='↻';const log=document.getElementById('upd-log');const now=new Date(),t=`${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;log.insertAdjacentHTML('afterbegin',`<div class="log-item"><span class="log-icon">✅</span><div class="log-txt"><strong>${name}</strong> 已更新，AI 上下文已刷新</div><span class="log-time">${t}</span></div>`);showToast(`${name} 依赖库已更新 ✓`,'grn');},1800);}
+function refreshAllDeps(){showToast('正在更新所有依赖库...','');setTimeout(()=>{showToast('全部依赖库已更新 ✓','grn');},2200);}
+function refreshDepsInline(){showToast('正在更新依赖库...','');setTimeout(()=>{addAiMsg('✅ 依赖库已更新，最新 <code style="background:rgba(255,255,255,.07);padding:1px 4px;border-radius:3px;font-size:9.5px">com</code> 接口已加载。');showToast('依赖库更新完成 ✓','grn');},1400);}
+function removeDep(btn){if(!confirm('确认移除该依赖库？'))return;btn.closest('.dep-card').remove();document.getElementById('dep-cnt').textContent=document.querySelectorAll('.dep-card').length+' 个';showToast('依赖库已移除','red');}
+function showAddDep(){document.getElementById('addDepModal').classList.add('on');}
+function closeDepModal(){document.getElementById('addDepModal').classList.remove('on');['dep-ns-inp','dep-url-inp','dep-ver-inp','dep-desc-inp'].forEach(id=>{document.getElementById(id).value='';});}
+function addDep(){
+  const ns=document.getElementById('dep-ns-inp').value.trim(),url=document.getElementById('dep-url-inp').value.trim();
+  if(!ns||!url){showToast('库名和 URL 为必填项','red');return;}
+  const ver=document.getElementById('dep-ver-inp').value||'latest',desc=document.getElementById('dep-desc-inp').value||'外部依赖库';
+  document.getElementById('dep-grid').insertAdjacentHTML('beforeend',`<div class="dep-card"><div class="dep-c-head"><div class="dep-ico ic-b">📦</div><div class="dep-c-info"><div class="dep-ns">${ns}</div><div class="dep-name">${desc}</div></div><div class="dep-c-acts"><div class="dep-status"><span style="width:5px;height:5px;border-radius:50%;background:var(--grn);display:inline-block;margin-right:3px"></span>已加载</div><button class="btn btn-amb btn-sm" onclick="refreshDep(this,'${ns}')">↻</button><button class="btn btn-red btn-sm" onclick="removeDep(this)">✕</button></div></div><div class="dep-url"><span class="dep-url-txt">${url}</span><span class="dep-url-copy" onclick="showToast('链接已复制 ✓','grn')">⎘</span></div><div class="dep-meta"><span class="dep-ver">${ver}</span><span class="dep-last">刚刚添加</span></div></div>`);
+  document.getElementById('dep-cnt').textContent=document.querySelectorAll('.dep-card').length+' 个';
+  closeDepModal();showToast(`${ns} 已添加 ✓`,'grn');
+}
+
+/* ═══ MINIMIZE CHAT ═══ */
+let chatMinimized=false;
+function toggleChatMin(){
+  const panel=document.getElementById('chat-panel'),btn=document.getElementById('chat-min-btn');
+  chatMinimized=!chatMinimized;
+  panel.classList.toggle('minimized',chatMinimized);
+  btn.style.transform=chatMinimized?'rotate(180deg)':'';
+  btn.setAttribute('data-tip',chatMinimized?'展开':'最小化');
+}
+
+/* ═══ ATTACHMENT ═══ */
+let attachedFiles=[];
+function toggleAttach(){document.getElementById('file-input').click();}
+function handleFiles(files){Array.from(files).forEach(f=>{attachedFiles.push(f);renderAttachStrip();});}
+function renderAttachStrip(){
+  const strip=document.getElementById('attach-strip');
+  if(!attachedFiles.length){strip.style.display='none';strip.innerHTML='';return;}
+  strip.style.display='flex';
+  strip.innerHTML=attachedFiles.map((f,i)=>{const ext=f.name.split('.').pop().toUpperCase();const ico=ext==='PDF'?'📄':ext==='PNG'||ext==='JPG'||ext==='JPEG'||ext==='GIF'?'🖼':ext==='JS'||ext==='TS'?'⚡':'📎';return `<div class="attach-item"><span class="attach-item-ico">${ico}</span><span class="attach-item-name">${f.name}</span><span class="attach-item-x" onclick="removeAttach(${i})">×</span></div>`;}).join('');
+}
+function removeAttach(i){attachedFiles.splice(i,1);renderAttachStrip();}
+
+/* ═══ CLEAR MSGS ═══ */
+function clearMsgs(){
+  if(!confirm('确认清空所有对话记录？'))return;
+  document.getElementById('msgs').innerHTML='';
+  addAiMsg('对话已清空。可以开始新的任务，我已准备好。');
+  showToast('对话已清空','');
+}
+
+/* ═══ TOAST ═══ */
+let tT;
+function showToast(msg,type){
+  const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'');
+  clearTimeout(tT);requestAnimationFrame(()=>{t.classList.add('on');tT=setTimeout(()=>t.classList.remove('on'),2400);});
+}
+
+/* ═══ HELPER ═══ */
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+{
+  "auth": {
+    "login": {
+      "description": "POST /auth/login mock response",
+      "users": [
+        {
+          "username": "admin",
+          "password": "dev",
+          "response": {
+            "token": "mock-jwt-token",
+            "userInfo": {
+              "id": "uuid-admin",
+              "username": "admin",
+              "displayName": "管理员",
+              "role": "admin"
+            }
+          }
+        },
+        {
+          "username": "dev1",
+          "password": "dev",
+          "response": {
+            "token": "mock-jwt-token-dev1",
+            "userInfo": {
+              "id": "uuid-dev1",
+              "username": "dev1",
+              "displayName": "开发者一",
+              "role": "developer"
+            }
+          }
+        },
+        {
+          "username": "dev2",
+          "password": "dev",
+          "response": {
+            "token": "mock-jwt-token-dev2",
+            "userInfo": {
+              "id": "uuid-dev2",
+              "username": "dev2",
+              "displayName": "开发者二",
+              "role": "developer"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "pages": {
+    "list": {
+      "description": "GET /pages mock response - third-party API returns this",
+      "response": {
+        "pages": [
+          {
+            "pageId": "dashboard-page",
+            "pageName": "DashboardPage",
+            "gitlabRepoUrl": "git@gitlab.internal:appsmith/dashboard-page.git",
+            "branch": "dev",
+            "description": "主仪表盘页面，展示核心数据指标和图表"
+          },
+          {
+            "pageId": "user-management-page",
+            "pageName": "UserManagementPage",
+            "gitlabRepoUrl": "git@gitlab.internal:appsmith/user-management-page.git",
+            "branch": "dev",
+            "description": "用户管理页面，支持用户增删改查"
+          },
+          {
+            "pageId": "report-page",
+            "pageName": "ReportPage",
+            "gitlabRepoUrl": "git@gitlab.internal:appsmith/report-page.git",
+            "branch": "dev",
+            "description": "数据报表页面，支持多维度报表生成和导出"
+          },
+          {
+            "pageId": "order-page",
+            "pageName": "OrderPage",
+            "gitlabRepoUrl": "git@gitlab.internal:appsmith/order-page.git",
+            "branch": "dev",
+            "description": "订单管理页面，处理订单的创建、审批和跟踪"
+          },
+          {
+            "pageId": "settings-page",
+            "pageName": "SettingsPage",
+            "gitlabRepoUrl": "git@gitlab.internal:appsmith/settings-page.git",
+            "branch": "dev",
+            "description": "系统设置页面，配置应用参数和偏好"
+          },
+          {
+            "pageId": "workflow-page",
+            "pageName": "WorkflowPage",
+            "gitlabRepoUrl": "git@gitlab.internal:appsmith/workflow-page.git",
+            "branch": "dev",
+            "description": "工作流配置页面，定义和管理业务审批流程"
+          }
+        ]
+      }
+    },
+    "tree": {
+      "description": "GET /pages/:pageId/tree mock response - GitLab proxy",
+      "response": {
+        "branch": "dev",
+        "tree": [
+          { "type": "file", "name": "canvas.json", "path": "canvas.json" },
+          {
+            "type": "directory",
+            "name": "JsObjects",
+            "path": "JsObjects",
+            "children": [
+              { "type": "file", "name": "COMMON.js", "path": "JsObjects/COMMON.js" },
+              { "type": "file", "name": "PROCESS.js", "path": "JsObjects/PROCESS.js" },
+              { "type": "file", "name": "API_HANDLER.js", "path": "JsObjects/API_HANDLER.js" }
+            ]
+          }
+        ]
+      }
+    },
+    "files": {
+      "description": "GET /pages/:pageId/files mock responses",
+      "canvas.json": {
+        "content": "{\n  \"widgetName\": \"Canvas\",\n  \"type\": \"CANVAS_WIDGET\",\n  \"version\": 1,\n  \"children\": [\n    {\n      \"widgetName\": \"MainContainer\",\n      \"type\": \"CONTAINER_WIDGET\",\n      \"children\": []\n    }\n  ]\n}"
+      },
+      "JsObjects/COMMON.js": {
+        "content": "export default {\n  appName: 'Appsmith Page',\n  version: '1.0.0',\n\n  formatDate(date) {\n    return new Date(date).toLocaleDateString('zh-CN');\n  },\n\n  formatCurrency(amount) {\n    return `¥${Number(amount).toFixed(2)}`;\n  },\n\n  async fetchData(endpoint) {\n    try {\n      const response = await fetch(endpoint);\n      if (!response.ok) throw new Error(`HTTP ${response.status}`);\n      return response.json();\n    } catch (error) {\n      console.error('API Error:', error);\n      return null;\n    }\n  },\n};"
+      },
+      "JsObjects/PROCESS.js": {
+        "content": "export default {\n  async processData(rawData) {\n    const filtered = rawData.filter(item => item.active);\n    return filtered.map(item => ({\n      ...item,\n      processedAt: new Date().toISOString(),\n    }));\n  },\n\n  validateForm(formData) {\n    const errors = {};\n    if (!formData.name) errors.name = '名称不能为空';\n    if (!formData.email) errors.email = '邮箱不能为空';\n    return { valid: Object.keys(errors).length === 0, errors };\n  },\n\n  calculateTotal(items) {\n    return items.reduce((sum, item) => sum + (item.price * item.quantity), 0);\n  },\n};"
+      },
+      "JsObjects/API_HANDLER.js": {
+        "content": "export default {\n  baseURL: '/api/v1',\n\n  async get(path) {\n    const res = await fetch(`${this.baseURL}${path}`);\n    return res.json();\n  },\n\n  async post(path, data) {\n    const res = await fetch(`${this.baseURL}${path}`, {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify(data),\n    });\n    return res.json();\n  },\n};"
+      }
+    }
+  }
+}

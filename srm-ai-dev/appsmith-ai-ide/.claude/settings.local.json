@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find D:/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide/packages/backend-java -type f \\\\\\(-name application* -o -name logback* -o -name log4j* \\\\\\))",
+      "Bash(where mvn:*)",
+      "Bash(echo \"MAVEN_HOME=$MAVEN_HOME\")",
+      "Bash(echo \"M2_HOME=$M2_HOME\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem -Path 'C:\\\\' -Recurse -Filter 'mvn.cmd' -ErrorAction SilentlyContinue | Select-Object -First 3 -ExpandProperty FullName\" 2>/dev/null)",
+      "Bash(powershell.exe -Command \"\nAdd-Type -AssemblyName System.Drawing\n\nfunction TextToImage\\(\\\\$text, \\\\$outputPath\\) {\n    \\\\$font = New-Object System.Drawing.Font\\('Consolas', 11\\)\n    \\\\$brush = [System.Drawing.Brushes]::White\n    \\\\$bgBrush = New-Object System.Drawing.SolidBrush\\([System.Drawing.Color]::FromArgb\\(30, 30, 30\\)\\)\n    \\\\$greenBrush = New-Object System.Drawing.SolidBrush\\([System.Drawing.Color]::FromArgb\\(80, 200, 80\\)\\)\n    \n    \\\\$lines = \\\\$text -split [Environment]::NewLine\n    \\\\$lineHeight = 18\n    \\\\$width = 900\n    \\\\$height = \\(\\\\$lines.Count + 2\\) * \\\\$lineHeight + 40\n    \n    \\\\$bmp = New-Object System.Drawing.Bitmap\\(\\\\$width, \\\\$height\\)\n    \\\\$g = [System.Drawing.Graphics]::FromImage\\(\\\\$bmp\\)\n    \\\\$g.FillRectangle\\(\\\\$bgBrush, 0, 0, \\\\$width, \\\\$height\\)\n    \n    \\\\$y = 20\n    foreach \\(\\\\$line in \\\\$lines\\) {\n        if \\(\\\\$line -match 'PASS|SUCCESS'\\) {\n            \\\\$g.DrawString\\(\\\\$line, \\\\$font, \\\\$greenBrush, 20, \\\\$y\\)\n        } else {\n            \\\\$g.DrawString\\(\\\\$line, \\\\$font, \\\\$brush, 20, \\\\$y\\)\n        }\n        \\\\$y += \\\\$lineHeight\n    }\n    \n    \\\\$g.Dispose\\(\\)\n    \\\\$bmp.Save\\(\\\\$outputPath, [System.Drawing.Imaging.ImageFormat]::Png\\)\n    \\\\$bmp.Dispose\\(\\)\n}\n\n\\\\$report = Get-Content 'D:\\\\a-joii\\\\project\\\\srm-ai\\\\ai-code\\\\srm-ai-dev\\\\appsmith-ai-ide\\\\test-img\\\\test-report.txt' -Raw\nTextToImage \\\\$report 'D:\\\\a-joii\\\\project\\\\srm-ai\\\\ai-code\\\\srm-ai-dev\\\\appsmith-ai-ide\\\\test-img\\\\test-report.png'\n\n\\\\$summary = Get-Content 'D:\\\\a-joii\\\\project\\\\srm-ai\\\\ai-code\\\\srm-ai-dev\\\\appsmith-ai-ide\\\\test-img\\\\test-summary.txt' -Raw\nTextToImage \\\\$summary 'D:\\\\a-joii\\\\project\\\\srm-ai\\\\ai-code\\\\srm-ai-dev\\\\appsmith-ai-ide\\\\test-img\\\\test-summary.png'\n\nWrite-Output 'Screenshots saved'\n\" 2>&1)",
+      "Bash(ls:*)",
+      "Bash(cd:*)",
+      "Bash(find D:/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide/packages/backend-java/target -name commons-compress*)",
+      "Bash(docker rm:*)",
+      "Bash(npm run:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npx tsc:*)",
+      "Bash(./mvnw compile:*)",
+      "Bash(cmd //c \"mvnw.cmd compile -q\")",
+      "Bash(mvn compile:*)",
+      "Bash(where.exe java:*)",
+      "Bash(where.exe mvn:*)",
+      "Bash(cmd.exe /c \"mvnw.cmd compile -q\")",
+      "Bash(bash -c './mvnw compile -q 2>&1')",
+      "Bash(grep -o '\\\\\\\\\\\\\\\\u[0-9a-fA-F]\\\\{4\\\\}' \"D:\\\\a-joii\\\\project\\\\srm-ai\\\\ai-code\\\\srm-ai-dev\\\\appsmith-ai-ide\\\\packages\\\\frontend\\\\dist\\\\assets\\\\index-D3vlFDOU.js\")",
+      "Bash(grep -oP label:\"\"[^\"\"]*\"\" D:a-joiiprojectsrm-aiai-codesrm-ai-devappsmith-ai-idepackagesfrontenddistassetsindex-D3vlFDOU.js)",
+      "Bash(python:*)",
+      "Bash(npx prisma:*)",
+      "Bash(node -e \":*)",
+      "Bash(find /d/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide/packages/backend-java/src -maxdepth 2 -type f -name *.java)",
+      "Bash(find /d/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide/packages/backend-java/src -type f -name *.java)",
+      "Bash(xargs grep:*)",
+      "Bash(find /d/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide/packages/backend-java -maxdepth 6 -name *.java -type f)"
+    ]
+  }
+}

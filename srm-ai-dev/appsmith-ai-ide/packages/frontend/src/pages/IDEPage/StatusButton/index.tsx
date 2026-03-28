@@ -1,0 +1,527 @@
+import React, { useState, useCallback } from 'react';
+import { useAuthStore } from '../../../stores/authStore';
+import { useEditorStore } from '../../../stores/editorStore';
+
+export type IDEMode = 'readonly-free' | 'readonly-other' | 'editable';
+
+interface CheckoutStep {
+  key: string;
+  label: string;
+}
+
+const CHECKOUT_STEPS: CheckoutStep[] = [
+  { key: 'lock', label: '锁定页面' },
+  { key: 'create_container', label: '创建容器' },
+  { key: 'inject_ssh_key', label: '注入SSH密钥' },
+  { key: 'git_clone', label: '克隆代码' },
+  { key: 'sync_appsmith', label: '同步版本' },
+  { key: 'load_deps', label: '加载依赖' },
+  { key: 'inject_skills', label: 'AI技能注入' },
+  { key: 'health_check', label: '健康检查' },
+  { key: 'finalize', label: '环境就绪' },
+];
+
+interface StatusButtonProps {
+  mode: IDEMode;
+  pageId: string;
+  checkedOutBy?: string | null;
+  onCheckoutComplete: () => void;
+  onSaveAll?: () => Promise<void>;
+}
+
+type DialogPhase =
+  | 'idle'
+  | 'checkout-confirm'      // 签出确认弹框
+  | 'checkin-unsaved'        // 签入：存在未保存文件
+  | 'checkin-discard'        // 签入：确认丢弃未保存内容
+  | 'checkin-message'        // 签入：输入 commit message
+  | 'checkin-submitting'     // 签入：提交中
+  | 'abandon-confirm'        // 退出：确认还原所有变更
+  | 'abandon-submitting';    // 退出：销毁中
+
+const StatusButton: React.FC<StatusButtonProps> = ({
+  mode,
+  pageId,
+  checkedOutBy,
+  onCheckoutComplete,
+  onSaveAll,
+}) => {
+  const { token } = useAuthStore();
+  const hasUnsavedFiles = useEditorStore((s) => s.hasUnsavedFiles);
+
+  // Checkout progress state
+  const [checkoutInProgress, setCheckoutInProgress] = useState(false);
+  const [currentStepIndex, setCurrentStepIndex] = useState(-1);
+  const [error, setError] = useState<string | null>(null);
+
+  // Dialog state
+  const [dialogPhase, setDialogPhase] = useState<DialogPhase>('idle');
+  const [commitMessage, setCommitMessage] = useState('');
+  const [dialogError, setDialogError] = useState<string | null>(null);
+
+  /* ---------------------------------------------------------------- */
+  /*  Checkout                                                         */
+  /* ---------------------------------------------------------------- */
+
+  const startCheckout = useCallback(() => {
+    setCheckoutInProgress(true);
+    setCurrentStepIndex(0);
+    setError(null);
+    setDialogPhase('idle');
+
+    fetch(`/api/pages/${pageId}/checkout`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'text/event-stream',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.body) throw new Error('No response body');
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        const readStream = (): Promise<void> => {
+          return reader.read().then(({ done, value }) => {
+            if (done) {
+              setCheckoutInProgress(false);
+              onCheckoutComplete();
+              return;
+            }
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6)) as {
+                    step?: string;
+                    status?: string;
+                    error?: string;
+                    message?: string;
+                  };
+
+                  if (data.step === 'error' || data.status === 'failed') {
+                    setError(data.message ?? data.error ?? '签出失败');
+                    setCheckoutInProgress(false);
+                    return;
+                  }
+
+                  if (data.step && data.step !== 'done') {
+                    const stepIdx = CHECKOUT_STEPS.findIndex((s) => s.key === data.step);
+                    if (stepIdx >= 0) {
+                      if (data.status === 'in_progress' || data.status === 'started') {
+                        setCurrentStepIndex(stepIdx);
+                      } else if (data.status === 'completed') {
+                        setCurrentStepIndex(stepIdx + 1);
+                      }
+                    }
+                  }
+
+                  if (data.step === 'done' && data.status === 'completed') {
+                    setCurrentStepIndex(CHECKOUT_STEPS.length);
+                    setCheckoutInProgress(false);
+                    onCheckoutComplete();
+                    return;
+                  }
+                } catch {
+                  // Ignore malformed SSE data
+                }
+              }
+            }
+
+            return readStream();
+          });
+        };
+
+        return readStream();
+      })
+      .catch((err: Error) => {
+        setError(err.message || '签出失败');
+        setCheckoutInProgress(false);
+      });
+  }, [pageId, token, onCheckoutComplete]);
+
+  const handleCheckoutClick = useCallback(() => {
+    setDialogPhase('checkout-confirm');
+  }, []);
+
+  const handleCheckoutConfirm = useCallback(() => {
+    startCheckout();
+  }, [startCheckout]);
+
+  /* ---------------------------------------------------------------- */
+  /*  Checkin                                                          */
+  /* ---------------------------------------------------------------- */
+
+  const handleCheckinClick = useCallback(() => {
+    setDialogError(null);
+    setCommitMessage('');
+
+    if (hasUnsavedFiles()) {
+      setDialogPhase('checkin-unsaved');
+    } else {
+      setDialogPhase('checkin-message');
+    }
+  }, [hasUnsavedFiles]);
+
+  const handleSaveAndContinue = useCallback(async () => {
+    try {
+      if (onSaveAll) await onSaveAll();
+      setDialogPhase('checkin-message');
+    } catch (err) {
+      setDialogError(err instanceof Error ? err.message : String(err));
+      setDialogPhase('idle');
+    }
+  }, [onSaveAll]);
+
+  const submitCheckin = useCallback(async (message: string) => {
+    setDialogPhase('checkin-submitting');
+    setDialogError(null);
+
+    try {
+      const response = await fetch(`/api/pages/${pageId}/checkin`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ commitMessage: message }),
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({})) as {
+          error?: string;
+          message?: string;
+        };
+
+        if (response.status === 409 && body.error === 'GIT_CONFLICT') {
+          setDialogError(body.message || 'Git冲突，请先解决冲突后重试');
+          setDialogPhase('checkin-message');
+          return;
+        }
+
+        throw new Error(body.message || `签入失败 (HTTP ${response.status})`);
+      }
+
+      setDialogPhase('idle');
+      setCommitMessage('');
+      onCheckoutComplete();
+    } catch (err) {
+      setDialogError(err instanceof Error ? err.message : String(err));
+      setDialogPhase('checkin-message');
+    }
+  }, [pageId, token, onCheckoutComplete]);
+
+  const handleCommitSubmit = useCallback(() => {
+    const trimmed = commitMessage.trim();
+    if (!trimmed || trimmed.length > 200) return;
+    void submitCheckin(trimmed);
+  }, [commitMessage, submitCheckin]);
+
+  /* ---------------------------------------------------------------- */
+  /*  Abandon (退出)                                                    */
+  /* ---------------------------------------------------------------- */
+
+  const handleAbandonClick = useCallback(() => {
+    setDialogError(null);
+    setDialogPhase('abandon-confirm');
+  }, []);
+
+  const submitAbandon = useCallback(async () => {
+    setDialogPhase('abandon-submitting');
+    setDialogError(null);
+
+    try {
+      const response = await fetch(`/api/pages/${pageId}/abandon`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({})) as { message?: string };
+        throw new Error(body.message || `退出失败 (HTTP ${response.status})`);
+      }
+
+      setDialogPhase('idle');
+      onCheckoutComplete();
+    } catch (err) {
+      setDialogError(err instanceof Error ? err.message : String(err));
+      setDialogPhase('abandon-confirm');
+    }
+  }, [pageId, token, onCheckoutComplete]);
+
+  /* ---------------------------------------------------------------- */
+  /*  Common                                                           */
+  /* ---------------------------------------------------------------- */
+
+  const handleCancel = useCallback(() => {
+    setDialogPhase('idle');
+    setDialogError(null);
+    setCommitMessage('');
+  }, []);
+
+  /* ---------------------------------------------------------------- */
+  /*  Render: checkout progress overlay                                */
+  /* ---------------------------------------------------------------- */
+
+  if (checkoutInProgress || error) {
+    const activeStep = currentStepIndex >= 0 && currentStepIndex < CHECKOUT_STEPS.length
+      ? CHECKOUT_STEPS[currentStepIndex]
+      : null;
+
+    return (
+      <div className="loading-screen on">
+        {!error && <div className="spin" />}
+        <p className="load-h">
+          {error ? '签出失败' : '正在初始化开发环境'}
+        </p>
+        {activeStep && !error && (
+          <p className="load-sub">{activeStep.label}...</p>
+        )}
+        <div className="steps">
+          {CHECKOUT_STEPS.map((step, idx) => {
+            let cls = 'step';
+            if (idx < currentStepIndex) cls += ' done';
+            else if (idx === currentStepIndex && !error) cls += ' act';
+
+            return (
+              <div key={step.key} className={cls}>
+                <span className="lsi">
+                  {idx < currentStepIndex ? '\u2713' : idx === currentStepIndex && !error ? '\u25CF' : '\u25CB'}
+                </span>
+                <span>{step.label}</span>
+              </div>
+            );
+          })}
+        </div>
+        {error && (
+          <>
+            <p style={{ color: 'var(--red)', fontSize: 12, marginTop: 8 }}>{error}</p>
+            <button className="btn btn-p" onClick={() => { setError(null); startCheckout(); }}>
+              重试
+            </button>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  /* ---------------------------------------------------------------- */
+  /*  Render: dialogs                                                  */
+  /* ---------------------------------------------------------------- */
+
+  // 签出确认
+  if (dialogPhase === 'checkout-confirm') {
+    return (
+      <div className="loading-screen on">
+        <div className="loading-card">
+          <p className="lc-title">确认签出</p>
+          <p className="dialog-text">
+            签出后将创建独立开发容器，是否继续？
+          </p>
+          <div className="dialog-buttons">
+            <button className="btn btn-p" onClick={handleCheckoutConfirm}>
+              确定
+            </button>
+            <button className="btn btn-grey" style={{ cursor: 'pointer' }} onClick={handleCancel}>
+              取消
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 签入：未保存提示
+  if (dialogPhase === 'checkin-unsaved') {
+    return (
+      <div className="loading-screen on">
+        <div className="loading-card">
+          <p className="lc-title">签入</p>
+          <p className="dialog-text">
+            存在未保存的文件，是否在签入前保存？
+          </p>
+          {dialogError && <p className="lc-error">{dialogError}</p>}
+          <div className="dialog-buttons">
+            <button className="btn btn-green" onClick={() => void handleSaveAndContinue()}>
+              保存
+            </button>
+            <button className="btn btn-orange" onClick={() => setDialogPhase('checkin-discard')}>
+              不保存
+            </button>
+            <button className="btn btn-grey" style={{ cursor: 'pointer' }} onClick={handleCancel}>
+              取消
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 签入：丢弃确认
+  if (dialogPhase === 'checkin-discard') {
+    return (
+      <div className="loading-screen on">
+        <div className="loading-card">
+          <p className="lc-title">确认</p>
+          <p className="dialog-text">
+            未保存的改动将永久丢失，确认继续签入？
+          </p>
+          <div className="dialog-buttons">
+            <button className="btn btn-orange" onClick={() => setDialogPhase('checkin-message')}>
+              确认
+            </button>
+            <button className="btn btn-grey" style={{ cursor: 'pointer' }} onClick={handleCancel}>
+              取消
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 签入：输入 commit message
+  if (dialogPhase === 'checkin-message' || dialogPhase === 'checkin-submitting') {
+    const isSubmitting = dialogPhase === 'checkin-submitting';
+    const trimmed = commitMessage.trim();
+    const isValid = trimmed.length > 0 && trimmed.length <= 200;
+
+    return (
+      <div className="loading-screen on">
+        <div className="loading-card">
+          <p className="lc-title">签入 - 提交信息</p>
+          <input
+            type="text"
+            value={commitMessage}
+            onChange={(e) => setCommitMessage(e.target.value)}
+            placeholder="请输入提交信息（必填，最多200字符）"
+            maxLength={200}
+            disabled={isSubmitting}
+            className="commit-input"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && isValid && !isSubmitting) {
+                handleCommitSubmit();
+              }
+            }}
+          />
+          <p className="char-count">
+            {trimmed.length} / 200
+          </p>
+          {dialogError && <p className="lc-error">{dialogError}</p>}
+          <div className="dialog-buttons">
+            <button
+              className="btn btn-green"
+              style={{
+                opacity: isValid && !isSubmitting ? 1 : 0.5,
+                cursor: isValid && !isSubmitting ? 'pointer' : 'not-allowed',
+              }}
+              onClick={handleCommitSubmit}
+              disabled={!isValid || isSubmitting}
+            >
+              {isSubmitting ? '签入中...' : '签入'}
+            </button>
+            <button
+              className="btn btn-grey"
+              style={{ cursor: 'pointer' }}
+              onClick={handleCancel}
+              disabled={isSubmitting}
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 退出：确认还原
+  if (dialogPhase === 'abandon-confirm' || dialogPhase === 'abandon-submitting') {
+    const isSubmitting = dialogPhase === 'abandon-submitting';
+
+    return (
+      <div className="loading-screen on">
+        <div className="loading-card">
+          <p className="lc-title">退出确认</p>
+          <p className="dialog-text">
+            是否还原本次所有变更内容？退出后容器将被销毁，未推送的代码变更将丢失。
+          </p>
+          {dialogError && <p className="lc-error">{dialogError}</p>}
+          <div className="dialog-buttons">
+            <button
+              className="btn btn-red"
+              onClick={() => void submitAbandon()}
+              disabled={isSubmitting}
+              style={{
+                opacity: isSubmitting ? 0.5 : 1,
+                cursor: isSubmitting ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {isSubmitting ? '退出中...' : '确定'}
+            </button>
+            <button
+              className="btn btn-grey"
+              style={{ cursor: 'pointer' }}
+              onClick={handleCancel}
+              disabled={isSubmitting}
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------------------------------------------------------------- */
+  /*  Render: mode buttons                                             */
+  /* ---------------------------------------------------------------- */
+
+  if (mode === 'readonly-free') {
+    return (
+      <button className="btn btn-p" onClick={handleCheckoutClick}>
+        签出
+      </button>
+    );
+  }
+
+  if (mode === 'editable') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button className="btn btn-green" onClick={handleCheckinClick}>
+          签入
+        </button>
+        <button className="btn btn-orange" onClick={handleAbandonClick}>
+          退出
+        </button>
+      </div>
+    );
+  }
+
+  // readonly-other
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {checkedOutBy && (
+        <span style={{ color: 'var(--t2)', fontSize: 12 }}>
+          已被 {checkedOutBy} 签出
+        </span>
+      )}
+      <button className="btn btn-grey" onClick={onCheckoutComplete}>
+        已签出
+      </button>
+    </div>
+  );
+};
+
+export default StatusButton;

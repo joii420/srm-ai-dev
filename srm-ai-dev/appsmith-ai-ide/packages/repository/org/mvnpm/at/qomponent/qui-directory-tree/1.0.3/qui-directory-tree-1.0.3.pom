@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.mvnpm.at.qomponent</groupId>
+  <artifactId>qui-directory-tree</artifactId>
+  <version>1.0.3</version>
+  <name>qomponent qui-directory-tree</name>
+  <description>A Lit-based web component to show files in a directory structure</description>
+  <url>https://quarkus.io</url>
+  <organization>
+    <name>Phillip Kruger</name>
+    <url>https://quarkus.io</url>
+  </organization>
+  <licenses>
+    <license>
+      <name>Apache-2.0</name>
+    </license>
+  </licenses>
+  <developers>
+    <developer>
+      <name>phillip.kruger</name>
+      <email>phillip.kruger@gmail.com</email>
+    </developer>
+  </developers>
+  <scm>
+    <connection>https://github.com/mvnpm/mvnpm.git</connection>
+    <developerConnection>https://github.com/mvnpm/mvnpm.git</developerConnection>
+    <url>https://github.com/mvnpm/mvnpm.git</url>
+  </scm>
+  <properties>
+    <org.mvnpm-lit.version>[3.2.0,3.3)</org.mvnpm-lit.version>
+  </properties>
+  <dependencies>
+    <dependency>
+      <groupId>org.mvnpm</groupId>
+      <artifactId>lit</artifactId>
+      <version>${org.mvnpm-lit.version}</version>
+    </dependency>
+  </dependencies>
+</project>

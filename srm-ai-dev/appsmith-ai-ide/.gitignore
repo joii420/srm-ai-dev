@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+sshkey/
+
+# Build output
+dist/
+build/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# Prisma
+packages/backend/prisma/*.db
+
+# Docker
+*.pid
+
+# Temp
+*.tmp
+*.bak

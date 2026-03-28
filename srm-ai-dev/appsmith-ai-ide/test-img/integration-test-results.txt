@@ -1,0 +1,7 @@
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.027 s -- in com.appsmith.aiide.integration.AuthResourceTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.313 s -- in com.appsmith.aiide.integration.ContainerResourceTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.214 s -- in com.appsmith.aiide.integration.DependencyResourceTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.409 s -- in com.appsmith.aiide.integration.PageResourceTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.239 s -- in com.appsmith.aiide.integration.SkillResourceTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.264 s -- in com.appsmith.aiide.integration.SystemConfigResourceTest
+

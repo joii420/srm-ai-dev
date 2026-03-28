@@ -1,0 +1,4 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Wed Mar 25 15:42:44 CST 2026
+quarkus-jdbc-h2-deployment-3.23.3.jar>nexus-aliyun=
+quarkus-jdbc-h2-deployment-3.23.3.pom>nexus-aliyun=

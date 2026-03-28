@@ -1,0 +1,4 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Wed Mar 25 10:26:51 CST 2026
+testcontainers-1.21.1.jar>nexus-aliyun=
+testcontainers-1.21.1.pom>nexus-aliyun=

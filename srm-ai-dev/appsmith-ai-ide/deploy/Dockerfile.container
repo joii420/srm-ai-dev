@@ -1,0 +1,35 @@
+# Container Services image (runs inside spawned dev containers)
+# AI Proxy (port 3000) + File Manager (port 3001)
+FROM node:20-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    openssh-client \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g pm2 pnpm
+
+WORKDIR /build
+
+COPY tsconfig.base.json /build/tsconfig.base.json
+COPY packages/container-services/ /build/packages/container-services/
+
+WORKDIR /build/packages/container-services
+RUN pnpm install --frozen-lockfile || pnpm install
+RUN pnpm build
+
+RUN mkdir -p /app /workspace /deps /skills \
+    && cp -r dist/ /app/dist/ \
+    && cp package.json /app/package.json \
+    && cp -r node_modules/ /app/node_modules/
+
+WORKDIR /app
+
+COPY docker/pm2.config.cjs /app/pm2.config.cjs
+
+RUN rm -rf /build
+
+EXPOSE 3000 3001
+
+CMD ["pm2-runtime", "pm2.config.cjs"]

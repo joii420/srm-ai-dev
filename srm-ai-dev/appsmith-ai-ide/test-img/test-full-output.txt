@@ -1,0 +1,818 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] --------------------< com.appsmith:ai-ide-backend >---------------------
+[INFO] Building ai-ide-backend 0.1.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ ai-ide-backend ---
+[INFO] Copying 4 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- quarkus:3.23.3:generate-code (default) @ ai-ide-backend ---
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ ai-ide-backend ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- quarkus:3.23.3:generate-code-tests (default) @ ai-ide-backend ---
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ ai-ide-backend ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ ai-ide-backend ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.1.2:test (default-test) @ ai-ide-backend ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+2026-03-25 15:50:31,165 INFO  [io.qua.sma.jwt.dep.SmallryeJwtDevModeProcessor] (build-28) The smallrye-jwt extension has configured an in-memory key pair, which is not enabled in production. Please ensure the correct keys/locations are set in production to avoid potential issues.
+[INFO] Running com.appsmith.aiide.integration.AuthResourceTest
+2026-03-25 15:50:33,519 INFO  [org.hib.jpa.int.uti.LogHelper] (main) HHH000204: Processing PersistenceUnitInfo [name: <default>]
+2026-03-25 15:50:33,685 INFO  [org.hib.Version] (main) HHH000412: Hibernate ORM core version 6.6.17.Final
+2026-03-25 15:50:33,780 INFO  [org.hib.orm.con.pooling] (main) HHH10001005: Database info:
+	Database JDBC URL [undefined/unknown]
+	Database driver: undefined/unknown
+	Database version: 12.0
+	Autocommit mode: undefined/unknown
+	Isolation level: <unknown>
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-03-25 15:50:33,974 INFO  [org.hib.val.int.uti.Version] (main) HV000001: Hibernate Validator 8.0.2.Final
+2026-03-25 15:50:34,213 WARN  [io.qua.config] (main) Unrecognized configuration key "quarkus.log.console.json" was provided; it will be ignored; verify that the dependency extension for this configuration is set or that you did not make a typo
+2026-03-25 15:50:35,269 INFO  [io.qua.sch.run.SimpleScheduler] (main) No scheduled business methods found - Simple scheduler will not be started
+2026-03-25 15:50:35,342 INFO  [io.quarkus] (main) ai-ide-backend 0.1.0 on JVM (powered by Quarkus 3.23.3) started in 5.425s. Listening on: http://0.0.0.0:1755
+2026-03-25 15:50:35,343 INFO  [io.quarkus] (main) Profile test activated. 
+2026-03-25 15:50:35,343 INFO  [io.quarkus] (main) Installed features: [agroal, cdi, compose, flyway, hibernate-orm, hibernate-orm-panache, hibernate-validator, jdbc-h2, jdbc-postgresql, narayana-jta, rest, rest-client, rest-client-jackson, rest-jackson, scheduler, security, smallrye-context-propagation, smallrye-health, smallrye-jwt, vertx]
+2026-03-25 15:50:36,382 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [testuser]
+2026-03-25 15:50:36,382 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:36,501 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:JSON) <- [null]
+2026-03-25 15:50:36,501 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:TIMESTAMP_UTC) <- [2026-03-25T15:50:36.494697+08:00]
+2026-03-25 15:50:36,502 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (3:VARCHAR) <- [testuser]
+2026-03-25 15:50:36,502 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (4:VARCHAR) <- [testuser]
+2026-03-25 15:50:36,502 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (5:VARCHAR) <- [developer]
+2026-03-25 15:50:36,502 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (6:TIMESTAMP_UTC) <- [2026-03-25T15:50:36.494697+08:00]
+2026-03-25 15:50:36,502 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (7:VARCHAR) <- [testuser]
+2026-03-25 15:50:36,502 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (8:UUID) <- [0ea70e2d-5c72-489d-8248-b3e91bbb89d5]
+2026-03-25 15:50:36,507 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [0ea70e2d-5c72-489d-8248-b3e91bbb89d5]
+2026-03-25 15:50:36,507 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:36,521 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'testuser' logged in with role 'developer'
+2026-03-25 15:50:36,555 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:36 +0800] "POST /api/auth/login HTTP/1.1" 200 420 - ms
+2026-03-25 15:50:37,096 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [admin]
+2026-03-25 15:50:37,096 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,099 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:JSON) <- [null]
+2026-03-25 15:50:37,099 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:TIMESTAMP_UTC) <- [2026-03-25T15:50:37.099435+08:00]
+2026-03-25 15:50:37,099 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (3:VARCHAR) <- [admin]
+2026-03-25 15:50:37,099 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (4:VARCHAR) <- [admin]
+2026-03-25 15:50:37,099 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (5:VARCHAR) <- [admin]
+2026-03-25 15:50:37,099 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (6:TIMESTAMP_UTC) <- [2026-03-25T15:50:37.099435+08:00]
+2026-03-25 15:50:37,099 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (7:VARCHAR) <- [admin]
+2026-03-25 15:50:37,099 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (8:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:37,102 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:37,102 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,104 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'admin' logged in with role 'admin'
+2026-03-25 15:50:37,106 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 400 - ms
+2026-03-25 15:50:37,130 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 401 91 - ms
+2026-03-25 15:50:37,169 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [0ea70e2d-5c72-489d-8248-b3e91bbb89d5]
+2026-03-25 15:50:37,175 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [0ea70e2d-5c72-489d-8248-b3e91bbb89d5]
+2026-03-25 15:50:37,175 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,180 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "GET /api/auth/me HTTP/1.1" 200 133 - ms
+2026-03-25 15:50:37,204 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "GET /api/auth/me HTTP/1.1" 401 76 - ms
+2026-03-25 15:50:37,214 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "GET /api/auth/me HTTP/1.1" 401 61 - ms
+2026-03-25 15:50:37,224 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'testuser' logged out
+2026-03-25 15:50:37,225 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/logout HTTP/1.1" 200 52 - ms
+2026-03-25 15:50:37,246 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [duplicate-user]
+2026-03-25 15:50:37,246 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,248 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:JSON) <- [null]
+2026-03-25 15:50:37,248 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:TIMESTAMP_UTC) <- [2026-03-25T15:50:37.248828+08:00]
+2026-03-25 15:50:37,249 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (3:VARCHAR) <- [duplicate-user]
+2026-03-25 15:50:37,249 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (4:VARCHAR) <- [duplicate-user]
+2026-03-25 15:50:37,249 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (5:VARCHAR) <- [developer]
+2026-03-25 15:50:37,249 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (6:TIMESTAMP_UTC) <- [2026-03-25T15:50:37.248828+08:00]
+2026-03-25 15:50:37,249 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (7:VARCHAR) <- [duplicate-user]
+2026-03-25 15:50:37,249 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (8:UUID) <- [0c292146-eb4a-443e-ba5b-173e943cb766]
+2026-03-25 15:50:37,250 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [0c292146-eb4a-443e-ba5b-173e943cb766]
+2026-03-25 15:50:37,250 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,251 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'duplicate-user' logged in with role 'developer'
+2026-03-25 15:50:37,253 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 440 - ms
+2026-03-25 15:50:37,261 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [duplicate-user]
+2026-03-25 15:50:37,261 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,263 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [0c292146-eb4a-443e-ba5b-173e943cb766]
+2026-03-25 15:50:37,263 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,264 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'duplicate-user' logged in with role 'developer'
+2026-03-25 15:50:37,266 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 440 - ms
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.027 s -- in com.appsmith.aiide.integration.AuthResourceTest
+[INFO] Running com.appsmith.aiide.integration.ContainerResourceTest
+2026-03-25 15:50:37,292 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [admin]
+2026-03-25 15:50:37,292 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,295 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:37,295 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,297 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'admin' logged in with role 'admin'
+2026-03-25 15:50:37,299 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 400 - ms
+2026-03-25 15:50:37,317 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [container-dev]
+2026-03-25 15:50:37,318 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,319 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:JSON) <- [null]
+2026-03-25 15:50:37,319 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:TIMESTAMP_UTC) <- [2026-03-25T15:50:37.319925+08:00]
+2026-03-25 15:50:37,320 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (3:VARCHAR) <- [container-dev]
+2026-03-25 15:50:37,320 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (4:VARCHAR) <- [container-dev]
+2026-03-25 15:50:37,320 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (5:VARCHAR) <- [developer]
+2026-03-25 15:50:37,320 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (6:TIMESTAMP_UTC) <- [2026-03-25T15:50:37.319925+08:00]
+2026-03-25 15:50:37,320 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (7:VARCHAR) <- [container-dev]
+2026-03-25 15:50:37,320 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (8:UUID) <- [4d342209-a2c1-43af-a4ff-2b71e5a7e992]
+2026-03-25 15:50:37,321 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [4d342209-a2c1-43af-a4ff-2b71e5a7e992]
+2026-03-25 15:50:37,321 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,322 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'container-dev' logged in with role 'developer'
+2026-03-25 15:50:37,324 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 436 - ms
+2026-03-25 15:50:37,353 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "GET /api/containers HTTP/1.1" 200 17 - ms
+2026-03-25 15:50:37,373 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [admin]
+2026-03-25 15:50:37,373 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,377 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:37,377 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,379 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'admin' logged in with role 'admin'
+2026-03-25 15:50:37,381 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 400 - ms
+2026-03-25 15:50:37,398 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [container-dev]
+2026-03-25 15:50:37,398 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,400 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [4d342209-a2c1-43af-a4ff-2b71e5a7e992]
+2026-03-25 15:50:37,401 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,402 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'container-dev' logged in with role 'developer'
+2026-03-25 15:50:37,404 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 436 - ms
+2026-03-25 15:50:37,420 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "GET /api/containers HTTP/1.1" 403 55 - ms
+2026-03-25 15:50:37,437 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [admin]
+2026-03-25 15:50:37,437 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,440 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:37,440 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,441 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'admin' logged in with role 'admin'
+2026-03-25 15:50:37,442 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 400 - ms
+2026-03-25 15:50:37,459 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [container-dev]
+2026-03-25 15:50:37,460 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,461 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [4d342209-a2c1-43af-a4ff-2b71e5a7e992]
+2026-03-25 15:50:37,461 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,463 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'container-dev' logged in with role 'developer'
+2026-03-25 15:50:37,464 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 436 - ms
+2026-03-25 15:50:37,480 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [5d72fe0b-460b-4556-934f-5b157aab6209]
+2026-03-25 15:50:37,483 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/containers/5d72fe0b-460b-4556-934f-5b157aab6209/force-checkin HTTP/1.1" 404 52 - ms
+2026-03-25 15:50:37,492 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [admin]
+2026-03-25 15:50:37,492 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,494 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:37,494 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,495 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'admin' logged in with role 'admin'
+2026-03-25 15:50:37,496 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 400 - ms
+2026-03-25 15:50:37,511 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [container-dev]
+2026-03-25 15:50:37,511 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,513 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [4d342209-a2c1-43af-a4ff-2b71e5a7e992]
+2026-03-25 15:50:37,513 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,514 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'container-dev' logged in with role 'developer'
+2026-03-25 15:50:37,516 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 436 - ms
+2026-03-25 15:50:37,533 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [bcbd1275-f056-4cea-8a3e-dfc127fe29b4]
+2026-03-25 15:50:37,537 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/containers/bcbd1275-f056-4cea-8a3e-dfc127fe29b4/force-destroy HTTP/1.1" 404 52 - ms
+2026-03-25 15:50:37,548 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [admin]
+2026-03-25 15:50:37,548 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,550 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:37,550 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,551 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'admin' logged in with role 'admin'
+2026-03-25 15:50:37,553 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 400 - ms
+2026-03-25 15:50:37,569 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [container-dev]
+2026-03-25 15:50:37,569 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,571 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [4d342209-a2c1-43af-a4ff-2b71e5a7e992]
+2026-03-25 15:50:37,571 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,572 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'container-dev' logged in with role 'developer'
+2026-03-25 15:50:37,574 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 436 - ms
+2026-03-25 15:50:37,591 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/containers/a6cea59d-c03e-42cc-bc44-8d130f7a35bd/force-checkin HTTP/1.1" 403 55 - ms
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.313 s -- in com.appsmith.aiide.integration.ContainerResourceTest
+[INFO] Running com.appsmith.aiide.integration.DependencyResourceTest
+2026-03-25 15:50:37,602 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [admin]
+2026-03-25 15:50:37,603 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,605 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:37,606 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,608 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'admin' logged in with role 'admin'
+2026-03-25 15:50:37,611 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 400 - ms
+2026-03-25 15:50:37,627 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [dep-dev]
+2026-03-25 15:50:37,627 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,629 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:JSON) <- [null]
+2026-03-25 15:50:37,629 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:TIMESTAMP_UTC) <- [2026-03-25T15:50:37.629393+08:00]
+2026-03-25 15:50:37,629 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (3:VARCHAR) <- [dep-dev]
+2026-03-25 15:50:37,629 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (4:VARCHAR) <- [dep-dev]
+2026-03-25 15:50:37,629 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (5:VARCHAR) <- [developer]
+2026-03-25 15:50:37,629 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (6:TIMESTAMP_UTC) <- [2026-03-25T15:50:37.629393+08:00]
+2026-03-25 15:50:37,629 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (7:VARCHAR) <- [dep-dev]
+2026-03-25 15:50:37,629 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (8:UUID) <- [606bab77-4be8-414f-8aba-a30fad6c222c]
+2026-03-25 15:50:37,631 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [606bab77-4be8-414f-8aba-a30fad6c222c]
+2026-03-25 15:50:37,631 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,632 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'dep-dev' logged in with role 'developer'
+2026-03-25 15:50:37,634 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 416 - ms
+2026-03-25 15:50:37,653 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "GET /api/deps HTTP/1.1" 200 2 - ms
+2026-03-25 15:50:37,661 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [admin]
+2026-03-25 15:50:37,661 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,663 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:37,663 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,664 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'admin' logged in with role 'admin'
+2026-03-25 15:50:37,666 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 400 - ms
+2026-03-25 15:50:37,680 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [dep-dev]
+2026-03-25 15:50:37,680 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,682 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [606bab77-4be8-414f-8aba-a30fad6c222c]
+2026-03-25 15:50:37,682 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,683 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'dep-dev' logged in with role 'developer'
+2026-03-25 15:50:37,685 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 416 - ms
+2026-03-25 15:50:37,702 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [test-lib]
+2026-03-25 15:50:37,702 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,704 INFO  [com.app.aii.res.DependencyResource] (executor-thread-1) Dependency created: test-lib by admin
+2026-03-25 15:50:37,705 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:TIMESTAMP_UTC) <- [2026-03-25T15:50:37.704632+08:00]
+2026-03-25 15:50:37,705 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:VARCHAR) <- [A test dependency]
+2026-03-25 15:50:37,705 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (3:TIMESTAMP_UTC) <- [null]
+2026-03-25 15:50:37,705 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (4:VARCHAR) <- [test-lib]
+2026-03-25 15:50:37,705 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (5:VARCHAR) <- [https://example.com/test-lib.js]
+2026-03-25 15:50:37,705 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (6:VARCHAR) <- [1.0.0]
+2026-03-25 15:50:37,705 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (7:UUID) <- [47ff3801-2750-4ea9-bddd-73d3c9776439]
+2026-03-25 15:50:37,709 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/deps HTTP/1.1" 201 195 - ms
+2026-03-25 15:50:37,722 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [admin]
+2026-03-25 15:50:37,722 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,724 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:37,724 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,725 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'admin' logged in with role 'admin'
+2026-03-25 15:50:37,727 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 400 - ms
+2026-03-25 15:50:37,742 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [dep-dev]
+2026-03-25 15:50:37,742 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,744 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [606bab77-4be8-414f-8aba-a30fad6c222c]
+2026-03-25 15:50:37,744 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,745 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'dep-dev' logged in with role 'developer'
+2026-03-25 15:50:37,746 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 416 - ms
+2026-03-25 15:50:37,761 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/deps HTTP/1.1" 403 55 - ms
+2026-03-25 15:50:37,769 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [admin]
+2026-03-25 15:50:37,770 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,771 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:37,771 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,772 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'admin' logged in with role 'admin'
+2026-03-25 15:50:37,773 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 400 - ms
+2026-03-25 15:50:37,788 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [dep-dev]
+2026-03-25 15:50:37,788 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,790 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [606bab77-4be8-414f-8aba-a30fad6c222c]
+2026-03-25 15:50:37,790 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,791 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'dep-dev' logged in with role 'developer'
+2026-03-25 15:50:37,793 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 416 - ms
+2026-03-25 15:50:37,806 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/deps HTTP/1.1" 401 76 - ms
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.214 s -- in com.appsmith.aiide.integration.DependencyResourceTest
+[INFO] Running com.appsmith.aiide.integration.PageResourceTest
+2026-03-25 15:50:37,815 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [page-test-user]
+2026-03-25 15:50:37,815 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,817 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:JSON) <- [null]
+2026-03-25 15:50:37,817 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:TIMESTAMP_UTC) <- [2026-03-25T15:50:37.817689+08:00]
+2026-03-25 15:50:37,817 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (3:VARCHAR) <- [page-test-user]
+2026-03-25 15:50:37,817 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (4:VARCHAR) <- [page-test-user]
+2026-03-25 15:50:37,817 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (5:VARCHAR) <- [developer]
+2026-03-25 15:50:37,817 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (6:TIMESTAMP_UTC) <- [2026-03-25T15:50:37.817689+08:00]
+2026-03-25 15:50:37,817 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (7:VARCHAR) <- [page-test-user]
+2026-03-25 15:50:37,817 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (8:UUID) <- [7a44810f-8568-46b9-b986-5f2ad69ac522]
+2026-03-25 15:50:37,818 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [7a44810f-8568-46b9-b986-5f2ad69ac522]
+2026-03-25 15:50:37,818 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,819 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'page-test-user' logged in with role 'developer'
+2026-03-25 15:50:37,821 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 440 - ms
+2026-03-25 15:50:37,843 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [page-001]
+2026-03-25 15:50:37,843 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,846 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [page-002]
+2026-03-25 15:50:37,846 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,848 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "GET /api/pages HTTP/1.1" 200 317 - ms
+2026-03-25 15:50:37,941 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [page-test-user]
+2026-03-25 15:50:37,941 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,943 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [7a44810f-8568-46b9-b986-5f2ad69ac522]
+2026-03-25 15:50:37,943 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,945 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'page-test-user' logged in with role 'developer'
+2026-03-25 15:50:37,947 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 440 - ms
+2026-03-25 15:50:37,963 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [page-001]
+2026-03-25 15:50:37,963 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,966 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [page-002]
+2026-03-25 15:50:37,966 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,968 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "GET /api/pages HTTP/1.1" 200 317 - ms
+2026-03-25 15:50:37,990 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [page-test-user]
+2026-03-25 15:50:37,990 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,993 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [7a44810f-8568-46b9-b986-5f2ad69ac522]
+2026-03-25 15:50:37,993 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:37,994 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'page-test-user' logged in with role 'developer'
+2026-03-25 15:50:37,995 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:37 +0800] "POST /api/auth/login HTTP/1.1" 200 440 - ms
+2026-03-25 15:50:38,010 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "GET /api/pages HTTP/1.1" 401 76 - ms
+2026-03-25 15:50:38,018 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [page-test-user]
+2026-03-25 15:50:38,018 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,020 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [7a44810f-8568-46b9-b986-5f2ad69ac522]
+2026-03-25 15:50:38,021 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,022 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'page-test-user' logged in with role 'developer'
+2026-03-25 15:50:38,024 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 440 - ms
+2026-03-25 15:50:38,038 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [page-001]
+2026-03-25 15:50:38,038 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,041 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [page-002]
+2026-03-25 15:50:38,041 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,043 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "GET /api/pages HTTP/1.1" 200 317 - ms
+2026-03-25 15:50:38,069 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [page-test-user]
+2026-03-25 15:50:38,069 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,071 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [7a44810f-8568-46b9-b986-5f2ad69ac522]
+2026-03-25 15:50:38,071 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,072 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'page-test-user' logged in with role 'developer'
+2026-03-25 15:50:38,074 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 440 - ms
+2026-03-25 15:50:38,090 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "GET /api/pages/page-001/tree HTTP/1.1" 200 186 - ms
+2026-03-25 15:50:38,114 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [page-test-user]
+2026-03-25 15:50:38,114 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,116 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [7a44810f-8568-46b9-b986-5f2ad69ac522]
+2026-03-25 15:50:38,117 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,118 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'page-test-user' logged in with role 'developer'
+2026-03-25 15:50:38,119 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 440 - ms
+2026-03-25 15:50:38,133 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "GET /api/pages/page-001/files HTTP/1.1" 400 70 - ms
+2026-03-25 15:50:38,140 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [page-test-user]
+2026-03-25 15:50:38,140 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,143 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [7a44810f-8568-46b9-b986-5f2ad69ac522]
+2026-03-25 15:50:38,143 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,144 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'page-test-user' logged in with role 'developer'
+2026-03-25 15:50:38,146 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 440 - ms
+2026-03-25 15:50:38,166 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "GET /api/pages/page-001/files?path=README.md HTTP/1.1" 200 87 - ms
+2026-03-25 15:50:38,185 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [page-test-user]
+2026-03-25 15:50:38,185 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,187 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [7a44810f-8568-46b9-b986-5f2ad69ac522]
+2026-03-25 15:50:38,187 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,189 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'page-test-user' logged in with role 'developer'
+2026-03-25 15:50:38,192 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 440 - ms
+2026-03-25 15:50:38,213 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [page-001]
+2026-03-25 15:50:38,213 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,216 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/pages/page-001/checkin HTTP/1.1" 404 66 - ms
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.409 s -- in com.appsmith.aiide.integration.PageResourceTest
+[INFO] Running com.appsmith.aiide.integration.SkillResourceTest
+2026-03-25 15:50:38,228 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [admin]
+2026-03-25 15:50:38,228 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,231 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:38,231 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,232 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'admin' logged in with role 'admin'
+2026-03-25 15:50:38,235 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 400 - ms
+2026-03-25 15:50:38,252 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [skill-dev]
+2026-03-25 15:50:38,252 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,254 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:JSON) <- [null]
+2026-03-25 15:50:38,254 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:TIMESTAMP_UTC) <- [2026-03-25T15:50:38.254754+08:00]
+2026-03-25 15:50:38,254 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (3:VARCHAR) <- [skill-dev]
+2026-03-25 15:50:38,254 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (4:VARCHAR) <- [skill-dev]
+2026-03-25 15:50:38,254 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (5:VARCHAR) <- [developer]
+2026-03-25 15:50:38,255 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (6:TIMESTAMP_UTC) <- [2026-03-25T15:50:38.254754+08:00]
+2026-03-25 15:50:38,255 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (7:VARCHAR) <- [skill-dev]
+2026-03-25 15:50:38,255 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (8:UUID) <- [83fc8268-9042-4975-a472-a6e68cd39508]
+2026-03-25 15:50:38,256 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [83fc8268-9042-4975-a472-a6e68cd39508]
+2026-03-25 15:50:38,256 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,257 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'skill-dev' logged in with role 'developer'
+2026-03-25 15:50:38,259 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 423 - ms
+2026-03-25 15:50:38,281 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "GET /api/skills HTTP/1.1" 200 2 - ms
+2026-03-25 15:50:38,299 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [admin]
+2026-03-25 15:50:38,299 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,301 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:38,301 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,302 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'admin' logged in with role 'admin'
+2026-03-25 15:50:38,303 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 400 - ms
+2026-03-25 15:50:38,317 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [skill-dev]
+2026-03-25 15:50:38,317 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,319 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [83fc8268-9042-4975-a472-a6e68cd39508]
+2026-03-25 15:50:38,319 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,320 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'skill-dev' logged in with role 'developer'
+2026-03-25 15:50:38,322 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 423 - ms
+2026-03-25 15:50:38,347 INFO  [com.app.aii.res.SkillResource] (executor-thread-1) Skill created: test-skill by admin
+2026-03-25 15:50:38,351 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:INTEGER) <- [0]
+2026-03-25 15:50:38,351 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:VARCHAR) <- [general]
+2026-03-25 15:50:38,351 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (3:TIMESTAMP_UTC) <- [2026-03-25T15:50:38.351723+08:00]
+2026-03-25 15:50:38,351 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (4:UUID) <- [null]
+2026-03-25 15:50:38,351 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (5:VARCHAR) <- [A test skill]
+2026-03-25 15:50:38,351 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (6:BOOLEAN) <- [true]
+2026-03-25 15:50:38,351 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (7:VARCHAR) <- [null]
+2026-03-25 15:50:38,351 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (8:JSON) <- [null]
+2026-03-25 15:50:38,351 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (9:VARCHAR) <- [test-skill]
+2026-03-25 15:50:38,352 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (10:VARCHAR) <- [You are a helpful assistant]
+2026-03-25 15:50:38,352 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (11:JSON) <- [null]
+2026-03-25 15:50:38,352 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (12:TIMESTAMP_UTC) <- [2026-03-25T15:50:38.351723+08:00]
+2026-03-25 15:50:38,352 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (13:VARCHAR) <- [v1.0]
+2026-03-25 15:50:38,352 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (14:UUID) <- [1fef4679-6921-4ecf-a4ec-cba44057312a]
+2026-03-25 15:50:38,361 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/skills HTTP/1.1" 201 286 - ms
+2026-03-25 15:50:38,370 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [admin]
+2026-03-25 15:50:38,370 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,372 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:38,372 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,373 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'admin' logged in with role 'admin'
+2026-03-25 15:50:38,376 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 400 - ms
+2026-03-25 15:50:38,389 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [skill-dev]
+2026-03-25 15:50:38,389 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,392 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [83fc8268-9042-4975-a472-a6e68cd39508]
+2026-03-25 15:50:38,392 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,393 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'skill-dev' logged in with role 'developer'
+2026-03-25 15:50:38,395 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 423 - ms
+2026-03-25 15:50:38,409 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/skills HTTP/1.1" 403 55 - ms
+2026-03-25 15:50:38,416 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [admin]
+2026-03-25 15:50:38,417 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,419 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:38,419 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,421 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'admin' logged in with role 'admin'
+2026-03-25 15:50:38,423 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 400 - ms
+2026-03-25 15:50:38,438 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [skill-dev]
+2026-03-25 15:50:38,438 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,439 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [83fc8268-9042-4975-a472-a6e68cd39508]
+2026-03-25 15:50:38,440 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,441 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'skill-dev' logged in with role 'developer'
+2026-03-25 15:50:38,443 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 423 - ms
+2026-03-25 15:50:38,457 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/skills HTTP/1.1" 401 76 - ms
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.239 s -- in com.appsmith.aiide.integration.SkillResourceTest
+[INFO] Running com.appsmith.aiide.integration.SystemConfigResourceTest
+2026-03-25 15:50:38,466 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [admin]
+2026-03-25 15:50:38,466 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,468 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:38,468 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,470 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'admin' logged in with role 'admin'
+2026-03-25 15:50:38,471 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 400 - ms
+2026-03-25 15:50:38,485 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [config-dev]
+2026-03-25 15:50:38,485 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,487 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:JSON) <- [null]
+2026-03-25 15:50:38,487 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:TIMESTAMP_UTC) <- [2026-03-25T15:50:38.487883+08:00]
+2026-03-25 15:50:38,487 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (3:VARCHAR) <- [config-dev]
+2026-03-25 15:50:38,488 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (4:VARCHAR) <- [config-dev]
+2026-03-25 15:50:38,488 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (5:VARCHAR) <- [developer]
+2026-03-25 15:50:38,488 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (6:TIMESTAMP_UTC) <- [2026-03-25T15:50:38.487883+08:00]
+2026-03-25 15:50:38,488 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (7:VARCHAR) <- [config-dev]
+2026-03-25 15:50:38,488 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (8:UUID) <- [a3818164-3c1b-4d82-9214-bd1388da7d5f]
+2026-03-25 15:50:38,489 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [a3818164-3c1b-4d82-9214-bd1388da7d5f]
+2026-03-25 15:50:38,489 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,490 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'config-dev' logged in with role 'developer'
+2026-03-25 15:50:38,493 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 426 - ms
+2026-03-25 15:50:38,510 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "GET /api/system-config HTTP/1.1" 200 2 - ms
+2026-03-25 15:50:38,517 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [admin]
+2026-03-25 15:50:38,518 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,519 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:38,519 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,520 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'admin' logged in with role 'admin'
+2026-03-25 15:50:38,521 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 400 - ms
+2026-03-25 15:50:38,535 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [config-dev]
+2026-03-25 15:50:38,535 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,537 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [a3818164-3c1b-4d82-9214-bd1388da7d5f]
+2026-03-25 15:50:38,537 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,539 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'config-dev' logged in with role 'developer'
+2026-03-25 15:50:38,540 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 426 - ms
+2026-03-25 15:50:38,555 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "GET /api/system-config HTTP/1.1" 403 55 - ms
+2026-03-25 15:50:38,564 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [admin]
+2026-03-25 15:50:38,564 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,566 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:38,566 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,567 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'admin' logged in with role 'admin'
+2026-03-25 15:50:38,569 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 400 - ms
+2026-03-25 15:50:38,582 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [config-dev]
+2026-03-25 15:50:38,582 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,584 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [a3818164-3c1b-4d82-9214-bd1388da7d5f]
+2026-03-25 15:50:38,584 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,585 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'config-dev' logged in with role 'developer'
+2026-03-25 15:50:38,586 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 426 - ms
+2026-03-25 15:50:38,602 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [test-config]
+2026-03-25 15:50:38,602 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,607 INFO  [com.app.aii.res.SystemConfigResource] (executor-thread-1) System config 'test-config' updated by admin
+2026-03-25 15:50:38,608 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [Test configuration entry]
+2026-03-25 15:50:38,608 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:VARCHAR) <- [test-config]
+2026-03-25 15:50:38,608 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (3:TIMESTAMP_UTC) <- [2026-03-25T15:50:38.608163+08:00]
+2026-03-25 15:50:38,608 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (4:UUID) <- [null]
+2026-03-25 15:50:38,608 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (5:JSON) <- [{setting=value123}]
+2026-03-25 15:50:38,611 WARN  [com.arj.ats.arjuna] (executor-thread-1) ARJUNA012125: TwoPhaseCoordinator.beforeCompletion - failed for SynchronizationImple< 0:ffffc6120001:24fd:69c393cc:128, org.hibernate.resource.transaction.backend.jta.internal.synchronization.RegisteredSynchronization@231d9c9d >: java.lang.ClassCastException: class java.util.LinkedHashMap cannot be cast to class java.lang.String (java.util.LinkedHashMap and java.lang.String are in module java.base of loader 'bootstrap')
+	at org.hibernate.type.format.AbstractJsonFormatMapper.toString(AbstractJsonFormatMapper.java:33)
+	at org.hibernate.type.descriptor.jdbc.JsonJdbcType.toString(JsonJdbcType.java:109)
+	at org.hibernate.dialect.AbstractPostgreSQLJsonPGObjectType.access$000(AbstractPostgreSQLJsonPGObjectType.java:29)
+	at org.hibernate.dialect.AbstractPostgreSQLJsonPGObjectType$1.doBind(AbstractPostgreSQLJsonPGObjectType.java:48)
+	at org.hibernate.type.descriptor.jdbc.BasicBinder.bind(BasicBinder.java:61)
+	at org.hibernate.engine.jdbc.mutation.internal.JdbcValueBindingsImpl.lambda$beforeStatement$0(JdbcValueBindingsImpl.java:87)
+	at java.base/java.lang.Iterable.forEach(Iterable.java:75)
+	at org.hibernate.engine.jdbc.mutation.spi.BindingGroup.forEachBinding(BindingGroup.java:51)
+	at org.hibernate.engine.jdbc.mutation.internal.JdbcValueBindingsImpl.beforeStatement(JdbcValueBindingsImpl.java:85)
+	at org.hibernate.engine.jdbc.mutation.internal.AbstractMutationExecutor.performNonBatchedMutation(AbstractMutationExecutor.java:130)
+	at org.hibernate.engine.jdbc.mutation.internal.MutationExecutorSingleNonBatched.performNonBatchedOperations(MutationExecutorSingleNonBatched.java:55)
+	at org.hibernate.engine.jdbc.mutation.internal.AbstractMutationExecutor.execute(AbstractMutationExecutor.java:55)
+	at org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.doStaticInserts(InsertCoordinatorStandard.java:194)
+	at org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.coordinateInsert(InsertCoordinatorStandard.java:132)
+	at org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.insert(InsertCoordinatorStandard.java:104)
+	at org.hibernate.action.internal.EntityInsertAction.execute(EntityInsertAction.java:110)
+	at org.hibernate.engine.spi.ActionQueue.executeActions(ActionQueue.java:644)
+	at org.hibernate.engine.spi.ActionQueue.executeActions(ActionQueue.java:511)
+	at org.hibernate.event.internal.AbstractFlushingEventListener.performExecutions(AbstractFlushingEventListener.java:414)
+	at org.hibernate.event.internal.DefaultFlushEventListener.onFlush(DefaultFlushEventListener.java:41)
+	at org.hibernate.event.service.internal.EventListenerGroupImpl.fireEventOnEachListener(EventListenerGroupImpl.java:127)
+	at org.hibernate.internal.SessionImpl.doFlush(SessionImpl.java:1429)
+	at org.hibernate.internal.SessionImpl.managedFlush(SessionImpl.java:491)
+	at org.hibernate.internal.SessionImpl.flushBeforeTransactionCompletion(SessionImpl.java:2354)
+	at org.hibernate.internal.SessionImpl.beforeTransactionCompletion(SessionImpl.java:1978)
+	at org.hibernate.engine.jdbc.internal.JdbcCoordinatorImpl.beforeTransactionCompletion(JdbcCoordinatorImpl.java:439)
+	at org.hibernate.resource.transaction.backend.jta.internal.JtaTransactionCoordinatorImpl.beforeCompletion(JtaTransactionCoordinatorImpl.java:336)
+	at org.hibernate.resource.transaction.backend.jta.internal.synchronization.SynchronizationCallbackCoordinatorNonTrackingImpl.beforeCompletion(SynchronizationCallbackCoordinatorNonTrackingImpl.java:47)
+	at org.hibernate.resource.transaction.backend.jta.internal.synchronization.RegisteredSynchronization.beforeCompletion(RegisteredSynchronization.java:37)
+	at com.arjuna.ats.internal.jta.resources.arjunacore.SynchronizationImple.beforeCompletion(SynchronizationImple.java:52)
+	at com.arjuna.ats.arjuna.coordinator.TwoPhaseCoordinator.beforeCompletion(TwoPhaseCoordinator.java:348)
+	at com.arjuna.ats.arjuna.coordinator.TwoPhaseCoordinator.end(TwoPhaseCoordinator.java:66)
+	at com.arjuna.ats.arjuna.AtomicAction.commit(AtomicAction.java:135)
+	at com.arjuna.ats.internal.jta.transaction.arjunacore.TransactionImple.commitAndDisassociate(TransactionImple.java:1307)
+	at com.arjuna.ats.internal.jta.transaction.arjunacore.BaseTransaction.commit(BaseTransaction.java:104)
+	at io.quarkus.narayana.jta.runtime.NotifyingTransactionManager.commit(NotifyingTransactionManager.java:70)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorBase.endTransaction(TransactionalInterceptorBase.java:406)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorBase.invokeInOurTx(TransactionalInterceptorBase.java:171)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorBase.invokeInOurTx(TransactionalInterceptorBase.java:107)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorRequired.doIntercept(TransactionalInterceptorRequired.java:38)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorBase.intercept(TransactionalInterceptorBase.java:61)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorRequired.intercept(TransactionalInterceptorRequired.java:32)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorRequired_Bean.intercept(Unknown Source)
+	at io.quarkus.arc.impl.InterceptorInvocation.invoke(InterceptorInvocation.java:42)
+	at io.quarkus.arc.impl.AroundInvokeInvocationContext.perform(AroundInvokeInvocationContext.java:30)
+	at io.quarkus.arc.impl.InvocationContexts.performAroundInvoke(InvocationContexts.java:27)
+	at com.appsmith.aiide.resource.SystemConfigResource_Subclass.updateConfig(Unknown Source)
+	at com.appsmith.aiide.resource.SystemConfigResource$quarkusrestinvoker$updateConfig_4785ed28fe24157f87f8b326a6fc744b9968ab8d.invoke(Unknown Source)
+	at org.jboss.resteasy.reactive.server.handlers.InvocationHandler.handle(InvocationHandler.java:29)
+	at io.quarkus.resteasy.reactive.server.runtime.QuarkusResteasyReactiveRequestContext.invokeHandler(QuarkusResteasyReactiveRequestContext.java:141)
+	at org.jboss.resteasy.reactive.common.core.AbstractResteasyReactiveContext.run(AbstractResteasyReactiveContext.java:147)
+	at io.quarkus.vertx.core.runtime.VertxCoreRecorder$15.runWith(VertxCoreRecorder.java:637)
+	at org.jboss.threads.EnhancedQueueExecutor$Task.doRunWith(EnhancedQueueExecutor.java:2651)
+	at org.jboss.threads.EnhancedQueueExecutor$Task.run(EnhancedQueueExecutor.java:2630)
+	at org.jboss.threads.EnhancedQueueExecutor.runThreadBody(EnhancedQueueExecutor.java:1622)
+	at org.jboss.threads.EnhancedQueueExecutor$ThreadBody.run(EnhancedQueueExecutor.java:1589)
+	at org.jboss.threads.DelegatingRunnable.run(DelegatingRunnable.java:11)
+	at org.jboss.threads.ThreadLocalResettingRunnable.run(ThreadLocalResettingRunnable.java:11)
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+	at java.base/java.lang.Thread.run(Thread.java:833)
+
+2026-03-25 15:50:38,614 ERROR [com.app.aii.fil.ErrorMapper] (executor-thread-1) Unhandled exception: io.quarkus.arc.ArcUndeclaredThrowableException: Error invoking subclass method
+	at com.appsmith.aiide.resource.SystemConfigResource_Subclass.updateConfig(Unknown Source)
+	at com.appsmith.aiide.resource.SystemConfigResource$quarkusrestinvoker$updateConfig_4785ed28fe24157f87f8b326a6fc744b9968ab8d.invoke(Unknown Source)
+	at org.jboss.resteasy.reactive.server.handlers.InvocationHandler.handle(InvocationHandler.java:29)
+	at io.quarkus.resteasy.reactive.server.runtime.QuarkusResteasyReactiveRequestContext.invokeHandler(QuarkusResteasyReactiveRequestContext.java:141)
+	at org.jboss.resteasy.reactive.common.core.AbstractResteasyReactiveContext.run(AbstractResteasyReactiveContext.java:147)
+	at io.quarkus.vertx.core.runtime.VertxCoreRecorder$15.runWith(VertxCoreRecorder.java:637)
+	at org.jboss.threads.EnhancedQueueExecutor$Task.doRunWith(EnhancedQueueExecutor.java:2651)
+	at org.jboss.threads.EnhancedQueueExecutor$Task.run(EnhancedQueueExecutor.java:2630)
+	at org.jboss.threads.EnhancedQueueExecutor.runThreadBody(EnhancedQueueExecutor.java:1622)
+	at org.jboss.threads.EnhancedQueueExecutor$ThreadBody.run(EnhancedQueueExecutor.java:1589)
+	at org.jboss.threads.DelegatingRunnable.run(DelegatingRunnable.java:11)
+	at org.jboss.threads.ThreadLocalResettingRunnable.run(ThreadLocalResettingRunnable.java:11)
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+	at java.base/java.lang.Thread.run(Thread.java:833)
+Caused by: jakarta.transaction.RollbackException: ARJUNA016053: Could not commit transaction.
+	at com.arjuna.ats.internal.jta.transaction.arjunacore.TransactionImple.commitAndDisassociate(TransactionImple.java:1319)
+	at com.arjuna.ats.internal.jta.transaction.arjunacore.BaseTransaction.commit(BaseTransaction.java:104)
+	at io.quarkus.narayana.jta.runtime.NotifyingTransactionManager.commit(NotifyingTransactionManager.java:70)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorBase.endTransaction(TransactionalInterceptorBase.java:406)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorBase.invokeInOurTx(TransactionalInterceptorBase.java:171)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorBase.invokeInOurTx(TransactionalInterceptorBase.java:107)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorRequired.doIntercept(TransactionalInterceptorRequired.java:38)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorBase.intercept(TransactionalInterceptorBase.java:61)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorRequired.intercept(TransactionalInterceptorRequired.java:32)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorRequired_Bean.intercept(Unknown Source)
+	at io.quarkus.arc.impl.InterceptorInvocation.invoke(InterceptorInvocation.java:42)
+	at io.quarkus.arc.impl.AroundInvokeInvocationContext.perform(AroundInvokeInvocationContext.java:30)
+	at io.quarkus.arc.impl.InvocationContexts.performAroundInvoke(InvocationContexts.java:27)
+	... 14 more
+Caused by: java.lang.ClassCastException: class java.util.LinkedHashMap cannot be cast to class java.lang.String (java.util.LinkedHashMap and java.lang.String are in module java.base of loader 'bootstrap')
+	at org.hibernate.type.format.AbstractJsonFormatMapper.toString(AbstractJsonFormatMapper.java:33)
+	at org.hibernate.type.descriptor.jdbc.JsonJdbcType.toString(JsonJdbcType.java:109)
+	at org.hibernate.dialect.AbstractPostgreSQLJsonPGObjectType.access$000(AbstractPostgreSQLJsonPGObjectType.java:29)
+	at org.hibernate.dialect.AbstractPostgreSQLJsonPGObjectType$1.doBind(AbstractPostgreSQLJsonPGObjectType.java:48)
+	at org.hibernate.type.descriptor.jdbc.BasicBinder.bind(BasicBinder.java:61)
+	at org.hibernate.engine.jdbc.mutation.internal.JdbcValueBindingsImpl.lambda$beforeStatement$0(JdbcValueBindingsImpl.java:87)
+	at java.base/java.lang.Iterable.forEach(Iterable.java:75)
+	at org.hibernate.engine.jdbc.mutation.spi.BindingGroup.forEachBinding(BindingGroup.java:51)
+	at org.hibernate.engine.jdbc.mutation.internal.JdbcValueBindingsImpl.beforeStatement(JdbcValueBindingsImpl.java:85)
+	at org.hibernate.engine.jdbc.mutation.internal.AbstractMutationExecutor.performNonBatchedMutation(AbstractMutationExecutor.java:130)
+	at org.hibernate.engine.jdbc.mutation.internal.MutationExecutorSingleNonBatched.performNonBatchedOperations(MutationExecutorSingleNonBatched.java:55)
+	at org.hibernate.engine.jdbc.mutation.internal.AbstractMutationExecutor.execute(AbstractMutationExecutor.java:55)
+	at org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.doStaticInserts(InsertCoordinatorStandard.java:194)
+	at org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.coordinateInsert(InsertCoordinatorStandard.java:132)
+	at org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.insert(InsertCoordinatorStandard.java:104)
+	at org.hibernate.action.internal.EntityInsertAction.execute(EntityInsertAction.java:110)
+	at org.hibernate.engine.spi.ActionQueue.executeActions(ActionQueue.java:644)
+	at org.hibernate.engine.spi.ActionQueue.executeActions(ActionQueue.java:511)
+	at org.hibernate.event.internal.AbstractFlushingEventListener.performExecutions(AbstractFlushingEventListener.java:414)
+	at org.hibernate.event.internal.DefaultFlushEventListener.onFlush(DefaultFlushEventListener.java:41)
+	at org.hibernate.event.service.internal.EventListenerGroupImpl.fireEventOnEachListener(EventListenerGroupImpl.java:127)
+	at org.hibernate.internal.SessionImpl.doFlush(SessionImpl.java:1429)
+	at org.hibernate.internal.SessionImpl.managedFlush(SessionImpl.java:491)
+	at org.hibernate.internal.SessionImpl.flushBeforeTransactionCompletion(SessionImpl.java:2354)
+	at org.hibernate.internal.SessionImpl.beforeTransactionCompletion(SessionImpl.java:1978)
+	at org.hibernate.engine.jdbc.internal.JdbcCoordinatorImpl.beforeTransactionCompletion(JdbcCoordinatorImpl.java:439)
+	at org.hibernate.resource.transaction.backend.jta.internal.JtaTransactionCoordinatorImpl.beforeCompletion(JtaTransactionCoordinatorImpl.java:336)
+	at org.hibernate.resource.transaction.backend.jta.internal.synchronization.SynchronizationCallbackCoordinatorNonTrackingImpl.beforeCompletion(SynchronizationCallbackCoordinatorNonTrackingImpl.java:47)
+	at org.hibernate.resource.transaction.backend.jta.internal.synchronization.RegisteredSynchronization.beforeCompletion(RegisteredSynchronization.java:37)
+	at com.arjuna.ats.internal.jta.resources.arjunacore.SynchronizationImple.beforeCompletion(SynchronizationImple.java:52)
+	at com.arjuna.ats.arjuna.coordinator.TwoPhaseCoordinator.beforeCompletion(TwoPhaseCoordinator.java:348)
+	at com.arjuna.ats.arjuna.coordinator.TwoPhaseCoordinator.end(TwoPhaseCoordinator.java:66)
+	at com.arjuna.ats.arjuna.AtomicAction.commit(AtomicAction.java:135)
+	at com.arjuna.ats.internal.jta.transaction.arjunacore.TransactionImple.commitAndDisassociate(TransactionImple.java:1307)
+	... 26 more
+
+2026-03-25 15:50:38,615 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "PUT /api/system-config HTTP/1.1" 500 74 - ms
+2026-03-25 15:50:38,624 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [admin]
+2026-03-25 15:50:38,624 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,631 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:38,631 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,632 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'admin' logged in with role 'admin'
+2026-03-25 15:50:38,633 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 400 - ms
+2026-03-25 15:50:38,646 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [config-dev]
+2026-03-25 15:50:38,646 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,648 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [a3818164-3c1b-4d82-9214-bd1388da7d5f]
+2026-03-25 15:50:38,648 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,649 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'config-dev' logged in with role 'developer'
+2026-03-25 15:50:38,651 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 426 - ms
+2026-03-25 15:50:38,671 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "PUT /api/system-config HTTP/1.1" 400 51 - ms
+2026-03-25 15:50:38,678 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [admin]
+2026-03-25 15:50:38,679 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,682 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [1dca0c3e-1dcf-4dc2-9833-57d598ee98cd]
+2026-03-25 15:50:38,682 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,684 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'admin' logged in with role 'admin'
+2026-03-25 15:50:38,686 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 400 - ms
+2026-03-25 15:50:38,701 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:VARCHAR) <- [config-dev]
+2026-03-25 15:50:38,701 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,704 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (1:UUID) <- [a3818164-3c1b-4d82-9214-bd1388da7d5f]
+2026-03-25 15:50:38,704 TRACE [org.hib.orm.jdb.bind] (executor-thread-1) binding parameter (2:INTEGER) <- [1]
+2026-03-25 15:50:38,705 INFO  [com.app.aii.res.AuthResource] (executor-thread-1) User 'config-dev' logged in with role 'developer'
+2026-03-25 15:50:38,707 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "POST /api/auth/login HTTP/1.1" 200 426 - ms
+2026-03-25 15:50:38,721 INFO  [io.qua.htt.access-log] (executor-thread-1) 127.0.0.1 - - [25/Mar/2026:15:50:38 +0800] "PUT /api/system-config HTTP/1.1" 403 55 - ms
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.264 s -- in com.appsmith.aiide.integration.SystemConfigResourceTest
+[INFO] Running com.appsmith.aiide.unit.JwtConfigTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.022 s -- in com.appsmith.aiide.unit.JwtConfigTest
+[INFO] Running com.appsmith.aiide.unit.SshKeyServiceTest
+2026-03-25 15:50:38,750 ERROR [com.app.aii.ser.SshKeyService] (main) Decryption failed: java.lang.NegativeArraySizeException: -7
+	at com.appsmith.aiide.service.SshKeyService.decrypt(SshKeyService.java:86)
+	at com.appsmith.aiide.service.SshKeyService_ClientProxy.decrypt(Unknown Source)
+	at com.appsmith.aiide.unit.SshKeyServiceTest.lambda$decrypt_invalidInput_throws$0(SshKeyServiceTest.java:45)
+	at org.junit.jupiter.api.AssertThrows.assertThrows(AssertThrows.java:53)
+	at org.junit.jupiter.api.AssertThrows.assertThrows(AssertThrows.java:35)
+	at org.junit.jupiter.api.Assertions.assertThrows(Assertions.java:3128)
+	at com.appsmith.aiide.unit.SshKeyServiceTest.decrypt_invalidInput_throws(SshKeyServiceTest.java:44)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at io.quarkus.test.junit.QuarkusTestExtension.runExtensionMethod(QuarkusTestExtension.java:999)
+	at io.quarkus.test.junit.QuarkusTestExtension.interceptTestMethod(QuarkusTestExtension.java:847)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:112)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:94)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:106)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:161)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:152)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestMethod(TimeoutExtension.java:91)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:112)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:94)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:106)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:64)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:45)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:37)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:93)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:87)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$7(TestMethodTestDescriptor.java:216)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:212)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:137)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:69)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:156)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:160)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:160)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:35)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:57)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:54)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:201)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:170)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:94)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:59)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:142)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:58)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:103)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:85)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47)
+	at org.junit.platform.launcher.core.InterceptingLauncher.lambda$execute$1(InterceptingLauncher.java:39)
+	at org.junit.platform.launcher.core.ClasspathAlignmentCheckingLauncherInterceptor.intercept(ClasspathAlignmentCheckingLauncherInterceptor.java:25)
+	at org.junit.platform.launcher.core.DefaultLauncherSession$2.lambda$intercept$0(DefaultLauncherSession.java:133)
+	at io.quarkus.test.junit.launcher.CustomLauncherInterceptor.actuallyIntercept(CustomLauncherInterceptor.java:47)
+	at io.quarkus.test.junit.launcher.CustomLauncherInterceptor.intercept(CustomLauncherInterceptor.java:30)
+	at org.junit.platform.launcher.core.DefaultLauncherSession$2.intercept(DefaultLauncherSession.java:133)
+	at org.junit.platform.launcher.core.InterceptingLauncher.execute(InterceptingLauncher.java:38)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47)
+	at org.apache.maven.surefire.junitplatform.LazyLauncher.execute(LazyLauncher.java:56)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:184)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:148)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:122)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385)
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162)
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495)
+
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.017 s -- in com.appsmith.aiide.unit.SshKeyServiceTest
+[INFO] Running com.appsmith.aiide.unit.DockerServiceTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.028 s -- in com.appsmith.aiide.unit.DockerServiceTest
+[INFO] Running com.appsmith.aiide.unit.ErrorMapperTest
+2026-03-25 15:50:38,797 ERROR [com.app.aii.fil.ErrorMapper] (main) Unhandled exception: java.lang.RuntimeException: unexpected
+	at com.appsmith.aiide.unit.ErrorMapperTest.unknownException_returns500(ErrorMapperTest.java:65)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:775)
+	at org.junit.platform.commons.support.ReflectionSupport.invokeMethod(ReflectionSupport.java:479)
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:60)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:131)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:161)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:152)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestMethod(TimeoutExtension.java:91)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:112)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:94)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:106)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:64)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:45)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:37)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:93)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:87)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$7(TestMethodTestDescriptor.java:216)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:212)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:137)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:69)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:156)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:160)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:160)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:35)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:57)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:54)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:201)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:170)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:94)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:59)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:142)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:58)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:103)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:85)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47)
+	at org.junit.platform.launcher.core.InterceptingLauncher.lambda$execute$1(InterceptingLauncher.java:39)
+	at org.junit.platform.launcher.core.ClasspathAlignmentCheckingLauncherInterceptor.intercept(ClasspathAlignmentCheckingLauncherInterceptor.java:25)
+	at org.junit.platform.launcher.core.DefaultLauncherSession$2.lambda$intercept$0(DefaultLauncherSession.java:133)
+	at io.quarkus.test.junit.launcher.CustomLauncherInterceptor.actuallyIntercept(CustomLauncherInterceptor.java:47)
+	at io.quarkus.test.junit.launcher.CustomLauncherInterceptor.intercept(CustomLauncherInterceptor.java:30)
+	at org.junit.platform.launcher.core.DefaultLauncherSession$2.intercept(DefaultLauncherSession.java:133)
+	at org.junit.platform.launcher.core.InterceptingLauncher.execute(InterceptingLauncher.java:38)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47)
+	at org.apache.maven.surefire.junitplatform.LazyLauncher.execute(LazyLauncher.java:56)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:184)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:148)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:122)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385)
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162)
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495)
+
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.868 s -- in com.appsmith.aiide.unit.ErrorMapperTest
+[INFO] Running com.appsmith.aiide.unit.RequestContextTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in com.appsmith.aiide.unit.RequestContextTest
+2026-03-25 15:50:41,747 INFO  [io.quarkus] (main) ai-ide-backend stopped in 0.062s
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 59, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  27.644 s
+[INFO] Finished at: 2026-03-25T15:50:43+08:00
+[INFO] ------------------------------------------------------------------------

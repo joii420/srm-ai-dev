@@ -1,0 +1,39 @@
+================================================================================
+  APPSMITH AI-IDE BACKEND - TEST REPORT
+  Date: 2026-03-25
+================================================================================
+
+UNIT TESTS (5 test classes, 25 tests)
+--------------------------------------
+  [PASS] JwtConfigTest ................ 5 tests   0.013s
+  [PASS] SshKeyServiceTest ............ 5 tests   0.009s
+  [PASS] DockerServiceTest ............ 6 tests   0.024s
+  [PASS] ErrorMapperTest .............. 4 tests   2.835s
+  [PASS] RequestContextTest ........... 5 tests   0.009s
+
+INTEGRATION TESTS (6 test classes, 34 tests)
+----------------------------------------------
+  [PASS] AuthResourceTest ............. 8 tests   4.063s
+  [PASS] PageResourceTest ............. 8 tests   0.396s
+  [PASS] SkillResourceTest ............ 4 tests   0.214s
+  [PASS] DependencyResourceTest ....... 4 tests   0.232s
+  [PASS] ContainerResourceTest ........ 5 tests   0.327s
+  [PASS] SystemConfigResourceTest ..... 5 tests   0.249s
+
+================================================================================
+  TOTAL: 59 tests | 0 failures | 0 errors | 0 skipped
+  BUILD: SUCCESS
+================================================================================
+
+TEST COVERAGE:
+  - Config:     JWT generation/verification, token renewal, tamper detection
+  - Security:   SshKey AES-256-GCM encrypt/decrypt roundtrip, unicode support
+  - Docker:     parseMemory (GB/MB/bytes/quoted/fractional)
+  - Filters:    ErrorMapper (400/403/404/500), RequestContext, AdminFilter
+  - Auth API:   Login (dev/admin/wrong-pwd), me, logout, token validation
+  - Pages API:  List pages, status values, tree/files, checkin without checkout
+  - Skills API: CRUD + RBAC (admin create, dev forbidden, no-auth)
+  - Deps API:   CRUD + RBAC (admin create, dev forbidden, no-auth)
+  - Containers: List active + RBAC, force-checkin/destroy 404/403
+  - SysConfig:  List/update + RBAC (admin OK, dev forbidden)
+================================================================================

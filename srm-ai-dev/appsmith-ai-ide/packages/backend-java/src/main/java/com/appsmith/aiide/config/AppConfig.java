@@ -45,6 +45,9 @@ public class AppConfig {
     @ConfigProperty(name = "aiide.appsmith-xsrf-token", defaultValue = "")
     String appsmithXsrfToken;
 
+    @ConfigProperty(name = "aiide.edit-lock-api-url", defaultValue = "")
+    String editLockApiUrl;
+
     public String getSshKeyEncryptSecret() {
         return sshKeyEncryptSecret;
     }
@@ -87,6 +90,10 @@ public class AppConfig {
 
     public String getAppsmithXsrfToken() {
         return appsmithXsrfToken;
+    }
+
+    public String getEditLockApiUrl() {
+        return editLockApiUrl;
     }
 
     /**

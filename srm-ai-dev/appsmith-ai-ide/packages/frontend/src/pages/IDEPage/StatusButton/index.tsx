@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useAuthStore } from '../../../stores/authStore';
 import { useEditorStore } from '../../../stores/editorStore';
+import { type EditLockState } from '../EditLockBadge';
 
 export type IDEMode = 'readonly-free' | 'readonly-other' | 'editable';
 
@@ -27,6 +28,8 @@ interface StatusButtonProps {
   checkedOutBy?: string | null;
   onCheckoutComplete: () => void;
   onSaveAll?: () => Promise<void>;
+  editLockState?: EditLockState | null;
+  onRefreshEditLock?: () => void;
 }
 
 type DialogPhase =
@@ -39,15 +42,26 @@ type DialogPhase =
   | 'abandon-confirm'        // 退出：确认还原所有变更
   | 'abandon-submitting';    // 退出：销毁中
 
+const stateLabel = (state?: string) => {
+  switch (state) {
+    case '1': return '已签入';
+    case '2': return '已签出';
+    default: return state ?? '-';
+  }
+};
+
 const StatusButton: React.FC<StatusButtonProps> = ({
   mode,
   pageId,
   checkedOutBy,
   onCheckoutComplete,
   onSaveAll,
+  editLockState,
+  onRefreshEditLock,
 }) => {
   const { token } = useAuthStore();
   const hasUnsavedFiles = useEditorStore((s) => s.hasUnsavedFiles);
+  const [hover, setHover] = useState(false);
 
   // Checkout progress state
   const [checkoutInProgress, setCheckoutInProgress] = useState(false);
@@ -489,10 +503,60 @@ const StatusButton: React.FC<StatusButtonProps> = ({
   /* ---------------------------------------------------------------- */
 
   if (mode === 'readonly-free') {
+    const lockPs = editLockState?.pageState;
+    const btnText = editLockState?.button ?? '签出';
+
+    // Click behavior determined solely by button text
+    const handleBtnClick = () => {
+      if (btnText === '签出') {
+        handleCheckoutClick();
+      } else if (btnText === '已签出') {
+        onRefreshEditLock?.();
+      } else if (btnText === '签入') {
+        handleCheckinClick();
+      }
+    };
+
+    const btnClass = btnText === '签出' ? 'btn btn-p'
+      : btnText === '签入' ? 'btn btn-green'
+      : 'btn btn-grey';
+
     return (
-      <button className="btn btn-p" onClick={handleCheckoutClick}>
-        签出
-      </button>
+      <div
+        style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+      >
+        <button className={btnClass} onClick={handleBtnClick}>
+          {btnText}
+        </button>
+        {hover && lockPs && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 'calc(100% + 6px)',
+              left: 0,
+              background: 'var(--s2)',
+              border: '1px solid var(--b2)',
+              borderRadius: 6,
+              padding: '8px 12px',
+              zIndex: 300,
+              minWidth: 220,
+              boxShadow: '0 4px 14px rgba(0,0,0,.4)',
+              fontSize: 11,
+              color: 'var(--t2)',
+              lineHeight: 1.8,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <div><span style={{ color: 'var(--t3)' }}>程序：</span><span style={{ color: 'var(--t1)' }}>{lockPs.code ?? '-'}</span></div>
+            <div><span style={{ color: 'var(--t3)' }}>状态：</span><span style={{ color: 'var(--t1)' }}>{stateLabel(lockPs.state)}</span></div>
+            <div><span style={{ color: 'var(--t3)' }}>操作人：</span><span style={{ color: 'var(--t1)' }}>{lockPs.acct ?? '-'}</span></div>
+            <div><span style={{ color: 'var(--t3)' }}>IP：</span><span style={{ color: 'var(--t1)' }}>{lockPs.ip ?? '-'}</span></div>
+            <div><span style={{ color: 'var(--t3)' }}>时间：</span><span style={{ color: 'var(--t1)' }}>{lockPs.time ?? '-'}</span></div>
+          </div>
+        )}
+      </div>
     );
   }
 

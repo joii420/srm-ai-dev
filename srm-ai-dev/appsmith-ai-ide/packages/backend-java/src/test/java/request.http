@@ -1,0 +1,9 @@
+# @no-proxy
+###
+POST http://test.srm.wzhf.com:9000/script-engine/editLock/checkOut
+Content-Type: application/json
+
+{
+  "code": "appsmtihrepo1",
+  "acct": "admin"
+}

@@ -12,6 +12,7 @@ import com.appsmith.aiide.entity.User;
 import com.appsmith.aiide.filter.RequestContext;
 import com.appsmith.aiide.service.ContainerLifecycle;
 import com.appsmith.aiide.service.DockerService;
+import com.appsmith.aiide.service.EditLockService;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import jakarta.inject.Inject;
@@ -50,6 +51,9 @@ public class PageResource {
 
     @Inject
     DockerService dockerService;
+
+    @Inject
+    EditLockService editLockService;
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(30))
@@ -152,6 +156,28 @@ public class PageResource {
         return Response.status(Response.Status.CREATED)
                 .entity(Map.of("page", PageDto.from(page)))
                 .build();
+    }
+
+    /**
+     * Query the external edit-lock state for a page.
+     * Called when the frontend opens a program to check its current lock status.
+     */
+    @GET
+    @Path("/{pageId}/edit-lock-state")
+    public Response getEditLockState(@PathParam("pageId") String pageId) {
+        Page page = Page.findById(UUID.fromString(pageId));
+        if (page == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "NotFound", "message", "Page not found: " + pageId))
+                    .build();
+        }
+
+        String username = requestContext.getUsername();
+        Map<String, Object> state = editLockService.queryState(page.name, username);
+        if (state == null) {
+            return Response.ok(Map.of("enabled", false, "message", "Edit lock service not configured or unavailable")).build();
+        }
+        return Response.ok(state).build();
     }
 
     // --- Remote repo creation helpers ---
@@ -394,8 +420,12 @@ public class PageResource {
     @RestSseElementType(MediaType.APPLICATION_JSON)
     public Multi<CheckoutStepEvent> checkout(@PathParam("pageId") String pageId) {
         String userId = requestContext.getUserId();
+        String username = requestContext.getUsername();
 
         return Multi.createFrom().<CheckoutStepEvent>emitter(emitter -> {
+            String editLockCode = null;
+            boolean editLockAcquired = false;
+
             try {
                 // Validate: check if page is already checked out
                 Checkout existing = Checkout.findActiveByPageId(pageId);
@@ -416,6 +446,21 @@ public class PageResource {
                     return;
                 }
 
+                // --- External edit lock: acquire lock before proceeding ---
+                editLockCode = page.name;
+                if (editLockService.isEnabled()) {
+                    emitter.emit(new CheckoutStepEvent("edit_lock_checkout", "in_progress", null));
+                    boolean canEdit = editLockService.checkOut(editLockCode, username);
+                    if (!canEdit) {
+                        emitter.emit(new CheckoutStepEvent("edit_lock_checkout", "failed",
+                                "External edit lock denied: program is locked by another user"));
+                        emitter.complete();
+                        return;
+                    }
+                    editLockAcquired = true;
+                    emitter.emit(new CheckoutStepEvent("edit_lock_checkout", "completed", null));
+                }
+
                 String pageName = page.name;
                 String gitlabRepoUrl = page.gitlabRepoUrl;
                 String branch = page.gitBranch != null ? page.gitBranch : "dev";
@@ -432,9 +477,19 @@ public class PageResource {
                         "Checkout completed. Container: " + result.containerId()));
                 emitter.complete();
             } catch (ContainerLifecycle.MaxContainersReachedException e) {
+                // Rollback external edit lock if acquired
+                if (editLockAcquired && editLockCode != null) {
+                    LOG.info("Rolling back external edit lock due to max containers reached");
+                    editLockService.checkIn(editLockCode, username);
+                }
                 emitter.emit(new CheckoutStepEvent("error", "failed", e.getMessage()));
                 emitter.complete();
             } catch (Exception e) {
+                // Rollback external edit lock if acquired
+                if (editLockAcquired && editLockCode != null) {
+                    LOG.infof("Rolling back external edit lock due to checkout failure: %s", e.getMessage());
+                    editLockService.checkIn(editLockCode, username);
+                }
                 LOG.errorf(e, "Checkout failed for page %s", pageId);
                 emitter.emit(new CheckoutStepEvent("error", "failed",
                         "Checkout failed: " + e.getMessage()));
@@ -612,6 +667,18 @@ public class PageResource {
             checkout.checkedInAt = OffsetDateTime.now();
             checkout.commitHash = commitHash;
 
+            // Step 6: Release external edit lock after successful checkin
+            if (editLockService.isEnabled()) {
+                try {
+                    Page page = Page.findById(UUID.fromString(pageId));
+                    if (page != null) {
+                        editLockService.checkIn(page.name, requestContext.getUsername());
+                    }
+                } catch (Exception ex) {
+                    LOG.warnf("Failed to release external edit lock after checkin: %s", ex.getMessage());
+                }
+            }
+
             return Response.ok(Map.of(
                     "success", true,
                     "commitHash", commitHash
@@ -701,6 +768,18 @@ public class PageResource {
         // Mark checkout as abandoned, release page
         checkout.status = "abandoned";
         checkout.checkedInAt = OffsetDateTime.now();
+
+        // Release external edit lock after abandon
+        if (editLockService.isEnabled()) {
+            try {
+                Page page = Page.findById(UUID.fromString(pageId));
+                if (page != null) {
+                    editLockService.checkIn(page.name, requestContext.getUsername());
+                }
+            } catch (Exception ex) {
+                LOG.warnf("Failed to release external edit lock after abandon: %s", ex.getMessage());
+            }
+        }
 
         LOG.infof("Checkout abandoned: pageId=%s, userId=%s", pageId, userId);
         return Response.ok(Map.of("success", true)).build();

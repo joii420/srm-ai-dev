@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../../services/api';
 import { useEditorStore } from '../../stores/editorStore';
 import StatusButton, { IDEMode } from './StatusButton';
+import { type EditLockState } from './EditLockBadge';
 import FileTree from './FileTree';
 import Editor, { type EditorHandle } from './Editor';
 import ChatPanel, { type CodeSuggestion } from './ChatPanel';
@@ -31,6 +32,7 @@ const IDEPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [pendingSuggestion, setPendingSuggestion] = useState<CodeSuggestion | null>(null);
   const [saving, setSaving] = useState(false);
+  const [editLockState, setEditLockState] = useState<EditLockState | null>(null);
   const editorRef = useRef<EditorHandle>(null);
 
   const fetchPageStatus = useCallback(async () => {
@@ -65,6 +67,26 @@ const IDEPage: React.FC = () => {
   useEffect(() => {
     fetchPageStatus();
   }, [fetchPageStatus]);
+
+  const fetchEditLockState = useCallback(() => {
+    if (!pageId) return;
+    apiClient.get(`/pages/${pageId}/edit-lock-state`)
+      .then((res) => {
+        const d = res.data as Record<string, unknown>;
+        if (d.data) {
+          setEditLockState(d.data as EditLockState);
+        } else if (d.enabled === false) {
+          setEditLockState(null);
+        }
+      })
+      .catch(() => {
+        setEditLockState(null);
+      });
+  }, [pageId]);
+
+  useEffect(() => {
+    fetchEditLockState();
+  }, [fetchEditLockState]);
 
   const determineMode = (): IDEMode => {
     if (!pageStatus) return 'readonly-free';
@@ -215,6 +237,8 @@ const IDEPage: React.FC = () => {
             checkedOutBy={pageStatus?.checkedOutBy?.displayName}
             onCheckoutComplete={handleCheckoutComplete}
             onSaveAll={handleSaveAll}
+            editLockState={editLockState}
+            onRefreshEditLock={fetchEditLockState}
           />
         </div>
 

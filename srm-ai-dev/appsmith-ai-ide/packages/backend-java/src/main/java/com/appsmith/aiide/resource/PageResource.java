@@ -10,6 +10,8 @@ import com.appsmith.aiide.entity.Page;
 import com.appsmith.aiide.entity.SystemConfig;
 import com.appsmith.aiide.entity.User;
 import com.appsmith.aiide.filter.RequestContext;
+import com.appsmith.aiide.http.IHttpService;
+import com.appsmith.aiide.service.AppsmithJsObjectTracker;
 import com.appsmith.aiide.service.ContainerLifecycle;
 import com.appsmith.aiide.service.DockerService;
 import com.appsmith.aiide.service.EditLockService;
@@ -24,11 +26,16 @@ import jakarta.ws.rs.core.Response;
 import org.jboss.logging.Logger;
 import org.jboss.resteasy.reactive.RestSseElementType;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.io.InputStream;
+import java.net.ProxySelector;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.*;
@@ -55,9 +62,44 @@ public class PageResource {
     @Inject
     EditLockService editLockService;
 
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(30))
-            .build();
+    @Inject
+    IHttpService httpService;
+
+    @Inject
+    AppsmithJsObjectTracker jsObjectTracker;
+
+    /**
+     * Trust-all HttpClient — kept only for streaming proxy (HttpResponse<InputStream>)
+     * which IHttpService does not support.
+     */
+    private final HttpClient streamingHttpClient = buildTrustAllHttpClient();
+
+    private static HttpClient buildTrustAllHttpClient() {
+        try {
+            TrustManager[] trustAll = new TrustManager[]{
+                    new X509TrustManager() {
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return new X509Certificate[0];
+                        }
+
+                        public void checkClientTrusted(X509Certificate[] certs, String authType) {
+                        }
+
+                        public void checkServerTrusted(X509Certificate[] certs, String authType) {
+                        }
+                    }
+            };
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustAll, new java.security.SecureRandom());
+            return HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(30))
+                    .sslContext(sslContext)
+//                    .proxy(ProxySelector.of(null))
+                    .build();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create trust-all HttpClient", e);
+        }
+    }
 
     /**
      * List pages from the local pages table. Enrich with checkout status.
@@ -137,7 +179,7 @@ public class PageResource {
         page.type = request.type != null ? request.type : "appsmith";
         page.gitlabRepoUrl = gitlabRepoUrl;
         page.gitBranch = branch;
-        page.appsmithEditUrl = request.appsmithEditUrl;
+        page.appsmithPageId = request.appsmithPageId;
 
         // Set creator if available
         String userId = requestContext.getUserId();
@@ -183,48 +225,99 @@ public class PageResource {
     // --- Remote repo creation helpers ---
 
     private static class RepoAlreadyExistsException extends Exception {
-        RepoAlreadyExistsException(String msg) { super(msg); }
+        RepoAlreadyExistsException(String msg) {
+            super(msg);
+        }
     }
 
     /**
      * Create a remote Git repository on GitHub or GitLab.
      * Detects the platform from the repo prefix.
-     *
+     * <p>
      * Prefix examples:
-     *   SSH:   git@github.com:owner/       → GitHub
-     *   SSH:   git@gitlab.example.com:group/ → GitLab
-     *   HTTPS: https://github.com/owner/    → GitHub
-     *   HTTPS: https://gitlab.example.com/group/ → GitLab
+     * SSH:   git@github.com:owner/       → GitHub
+     * SSH:   git@gitlab.example.com:group/ → GitLab
+     * SSH:   ssh://git@host:port/group/   → GitLab (SSH URL format)
+     * HTTPS: https://github.com/owner/    → GitHub
+     * HTTPS: https://gitlab.example.com/group/ → GitLab
      */
     private void createRemoteRepo(String prefix, String repoName, String defaultBranch,
-                                   String token, String description) throws Exception {
+                                  String token, String description) throws Exception {
         String host;
         String ownerOrGroup;
+        String apiBaseUrl; // e.g. "https://gitlab.example.com" or "http://10.0.0.1:3000"
 
-        if (prefix.startsWith("git@")) {
-            // git@github.com:owner/
-            String afterAt = prefix.substring(4); // github.com:owner/
+        if (prefix.startsWith("ssh://")) {
+            // ssh://git@host:port/owner/ e.g. ssh://git@10.177.152.5:2222/srm-dev/
+            URI sshUri = URI.create(prefix);
+            host = sshUri.getHost();
+            int port = sshUri.getPort();
+            // Remove leading "/" and trailing "/" from path to get owner/group
+            ownerOrGroup = sshUri.getPath().replaceAll("^/", "").replaceAll("/$", "");
+
+            // Use explicit gitlab-api-base-url if configured, otherwise build from host/port
+            String configuredBase = appConfig.getGitlabApiBaseUrl();
+            if (configuredBase != null && !configuredBase.isEmpty()) {
+                apiBaseUrl = configuredBase;
+            } else if (port > 0) {
+                apiBaseUrl = "http://" + host + ":" + port;
+            } else {
+                apiBaseUrl = "https://" + host;
+            }
+        } else if (prefix.startsWith("git@")) {
+            // git@host:owner/ or git@host:port/owner/
+            String afterAt = prefix.substring(4); // host:owner/ or host:port/owner/
             int colonIdx = afterAt.indexOf(':');
             host = afterAt.substring(0, colonIdx);
-            ownerOrGroup = afterAt.substring(colonIdx + 1).replaceAll("/$", "");
-        } else if (prefix.startsWith("https://")) {
-            // https://github.com/owner/
+            String pathPart = afterAt.substring(colonIdx + 1).replaceAll("/$", "");
+
+            // Check if path starts with a port number, e.g. "3000/srm-dev"
+            int slashIdx = pathPart.indexOf('/');
+            String detectedPort = null;
+            if (slashIdx > 0) {
+                String firstSegment = pathPart.substring(0, slashIdx);
+                if (firstSegment.matches("\\d+")) {
+                    detectedPort = firstSegment;
+                    ownerOrGroup = pathPart.substring(slashIdx + 1);
+                } else {
+                    ownerOrGroup = pathPart;
+                }
+            } else {
+                ownerOrGroup = pathPart;
+            }
+
+            // Use explicit gitlab-api-base-url if configured, otherwise build from host/port
+            String configuredBase = appConfig.getGitlabApiBaseUrl();
+            if (configuredBase != null && !configuredBase.isEmpty()) {
+                apiBaseUrl = configuredBase;
+            } else if (detectedPort != null) {
+                apiBaseUrl = "http://" + host + ":" + detectedPort;
+            } else {
+                apiBaseUrl = "https://" + host;
+            }
+        } else if (prefix.startsWith("https://") || prefix.startsWith("http://")) {
+            // https://github.com/owner/ or http://10.0.0.1:3000/group/
             URI uri = URI.create(prefix);
             host = uri.getHost();
             ownerOrGroup = uri.getPath().replaceAll("^/", "").replaceAll("/$", "");
+            // Preserve the original scheme and port
+            int port = uri.getPort();
+            apiBaseUrl = uri.getScheme() + "://" + host + (port > 0 ? ":" + port : "");
         } else {
             throw new IllegalArgumentException("Unsupported repo prefix format: " + prefix);
         }
 
+        LOG.infof("createRemoteRepo: prefix=%s, apiBaseUrl=%s, host=%s, ownerOrGroup=%s", prefix, apiBaseUrl, host, ownerOrGroup);
+
         if (host.contains("github.com")) {
             createGitHubRepo(ownerOrGroup, repoName, defaultBranch, token, description);
         } else {
-            createGitLabRepo(host, ownerOrGroup, repoName, defaultBranch, token, description);
+            createGitLabRepo(apiBaseUrl, ownerOrGroup, repoName, defaultBranch, token, description);
         }
     }
 
     private void createGitHubRepo(String owner, String repoName, String defaultBranch,
-                                   String token, String description) throws Exception {
+                                  String token, String description) throws Exception {
         // Try org endpoint first; fall back to user endpoint
         String orgUrl = "https://api.github.com/orgs/" + owner + "/repos";
         String userUrl = "https://api.github.com/user/repos";
@@ -235,13 +328,13 @@ public class PageResource {
                 escapeJson(repoName), escapeJson(description));
 
         // Try org first
-        HttpResponse<String> resp = sendGitApiRequest("POST", orgUrl, body, token, "github");
-        if (resp.statusCode() == 404 || resp.statusCode() == 403) {
+        IHttpService.Response resp = sendGitApiRequest("POST", orgUrl, body, token, "github");
+        if (resp.statusCode == 404 || resp.statusCode == 403) {
             // Not an org or no org access — try user repos
             resp = sendGitApiRequest("POST", userUrl, body, token, "github");
         }
 
-        if (resp.statusCode() == 201) {
+        if (resp.statusCode == 201) {
             LOG.infof("GitHub repo created: %s/%s", owner, repoName);
 
             // Create dev branch from the default branch (main)
@@ -257,10 +350,10 @@ public class PageResource {
             }
             return;
         }
-        if (resp.statusCode() == 422 && resp.body().contains("already exists")) {
+        if (resp.statusCode == 422 && resp.body.contains("already exists")) {
             throw new RepoAlreadyExistsException("Repo already exists on GitHub");
         }
-        throw new RuntimeException("GitHub API returned " + resp.statusCode() + ": " + resp.body());
+        throw new RuntimeException("GitHub API returned " + resp.statusCode + ": " + resp.body);
     }
 
     /**
@@ -269,16 +362,16 @@ public class PageResource {
      * 2. Create a ref for the new branch
      */
     private void createGitHubBranch(String owner, String repoName, String sourceBranch,
-                                     String newBranch, String token) throws Exception {
+                                    String newBranch, String token) throws Exception {
         // Get SHA of source branch
         String refUrl = "https://api.github.com/repos/" + owner + "/" + repoName + "/git/ref/heads/" + sourceBranch;
-        HttpResponse<String> refResp = sendGitApiRequest("GET", refUrl, null, token, "github");
-        if (refResp.statusCode() != 200) {
-            throw new RuntimeException("Cannot get ref for " + sourceBranch + ": " + refResp.body());
+        IHttpService.Response refResp = sendGitApiRequest("GET", refUrl, null, token, "github");
+        if (refResp.statusCode != 200) {
+            throw new RuntimeException("Cannot get ref for " + sourceBranch + ": " + refResp.body);
         }
 
         // Extract SHA — simple JSON parse
-        String sha = extractJsonField(refResp.body(), "sha");
+        String sha = extractJsonField(refResp.body, "sha");
         if (sha == null) {
             throw new RuntimeException("Cannot parse SHA from ref response");
         }
@@ -287,45 +380,51 @@ public class PageResource {
         String createRefUrl = "https://api.github.com/repos/" + owner + "/" + repoName + "/git/refs";
         String createBody = String.format("{\"ref\":\"refs/heads/%s\",\"sha\":\"%s\"}",
                 escapeJson(newBranch), escapeJson(sha));
-        HttpResponse<String> createResp = sendGitApiRequest("POST", createRefUrl, createBody, token, "github");
+        IHttpService.Response createResp = sendGitApiRequest("POST", createRefUrl, createBody, token, "github");
 
-        if (createResp.statusCode() == 201) {
+        if (createResp.statusCode == 201) {
             LOG.infof("GitHub branch '%s' created on %s/%s", newBranch, owner, repoName);
-        } else if (createResp.statusCode() == 422 && createResp.body().contains("Reference already exists")) {
+        } else if (createResp.statusCode == 422 && createResp.body.contains("Reference already exists")) {
             LOG.infof("GitHub branch '%s' already exists on %s/%s", newBranch, owner, repoName);
         } else {
-            throw new RuntimeException("Failed to create branch: " + createResp.statusCode() + " " + createResp.body());
+            throw new RuntimeException("Failed to create branch: " + createResp.statusCode + " " + createResp.body);
         }
     }
 
-    private void createGitLabRepo(String host, String namespace, String repoName,
-                                   String defaultBranch, String token, String description) throws Exception {
-        String apiUrl = "https://" + host + "/api/v4/projects";
-        String body = String.format(
-                "{\"name\":\"%s\",\"description\":\"%s\",\"visibility\":\"private\",\"initialize_with_readme\":true,\"default_branch\":\"%s\",\"namespace_id\":null,\"path\":\"%s\"}",
-                escapeJson(repoName), escapeJson(description), escapeJson(defaultBranch), escapeJson(repoName));
+    private void createGitLabRepo(String apiBaseUrl, String namespace, String repoName,
+                                  String defaultBranch, String token, String description) throws Exception {
+        String apiUrl = apiBaseUrl + "/api/v4/projects";
+        String body;
 
-        // If namespace contains /, it's a nested group — resolve namespace_id
-        // For simplicity, use the namespace path directly
         if (namespace != null && !namespace.isEmpty()) {
+            // Resolve namespace_id from group path
+            String namespaceId = resolveGitLabNamespaceId(apiBaseUrl, namespace, token);
+            if (namespaceId != null) {
+                body = String.format(
+                        "{\"name\":\"%s\",\"description\":\"%s\",\"visibility\":\"private\",\"initialize_with_readme\":true,\"default_branch\":\"%s\",\"path\":\"%s\",\"namespace_id\":%s}",
+                        escapeJson(repoName), escapeJson(description), escapeJson(defaultBranch), escapeJson(repoName), namespaceId);
+            } else {
+                throw new RuntimeException("Cannot resolve GitLab namespace ID for group: " + namespace);
+            }
+        } else {
             body = String.format(
-                    "{\"name\":\"%s\",\"description\":\"%s\",\"visibility\":\"private\",\"initialize_with_readme\":true,\"default_branch\":\"%s\",\"namespace_path\":\"%s\"}",
-                    escapeJson(repoName), escapeJson(description), escapeJson(defaultBranch), escapeJson(namespace));
+                    "{\"name\":\"%s\",\"description\":\"%s\",\"visibility\":\"private\",\"initialize_with_readme\":true,\"default_branch\":\"%s\",\"path\":\"%s\"}",
+                    escapeJson(repoName), escapeJson(description), escapeJson(defaultBranch), escapeJson(repoName));
         }
 
-        HttpResponse<String> resp = sendGitApiRequest("POST", apiUrl, body, token, "gitlab");
+        IHttpService.Response resp = sendGitApiRequest("POST", apiUrl, body, token, "gitlab");
 
-        if (resp.statusCode() == 201) {
-            LOG.infof("GitLab repo created: %s/%s on %s", namespace, repoName, host);
+        if (resp.statusCode == 201) {
+            LOG.infof("GitLab repo created: %s/%s on %s", namespace, repoName, apiBaseUrl);
 
             // Create dev branch if needed
             if (!"main".equals(defaultBranch) && !"master".equals(defaultBranch)) {
                 try {
                     // Extract project id from response
-                    String projectId = extractJsonField(resp.body(), "id");
+                    String projectId = extractJsonField(resp.body, "id");
                     if (projectId != null) {
                         Thread.sleep(1000); // Give GitLab a moment to init
-                        createGitLabBranch(host, projectId, "main", defaultBranch, token);
+                        createGitLabBranch(apiBaseUrl, projectId, "main", defaultBranch, token);
                     }
                 } catch (Exception e) {
                     LOG.warnf("Failed to create branch '%s' on GitLab: %s", defaultBranch, e.getMessage());
@@ -333,47 +432,58 @@ public class PageResource {
             }
             return;
         }
-        if (resp.statusCode() == 400 && resp.body().contains("has already been taken")) {
+        if (resp.statusCode == 400 && resp.body.contains("has already been taken")) {
             throw new RepoAlreadyExistsException("Repo already exists on GitLab");
         }
-        throw new RuntimeException("GitLab API returned " + resp.statusCode() + ": " + resp.body());
+        throw new RuntimeException("GitLab API returned " + resp.statusCode + ": " + resp.body);
     }
 
-    private void createGitLabBranch(String host, String projectId, String sourceBranch,
-                                     String newBranch, String token) throws Exception {
-        String url = "https://" + host + "/api/v4/projects/" + projectId + "/repository/branches"
+    private void createGitLabBranch(String apiBaseUrl, String projectId, String sourceBranch,
+                                    String newBranch, String token) throws Exception {
+        String url = apiBaseUrl + "/api/v4/projects/" + projectId + "/repository/branches"
                 + "?branch=" + newBranch + "&ref=" + sourceBranch;
-        HttpResponse<String> resp = sendGitApiRequest("POST", url, null, token, "gitlab");
-        if (resp.statusCode() == 201) {
+        IHttpService.Response resp = sendGitApiRequest("POST", url, null, token, "gitlab");
+        if (resp.statusCode == 201) {
             LOG.infof("GitLab branch '%s' created on project %s", newBranch, projectId);
-        } else if (resp.statusCode() == 400 && resp.body().contains("already exists")) {
+        } else if (resp.statusCode == 400 && resp.body.contains("already exists")) {
             LOG.infof("GitLab branch '%s' already exists", newBranch);
         } else {
-            throw new RuntimeException("Failed to create GitLab branch: " + resp.statusCode() + " " + resp.body());
+            throw new RuntimeException("Failed to create GitLab branch: " + resp.statusCode + " " + resp.body);
         }
     }
 
-    private HttpResponse<String> sendGitApiRequest(String method, String url, String body,
+    /**
+     * Resolve a GitLab group/namespace path (e.g. "srm-dev") to its numeric namespace_id.
+     */
+    private String resolveGitLabNamespaceId(String apiBaseUrl, String namespacePath, String token) throws Exception {
+        String url = apiBaseUrl + "/api/v4/groups/" + java.net.URLEncoder.encode(namespacePath, "UTF-8");
+        IHttpService.Response resp = sendGitApiRequest("GET", url, null, token, "gitlab");
+        if (resp.statusCode == 200) {
+            String id = extractJsonField(resp.body, "id");
+            LOG.infof("Resolved GitLab namespace '%s' to id=%s", namespacePath, id);
+            return id;
+        }
+        LOG.errorf("Failed to resolve GitLab namespace '%s': %d %s", namespacePath, resp.statusCode, resp.body);
+        return null;
+    }
+
+    private IHttpService.Response sendGitApiRequest(String method, String url, String body,
                                                     String token, String platform) throws Exception {
-        var builder = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .timeout(Duration.ofSeconds(30));
+        Map<String, String> headers = new LinkedHashMap<>();
+        headers.put("Content-Type", "application/json");
+        headers.put("Accept", "application/json");
 
         if ("github".equals(platform)) {
-            builder.header("Authorization", "Bearer " + token);
+            headers.put("Authorization", "Bearer " + token);
         } else {
-            builder.header("PRIVATE-TOKEN", token);
+            headers.put("PRIVATE-TOKEN", token);
         }
 
         if ("POST".equals(method)) {
-            builder.POST(HttpRequest.BodyPublishers.ofString(body));
+            return httpService.postJsonWithStatus(url, body, headers);
         } else {
-            builder.GET();
+            return httpService.getWithStatus(url, headers);
         }
-
-        return httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
     }
 
     private static String escapeJson(String s) {
@@ -465,10 +575,21 @@ public class PageResource {
                 String gitlabRepoUrl = page.gitlabRepoUrl;
                 String branch = page.gitBranch != null ? page.gitBranch : "dev";
 
+                // Build Appsmith edit URL from config base + pageId
+                String appsmithEditUrl = null;
+                if ("appsmith".equals(page.type) && page.appsmithPageId != null && !page.appsmithPageId.isBlank()) {
+                    String baseUrl = appConfig.getAppsmithApiBaseUrl();
+                    if (!baseUrl.isBlank()) {
+//                        String sep = baseUrl.endsWith("/") ? "" : "/";
+//                        appsmithEditUrl = baseUrl + sep + page.appsmithPageId + "/edit";
+                        appsmithEditUrl = String.format(baseUrl, page.appsmithPageId, page.appsmithPageId);
+                    }
+                }
+
                 // Delegate to ContainerLifecycle — it emits step events via the callback
                 ContainerLifecycle.CheckoutResult result = containerLifecycle.orchestrateCheckout(
                         userId, pageId, pageName, gitlabRepoUrl, branch,
-                        page.type, page.appsmithEditUrl,
+                        page.type, appsmithEditUrl,
                         emitter::emit
                 );
 
@@ -585,20 +706,20 @@ public class PageResource {
             try {
                 String script =
                         "cd /workspace && " +
-                        "git -c core.quotepath=false diff HEAD~1 --name-status | while read -r line; do " +
-                        "  status=$(printf '%s' \"$line\" | cut -c1); " +
-                        "  filepath=$(printf '%s' \"$line\" | sed 's/^[A-Z]\\t//;s/^[A-Z] *//'); " +
-                        "  echo '===FILE_BEGIN==='; " +
-                        "  echo \"STATUS:$status\"; " +
-                        "  echo \"PATH:$filepath\"; " +
-                        "  if [ \"$status\" != \"D\" ] && [ -f \"$filepath\" ]; then " +
-                        "    echo 'CONTENT_BEGIN'; " +
-                        "    cat \"$filepath\"; " +
-                        "    echo; echo 'CONTENT_END'; " +
-                        "  else " +
-                        "    echo 'DELETED'; " +
-                        "  fi; " +
-                        "done";
+                                "git -c core.quotepath=false diff HEAD~1 --name-status | while read -r line; do " +
+                                "  status=$(printf '%s' \"$line\" | cut -c1); " +
+                                "  filepath=$(printf '%s' \"$line\" | sed 's/^[A-Z]\\t//;s/^[A-Z] *//'); " +
+                                "  echo '===FILE_BEGIN==='; " +
+                                "  echo \"STATUS:$status\"; " +
+                                "  echo \"PATH:$filepath\"; " +
+                                "  if [ \"$status\" != \"D\" ] && [ -f \"$filepath\" ]; then " +
+                                "    echo 'CONTENT_BEGIN'; " +
+                                "    cat \"$filepath\"; " +
+                                "    echo; echo 'CONTENT_END'; " +
+                                "  else " +
+                                "    echo 'DELETED'; " +
+                                "  fi; " +
+                                "done";
                 DockerService.ExecResult result = dockerService.execInContainerFull(containerId,
                         "sh", "-c", script);
 
@@ -654,7 +775,41 @@ public class PageResource {
                 LOG.warnf("Checkin: failed to list changed files: %s", e.getMessage());
             }
 
-            // Step 4: Destroy the container
+            // Step 4: Appsmith sync — execute pending operations and sync content changes
+            List<String> appsmithErrors = new ArrayList<>();
+            if (jsObjectTracker.isTracking(containerId)) {
+                try {
+                    // 4a. Execute pending operations (rename/create/delete) via Appsmith API
+                    String opsError = jsObjectTracker.executePendingOperations(containerId);
+                    if (opsError != null) {
+                        LOG.errorf("Checkin: appsmith pending operations had errors: %s", opsError);
+                        appsmithErrors.add(opsError);
+                    } else {
+                        LOG.info("Checkin: appsmith pending operations executed successfully");
+                    }
+
+                    // 4b. Collect content changes for jsObject files (only Modified, not rename)
+                    Map<String, String> changedJsFiles = collectChangedJsObjectContents(containerId);
+                    if (!changedJsFiles.isEmpty()) {
+                        LOG.infof("Checkin: %d jsObject file(s) with content changes", changedJsFiles.size());
+
+                        // 4c. Sync content changes via redux-node-service (runs locally, not in container)
+                        String reduxUrl = appConfig.getReduxNodeServiceUrl();
+                        String syncError = jsObjectTracker.syncContentChanges(containerId, changedJsFiles, reduxUrl);
+                        if (syncError != null) {
+                            LOG.errorf("Checkin: content sync had errors: %s", syncError);
+                            appsmithErrors.add(syncError);
+                        }
+                    }
+                } catch (Exception e) {
+                    LOG.errorf(e, "Checkin: appsmith sync failed: %s", e.getMessage());
+                    appsmithErrors.add("Appsmith sync exception: " + e.getMessage());
+                } finally {
+                    jsObjectTracker.cleanup(containerId);
+                }
+            }
+
+            // Step 5: Destroy the container
             try {
                 dockerService.destroyContainer(containerId);
                 LOG.infof("Checkin: container %s destroyed", containerId);
@@ -662,12 +817,12 @@ public class PageResource {
                 LOG.warnf("Checkin: failed to destroy container %s: %s", containerId, e.getMessage());
             }
 
-            // Step 5: Close checkout record
+            // Step 6: Close checkout record
             checkout.status = "checked-in";
             checkout.checkedInAt = OffsetDateTime.now();
             checkout.commitHash = commitHash;
 
-            // Step 6: Release external edit lock after successful checkin
+            // Step 7: Release external edit lock after successful checkin
             if (editLockService.isEnabled()) {
                 try {
                     Page page = Page.findById(UUID.fromString(pageId));
@@ -677,6 +832,15 @@ public class PageResource {
                 } catch (Exception ex) {
                     LOG.warnf("Failed to release external edit lock after checkin: %s", ex.getMessage());
                 }
+            }
+
+            if (!appsmithErrors.isEmpty()) {
+                // Git push succeeded but Appsmith sync had errors — report partial success
+                return Response.ok(Map.of(
+                        "success", true,
+                        "commitHash", commitHash,
+                        "appsmithSyncErrors", appsmithErrors
+                )).build();
             }
 
             return Response.ok(Map.of(
@@ -720,6 +884,7 @@ public class PageResource {
 
         // Best-effort destroy container
         if (checkout.containerId != null) {
+            jsObjectTracker.cleanup(checkout.containerId);
             try {
                 dockerService.destroyContainer(checkout.containerId);
             } catch (Exception e) {
@@ -757,6 +922,7 @@ public class PageResource {
 
         // Destroy container (best-effort)
         if (checkout.containerId != null) {
+            jsObjectTracker.cleanup(checkout.containerId);
             try {
                 dockerService.destroyContainer(checkout.containerId);
                 LOG.infof("Abandon: container %s destroyed", checkout.containerId);
@@ -822,11 +988,152 @@ public class PageResource {
         )).build();
     }
 
+    // --- JsObject Operation Endpoints (Appsmith pages only) ---
+
+    /**
+     * Rename a JsObject file in the container and record the operation for checkin.
+     * Body: {"oldName": "JSObject1", "newName": "JSObject_renamed"}
+     */
+    @POST
+    @Path("/{pageId}/jsobject/rename")
+    public Response renameJsObject(@PathParam("pageId") String pageId, String body) {
+        Checkout checkout = Checkout.findActiveByPageId(pageId);
+        if (checkout == null || checkout.containerId == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "NotFound", "message", "No active container for page " + pageId))
+                    .build();
+        }
+
+        try {
+            com.fasterxml.jackson.databind.JsonNode reqNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(body);
+            String oldName = reqNode.path("oldName").asText(null);
+            String newName = reqNode.path("newName").asText(null);
+
+            if (oldName == null || oldName.isBlank() || newName == null || newName.isBlank()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("error", "BadRequest", "message", "oldName and newName are required"))
+                        .build();
+            }
+
+            String containerId = checkout.containerId;
+            String jsDir = "/workspace/jsObjects";
+
+            // Rename file in container: read old content, write to new, delete old
+            DockerService.ExecResult readResult = dockerService.execInContainerFull(containerId,
+                    "cat", jsDir + "/" + oldName + ".js");
+            if (readResult.exitCode() != 0) {
+                return Response.status(Response.Status.NOT_FOUND)
+                        .entity(Map.of("error", "NotFound", "message", "File not found: " + oldName + ".js"))
+                        .build();
+            }
+
+            String content = readResult.stdout();
+            String encoded = Base64.getEncoder().encodeToString(content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            dockerService.execInContainer(containerId,
+                    "sh", "-c", "echo '" + encoded + "' | base64 -d > " + jsDir + "/" + newName + ".js");
+            dockerService.execInContainer(containerId, "rm", "-f", jsDir + "/" + oldName + ".js");
+
+            // Record the rename operation in the tracker
+            jsObjectTracker.recordRename(containerId, oldName, newName);
+
+            LOG.infof("JsObject renamed: %s -> %s (page %s)", oldName, newName, pageId);
+            return Response.ok(Map.of("success", true)).build();
+        } catch (Exception e) {
+            LOG.errorf(e, "Failed to rename JsObject for page %s", pageId);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("error", "RenameFailed", "message", e.getMessage()))
+                    .build();
+        }
+    }
+
+    /**
+     * Create a new JsObject file in the container and record the operation for checkin.
+     * Body: {"name": "JSObject_new"}
+     */
+    @POST
+    @Path("/{pageId}/jsobject/create")
+    public Response createJsObject(@PathParam("pageId") String pageId, String body) {
+        Checkout checkout = Checkout.findActiveByPageId(pageId);
+        if (checkout == null || checkout.containerId == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "NotFound", "message", "No active container for page " + pageId))
+                    .build();
+        }
+
+        try {
+            com.fasterxml.jackson.databind.JsonNode reqNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(body);
+            String name = reqNode.path("name").asText(null);
+
+            if (name == null || name.isBlank()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("error", "BadRequest", "message", "name is required"))
+                        .build();
+            }
+
+            String containerId = checkout.containerId;
+            String jsDir = "/workspace/jsObjects";
+
+            // Create file in container with default JS template
+            String defaultBody = "export default {\n\tmyVar1: [],\n\tmyVar2: {},\n\tmyFun1 () {\n\t\t//\twrite code here\n\t\t//\tthis.myVar1 = [1,2,3]\n\t},\n\tasync myFun2 () {\n\t\t//\tuse async-await or promises\n\t\t//\tawait storeValue('varName', 'hello world')\n\t}\n}";
+            String encoded = Base64.getEncoder().encodeToString(defaultBody.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+            dockerService.execInContainer(containerId, "mkdir", "-p", jsDir);
+            dockerService.execInContainer(containerId,
+                    "sh", "-c", "echo '" + encoded + "' | base64 -d > " + jsDir + "/" + name + ".js");
+
+            // Record the create operation in the tracker
+            jsObjectTracker.recordCreate(containerId, name);
+
+            LOG.infof("JsObject created: %s (page %s)", name, pageId);
+            return Response.status(Response.Status.CREATED)
+                    .entity(Map.of("success", true))
+                    .build();
+        } catch (Exception e) {
+            LOG.errorf(e, "Failed to create JsObject for page %s", pageId);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("error", "CreateFailed", "message", e.getMessage()))
+                    .build();
+        }
+    }
+
+    /**
+     * Delete a JsObject file from the container and record the operation for checkin.
+     */
+    @DELETE
+    @Path("/{pageId}/jsobject/{name}")
+    public Response deleteJsObject(@PathParam("pageId") String pageId, @PathParam("name") String name) {
+        Checkout checkout = Checkout.findActiveByPageId(pageId);
+        if (checkout == null || checkout.containerId == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "NotFound", "message", "No active container for page " + pageId))
+                    .build();
+        }
+
+        try {
+            String containerId = checkout.containerId;
+            String jsDir = "/workspace/jsObjects";
+
+            // Delete file in container
+            dockerService.execInContainer(containerId, "rm", "-f", jsDir + "/" + name + ".js");
+
+            // Record the delete operation in the tracker
+            jsObjectTracker.recordDelete(containerId, name);
+
+            LOG.infof("JsObject deleted: %s (page %s)", name, pageId);
+            return Response.ok(Map.of("success", true)).build();
+        } catch (Exception e) {
+            LOG.errorf(e, "Failed to delete JsObject for page %s", pageId);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("error", "DeleteFailed", "message", e.getMessage()))
+                    .build();
+        }
+    }
+
     // --- Container Proxy Routes ---
 
     /**
      * Proxy chat request to container AI Proxy or external AI Agent.
-     *
+     * <p>
      * Priority:
      * 1. Try forwarding to the container AI Proxy (has full context: code + deps + skills)
      * 2. If container is unavailable and aiide.ai-agent-url is configured, fallback to external AI agent
@@ -858,7 +1165,7 @@ public class PageResource {
                     .POST(body != null ? HttpRequest.BodyPublishers.ofString(body)
                             : HttpRequest.BodyPublishers.noBody());
 
-            HttpResponse<InputStream> response = httpClient.send(
+            HttpResponse<InputStream> response = streamingHttpClient.send(
                     requestBuilder.build(),
                     HttpResponse.BodyHandlers.ofInputStream());
 
@@ -903,7 +1210,7 @@ public class PageResource {
     @POST
     @Path("/{pageId}/container/files/{path: .+}")
     public Response proxyContainerCreateFile(@PathParam("pageId") String pageId,
-                                              @PathParam("path") String path, String body) {
+                                             @PathParam("path") String path, String body) {
         return proxyToContainer(pageId, "POST", "/files/" + path, body, MediaType.APPLICATION_JSON);
     }
 
@@ -913,7 +1220,7 @@ public class PageResource {
     @PUT
     @Path("/{pageId}/container/files/{path: .+}")
     public Response proxyContainerUpdateFile(@PathParam("pageId") String pageId,
-                                              @PathParam("path") String path, String body) {
+                                             @PathParam("path") String path, String body) {
         return proxyToContainer(pageId, "PUT", "/files/" + path, body, MediaType.APPLICATION_JSON);
     }
 
@@ -923,7 +1230,7 @@ public class PageResource {
     @DELETE
     @Path("/{pageId}/container/files/{path: .+}")
     public Response proxyContainerDeleteFile(@PathParam("pageId") String pageId,
-                                              @PathParam("path") String path) {
+                                             @PathParam("path") String path) {
         return proxyToContainer(pageId, "DELETE", "/files/" + path, null, MediaType.APPLICATION_JSON);
     }
 
@@ -964,6 +1271,69 @@ public class PageResource {
     }
 
     // --- Private helpers ---
+
+    /**
+     * Collect content of changed jsObject files from the container.
+     * Only returns files that have been Modified (M) or Added (A) in the jsObjects/ directory.
+     * Rename-only changes are excluded (handled by pending operations).
+     *
+     * @return Map of collection name (without .js extension) → file content
+     */
+    private Map<String, String> collectChangedJsObjectContents(String containerId) {
+        Map<String, String> result = new LinkedHashMap<>();
+        try {
+            // Get list of changed files in jsObjects/ directory
+            String script =
+                    "cd /workspace && " +
+                    "git -c core.quotepath=false diff HEAD~1 --name-status -- jsObjects/ | " +
+                    "while read -r status filepath; do " +
+                    "  if [ \"$status\" = \"M\" ] || [ \"$status\" = \"A\" ]; then " +
+                    "    echo '===JS_FILE_BEGIN==='; " +
+                    "    echo \"PATH:$filepath\"; " +
+                    "    echo 'CONTENT_BEGIN'; " +
+                    "    cat \"$filepath\"; " +
+                    "    echo; echo 'CONTENT_END'; " +
+                    "  fi; " +
+                    "done";
+
+            DockerService.ExecResult execResult = dockerService.execInContainerFull(containerId,
+                    "sh", "-c", script);
+
+            if (execResult.exitCode() == 0 && !execResult.stdout().isBlank()) {
+                String[] blocks = execResult.stdout().split("===JS_FILE_BEGIN===");
+                for (String block : blocks) {
+                    if (block.isBlank()) continue;
+                    String[] lines = block.split("\n");
+                    String filePath = "";
+                    StringBuilder content = new StringBuilder();
+                    boolean inContent = false;
+
+                    for (String line : lines) {
+                        if (line.startsWith("PATH:")) {
+                            filePath = line.substring(5).trim();
+                        } else if (line.equals("CONTENT_BEGIN")) {
+                            inContent = true;
+                        } else if (line.equals("CONTENT_END")) {
+                            inContent = false;
+                        } else if (inContent) {
+                            if (content.length() > 0) content.append("\n");
+                            content.append(line);
+                        }
+                    }
+
+                    if (!filePath.isEmpty() && filePath.startsWith("jsObjects/") && filePath.endsWith(".js")) {
+                        // Extract collection name: jsObjects/XXX.js → XXX
+                        String collectionName = filePath.substring("jsObjects/".length(),
+                                filePath.length() - ".js".length());
+                        result.put(collectionName, content.toString());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOG.warnf("Checkin: failed to collect changed jsObject contents: %s", e.getMessage());
+        }
+        return result;
+    }
 
     /**
      * Build the correct repo URL from current config for a checkout record.
@@ -1031,7 +1401,7 @@ public class PageResource {
                 requestBuilder.header("Content-Type", MediaType.APPLICATION_JSON);
             }
 
-            HttpResponse<InputStream> response = httpClient.send(
+            HttpResponse<InputStream> response = streamingHttpClient.send(
                     requestBuilder.build(),
                     HttpResponse.BodyHandlers.ofInputStream());
 

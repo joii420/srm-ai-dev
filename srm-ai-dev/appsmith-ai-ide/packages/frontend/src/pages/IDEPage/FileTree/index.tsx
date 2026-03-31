@@ -13,6 +13,7 @@ export interface TreeNode {
 interface FileTreeProps {
   pageId: string;
   mode: IDEMode;
+  pageType?: string;
 }
 
 function getLanguage(fileName: string): string {
@@ -119,13 +120,15 @@ interface TreeNodeRowProps {
   depth: number;
   pageId: string;
   mode: IDEMode;
+  pageType?: string;
   onRefresh: () => void;
 }
 
-const TreeNodeRow: React.FC<TreeNodeRowProps> = ({ node, depth, pageId, mode, onRefresh }) => {
+const TreeNodeRow: React.FC<TreeNodeRowProps> = ({ node, depth, pageId, mode, pageType, onRefresh }) => {
   const [expanded, setExpanded] = useState(false);
   const { openFile, renameTab } = useEditorStore();
   const isEditable = mode === 'editable';
+  const canCreateDir = isEditable && pageType !== 'appsmith';
 
   // Dialog state
   const [dialog, setDialog] = useState<{
@@ -146,9 +149,37 @@ const TreeNodeRow: React.FC<TreeNodeRowProps> = ({ node, depth, pageId, mode, on
     }
   };
 
+  /**
+   * Check if a file path is a jsObject file (jsObjects/*.js) on an appsmith page.
+   */
+  const isJsObjectFile = (filePath: string): boolean => {
+    return pageType === 'appsmith' && filePath.startsWith('jsObjects/') && filePath.endsWith('.js');
+  };
+
+  /**
+   * Extract jsObject collection name from file path.
+   * e.g. "jsObjects/JSObject1.js" → "JSObject1"
+   */
+  const getJsObjectName = (filePath: string): string => {
+    return filePath.replace('jsObjects/', '').replace('.js', '');
+  };
+
+  /**
+   * Check if a directory is the jsObjects directory on an appsmith page.
+   */
+  const isJsObjectsDir = (filePath: string): boolean => {
+    return pageType === 'appsmith' && filePath === 'jsObjects';
+  };
+
   const handleDelete = async () => {
     try {
-      await apiClient.delete(`/pages/${pageId}/container/files/${encodeURIComponent(node.path)}`);
+      if (node.type === 'file' && isJsObjectFile(node.path)) {
+        // Use jsObject endpoint for appsmith jsObject files
+        const jsName = getJsObjectName(node.path);
+        await apiClient.delete(`/pages/${pageId}/jsobject/${encodeURIComponent(jsName)}`);
+      } else {
+        await apiClient.delete(`/pages/${pageId}/container/files/${encodeURIComponent(node.path)}`);
+      }
       setDialog(null);
       onRefresh();
     } catch {
@@ -161,7 +192,11 @@ const TreeNodeRow: React.FC<TreeNodeRowProps> = ({ node, depth, pageId, mode, on
     const basePath = node.type === 'directory' ? node.path : '';
     const newPath = basePath ? `${basePath}/${name}` : name;
     try {
-      if (type === 'file') {
+      if (type === 'file' && isJsObjectsDir(basePath)) {
+        // Use jsObject endpoint for creating files in jsObjects/ directory
+        const jsName = name.endsWith('.js') ? name.replace('.js', '') : name;
+        await apiClient.post(`/pages/${pageId}/jsobject/create`, { name: jsName });
+      } else if (type === 'file') {
         await apiClient.post(`/pages/${pageId}/container/files/${encodeURIComponent(newPath)}`, {
           content: '',
         });
@@ -185,13 +220,37 @@ const TreeNodeRow: React.FC<TreeNodeRowProps> = ({ node, depth, pageId, mode, on
     const parentDir = node.path.includes('/') ? node.path.substring(0, node.path.lastIndexOf('/')) : '';
     const newPath = parentDir ? `${parentDir}/${newName}` : newName;
     try {
-      if (node.type === 'file') {
+      if (node.type === 'file' && isJsObjectFile(node.path)) {
+        // Use jsObject rename endpoint for appsmith jsObject files
+        const oldJsName = getJsObjectName(node.path);
+        const newJsName = newName.endsWith('.js') ? newName.replace('.js', '') : newName;
+        await apiClient.post(`/pages/${pageId}/jsobject/rename`, {
+          oldName: oldJsName,
+          newName: newJsName,
+        });
+        // Update the newPath to reflect the .js extension
+        const actualNewName = newJsName + '.js';
+        const actualNewPath = parentDir ? `${parentDir}/${actualNewName}` : actualNewName;
+        renameTab(node.path, {
+          id: actualNewPath,
+          filePath: actualNewPath,
+          fileName: actualNewName,
+          language: getLanguage(actualNewName),
+        });
+      } else if (node.type === 'file') {
         // Read old content, create new, delete old
         const res = await apiClient.get<{ content: string }>(
           `/pages/${pageId}/container/files/${encodeURIComponent(node.path)}`,
         );
         await apiClient.post(`/pages/${pageId}/container/files/${encodeURIComponent(newPath)}`, {
           content: res.data.content ?? '',
+        });
+        await apiClient.delete(`/pages/${pageId}/container/files/${encodeURIComponent(node.path)}`);
+        renameTab(node.path, {
+          id: newPath,
+          filePath: newPath,
+          fileName: newName,
+          language: getLanguage(newName),
         });
       } else {
         // For directories: create new dir placeholder
@@ -200,16 +259,7 @@ const TreeNodeRow: React.FC<TreeNodeRowProps> = ({ node, depth, pageId, mode, on
           { content: '' },
         );
         // TODO: move children — for now only renames empty or single-level dirs
-      }
-      await apiClient.delete(`/pages/${pageId}/container/files/${encodeURIComponent(node.path)}`);
-      // Sync editor tab so the old path is replaced with the new one
-      if (node.type === 'file') {
-        renameTab(node.path, {
-          id: newPath,
-          filePath: newPath,
-          fileName: newName,
-          language: getLanguage(newName),
-        });
+        await apiClient.delete(`/pages/${pageId}/container/files/${encodeURIComponent(node.path)}`);
       }
       setDialog(null);
       onRefresh();
@@ -246,11 +296,13 @@ const TreeNodeRow: React.FC<TreeNodeRowProps> = ({ node, depth, pageId, mode, on
                   title="新建文件"
                   onClick={() => setDialog({ type: 'newFile' })}
                 >+</button>
-                <button
-                  className="fi-act-btn"
-                  title="新建目录"
-                  onClick={() => setDialog({ type: 'newDir' })}
-                >{'\u{1F4C1}'}</button>
+                {canCreateDir && (
+                  <button
+                    className="fi-act-btn"
+                    title="新建目录"
+                    onClick={() => setDialog({ type: 'newDir' })}
+                  >{'\u{1F4C1}'}</button>
+                )}
               </>
             )}
             <button
@@ -276,6 +328,7 @@ const TreeNodeRow: React.FC<TreeNodeRowProps> = ({ node, depth, pageId, mode, on
               depth={depth + 1}
               pageId={pageId}
               mode={mode}
+              pageType={pageType}
               onRefresh={onRefresh}
             />
           ))}
@@ -327,11 +380,12 @@ const TreeNodeRow: React.FC<TreeNodeRowProps> = ({ node, depth, pageId, mode, on
 /*  FileTree                                                           */
 /* ------------------------------------------------------------------ */
 
-const FileTree: React.FC<FileTreeProps> = ({ pageId, mode }) => {
+const FileTree: React.FC<FileTreeProps> = ({ pageId, mode, pageType }) => {
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const isEditable = mode === 'editable';
+  const canCreateDir = isEditable && pageType !== 'appsmith';
 
   // Root-level dialog
   const [rootDialog, setRootDialog] = useState<'newFile' | 'newDir' | null>(null);
@@ -418,11 +472,13 @@ const FileTree: React.FC<FileTreeProps> = ({ pageId, mode }) => {
               title="新建文件"
               onClick={() => setRootDialog('newFile')}
             >+</button>
-            <button
-              className="fi-act-btn"
-              title="新建目录"
-              onClick={() => setRootDialog('newDir')}
-            >{'\u{1F4C1}'}</button>
+            {canCreateDir && (
+              <button
+                className="fi-act-btn"
+                title="新建目录"
+                onClick={() => setRootDialog('newDir')}
+              >{'\u{1F4C1}'}</button>
+            )}
           </span>
         )}
       </div>
@@ -439,6 +495,7 @@ const FileTree: React.FC<FileTreeProps> = ({ pageId, mode }) => {
               depth={0}
               pageId={pageId}
               mode={mode}
+              pageType={pageType}
               onRefresh={fetchTree}
             />
           ))

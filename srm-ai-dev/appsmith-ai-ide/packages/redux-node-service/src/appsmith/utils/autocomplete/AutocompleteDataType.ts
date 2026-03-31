@@ -1,0 +1,1 @@
+export enum AutocompleteDataType { STRING = 'STRING', NUMBER = 'NUMBER', BOOLEAN = 'BOOLEAN', OBJECT = 'OBJECT', ARRAY = 'ARRAY', FUNCTION = 'FUNCTION', UNKNOWN = 'UNKNOWN' }; export default AutocompleteDataType;

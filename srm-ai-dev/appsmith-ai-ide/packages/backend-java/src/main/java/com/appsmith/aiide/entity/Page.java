@@ -40,8 +40,8 @@ public class Page extends PanacheEntityBase {
     @Column(name = "git_branch", length = 200)
     public String gitBranch = "dev";
 
-    @Column(name = "appsmith_edit_url", columnDefinition = "TEXT")
-    public String appsmithEditUrl;
+    @Column(name = "appsmith_page_id", columnDefinition = "TEXT")
+    public String appsmithPageId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")

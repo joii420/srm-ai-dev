@@ -1,17 +1,13 @@
 package com.appsmith.aiide.service;
 
 import com.appsmith.aiide.config.AppConfig;
+import com.appsmith.aiide.http.IHttpService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.*;
 
 /**
@@ -35,10 +31,11 @@ public class AppsmithSyncService {
     @Inject
     DockerService dockerService;
 
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(30))
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .build();
+    @Inject
+    IHttpService httpService;
+
+    @Inject
+    AppsmithJsObjectTracker jsObjectTracker;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -51,23 +48,47 @@ public class AppsmithSyncService {
      * @return true if changes were committed and pushed, false if no changes
      */
     public boolean syncToContainer(String containerId, String appsmithEditUrl, String branch) {
+        return syncToContainer(containerId, appsmithEditUrl, branch, null);
+    }
+
+    /**
+     * Sync Appsmith JS objects into the container workspace.
+     * Also initializes the JsObject tracker for recording file operations.
+     *
+     * @param containerId      the Docker container ID
+     * @param appsmithEditUrl  the full Appsmith edit page URL
+     * @param branch           the git branch for push
+     * @param appsmithPageId   the appsmith internal page ID (for tracker init)
+     * @return true if changes were committed and pushed, false if no changes
+     */
+    public boolean syncToContainer(String containerId, String appsmithEditUrl, String branch, String appsmithPageId) {
         if (appsmithEditUrl == null || appsmithEditUrl.isBlank()) {
             LOG.info("AppsmithSync: no edit URL configured, skipping");
             return false;
         }
 
-        // 1. Fetch data from Appsmith API
-        Map<String, String> jsObjects = fetchJsObjects(appsmithEditUrl);
+        // 1. Fetch raw editResponse from Appsmith API
+        String editResponseJson = fetchEditResponseRaw(appsmithEditUrl);
+        if (editResponseJson == null) {
+            LOG.warn("AppsmithSync: failed to fetch editResponse, skipping");
+            return false;
+        }
+
+        // 1.5 Initialize JsObject tracker with full editResponse
+        jsObjectTracker.initContainer(containerId, editResponseJson, appsmithEditUrl, appsmithPageId);
+
+        // 2. Parse JS objects from the response
+        Map<String, String> jsObjects = parseJsObjects(editResponseJson);
         LOG.infof("AppsmithSync: fetched %d JS objects from Appsmith", jsObjects.size());
 
-        // 2. Ensure jsObjects directory exists
+        // 3. Ensure jsObjects directory exists
         dockerService.execInContainer(containerId, "mkdir", "-p", JS_DIR);
 
-        // 3. List existing .js files in workspace
+        // 4. List existing .js files in workspace
         Set<String> existingFiles = listExistingJsFiles(containerId);
         LOG.infof("AppsmithSync: %d existing files in %s", existingFiles.size(), JS_DIR);
 
-        // 4. Sync: create/update/delete
+        // 5. Sync: create/update/delete
         Set<String> apiFileNames = new HashSet<>();
         for (Map.Entry<String, String> entry : jsObjects.entrySet()) {
             String fileName = entry.getKey() + ".js";
@@ -118,45 +139,53 @@ public class AppsmithSyncService {
     }
 
     /**
-     * Call Appsmith edit URL and extract JS objects (name → body).
+     * Fetch the raw editResponse JSON from Appsmith edit URL.
+     *
+     * @return raw JSON string or null on failure
      */
-    private Map<String, String> fetchJsObjects(String editUrl) {
+    private String fetchEditResponseRaw(String editUrl) {
         String session = appConfig.getAppsmithSession();
         String xsrfToken = appConfig.getAppsmithXsrfToken();
 
         if (session.isBlank()) {
             LOG.warn("AppsmithSync: APPSMITH_SESSION not configured, cannot call Appsmith API");
-            return Map.of();
+            return null;
         }
 
         try {
-            var builder = HttpRequest.newBuilder()
-                    .uri(URI.create(editUrl))
-                    .header("Accept", "application/json")
-                    .header("Content-Type", "application/json")
-                    .header("Cookie", "SESSION=" + session
-                            + (xsrfToken.isBlank() ? "" : "; XSRF-TOKEN=" + xsrfToken))
-                    .timeout(Duration.ofSeconds(30))
-                    .GET();
-
+            Map<String, String> headers = new LinkedHashMap<>();
+            headers.put("Accept", "application/json");
+            headers.put("Content-Type", "application/json");
+            headers.put("Cookie", "SESSION=" + session
+                    + (xsrfToken.isBlank() ? "" : "; XSRF-TOKEN=" + xsrfToken));
             if (!xsrfToken.isBlank()) {
-                builder.header("X-Xsrf-Token", xsrfToken);
+                headers.put("X-Xsrf-Token", xsrfToken);
             }
 
-            HttpResponse<String> response = httpClient.send(builder.build(),
-                    HttpResponse.BodyHandlers.ofString());
+            IHttpService.Response response = httpService.getWithStatus(editUrl, headers);
 
-            if (response.statusCode() != 200) {
+            if (response.statusCode != 200) {
                 LOG.errorf("AppsmithSync: API returned %d: %s",
-                        response.statusCode(), response.body().substring(0, Math.min(500, response.body().length())));
-                return Map.of();
+                        response.statusCode, response.body.substring(0, Math.min(500, response.body.length())));
+                return null;
             }
 
-            return parseJsObjects(response.body());
+            return response.body;
         } catch (Exception e) {
             LOG.errorf(e, "AppsmithSync: failed to fetch from Appsmith");
+            return null;
+        }
+    }
+
+    /**
+     * Call Appsmith edit URL and extract JS objects (name → body).
+     */
+    private Map<String, String> fetchJsObjects(String editUrl) {
+        String rawJson = fetchEditResponseRaw(editUrl);
+        if (rawJson == null) {
             return Map.of();
         }
+        return parseJsObjects(rawJson);
     }
 
     /**

@@ -1,12 +1,14 @@
 # Rule
-*.properties
+application-private.properties
 
 # Dependencies
 node_modules/
+repository/
+
 sshkey/
 target/
 backend/
-
+maven-config.xml
 # Build output
 dist/
 build/

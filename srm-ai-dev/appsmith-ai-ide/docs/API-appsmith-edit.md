@@ -14,7 +14,7 @@
 ## 接口地址
 
 ```
-GET http://test.srm.wzhf.com:9000/app/joiitest/joiiflowtest-66d159da1744be38cb2c9d69/edit/jsObjects/66d159da1744be38cb2c9d71
+GET http://test.srm.wzhf.com:9000/api/v1/consolidated-api/edit?defaultPageId=688c57ebee8a04352be1bfd0&viewPageId=688c57ebee8a04352be1bfd0
 ```
 
 ---

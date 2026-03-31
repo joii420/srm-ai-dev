@@ -21,5 +21,5 @@ public class CreatePageRequest {
     @Size(max = 200, message = "gitBranch must be at most 200 characters")
     public String gitBranch = "dev";
 
-    public String appsmithEditUrl;
+    public String appsmithPageId;
 }

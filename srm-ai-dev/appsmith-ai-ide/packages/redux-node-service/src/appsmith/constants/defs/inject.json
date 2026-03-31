@@ -1,0 +1,356 @@
+{
+  "!name": "LIB/inject",
+  "utilFun": {
+    "set": {
+      "!doc": "Update Widgets props",
+      "!type": "fn(changes: object) -> void"
+    },
+    "sleep": {
+      "!doc": "async fn(10000)",
+      "!type": "fn(time: number) -> +Promise"
+    },
+    "evalRes": {
+      "!doc": "fn(str: string) -> any",
+      "!type": "fn(str: string) -> any"
+    },
+    "fetch": {
+      "!doc": "async fn(url: string, body?: any) => Promise",
+      "!type": "fn(url: string, body?: any) -> +Promise"
+    },
+    "promiseDeal": {
+      "!doc": "fn(promise: Promise, future: any) => void",
+      "!type": "fn(promise: +Promise, future: any) -> void"
+    },
+    "updateField": {
+      "!doc": "fn()",
+      "!type": "updateField() -> void"
+    }
+  },
+  "_sql_executor": {
+    "execute": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    }
+  },
+  "_query_transaction": {
+    "force_close": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "query": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    }
+  },
+  "_throw_to_erp": {},
+  "_tran_for_upd": {
+    "execute": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    }
+  },
+  "_tran_end": {
+    "execute": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    }
+  },
+  "_get_global": {
+    "execute": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    }
+  },
+  "_db_insert": {
+    "sync": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    }
+  },
+  "_util": {
+    "arryToString": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "cloneDeep": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "fetch": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "getUUID": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "isArray": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "isEmpty": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "isNull": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "keys": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "random": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "toJsonString": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "values": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    }
+  },
+  "_verify": {
+    "execute": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    }
+  },
+  "_rfa_send": {
+    "send": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "test": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    }
+  },
+  "_file_util": {
+    "del": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "del_img": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "download": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "save": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "upload_img": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    }
+  },
+  "_test_function": {
+    "execute": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    }
+  },
+  "_tran_begin": {
+    "execute": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    }
+  },
+  "_message_send": {
+    "assignData": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "broadcast": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "callBack": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "closePrint": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "close_modal": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "close_modal_sync": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "close_query": {
+      "!doc": "async fn()",
+      "!type": "fn()"
+    },
+    "close_query_sync": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "copy_to_clipboard": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "debuggerCodeLine": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "difference": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "error": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "execute": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "getEvalStr": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "get_toolbar": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "log": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "navigateTo": {
+      "!doc": "async fn()",
+      "!type": "fn()"
+    },
+    "noticeSend": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "operateAsyncWidget": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "operateSyncWidget": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "readyData": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "send": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "sendSync": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "sendSyncCallable": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "setProps": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "set_browser": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "set_browser_sync": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "set_toolbar": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "set_toolbar_sync": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "showAlert": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "showAlert_sync": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "showMaterials": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "showMaterials_sync": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "showPrint": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "show_common_dialog": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "show_common_dialog_sync": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "show_message": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "show_message_sync": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "show_modal": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "show_modal_sync": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "show_query": {
+      "!doc": "async fn()",
+      "!type": "fn()"
+    },
+    "show_query_sync": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "stringify": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "throwException": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "time": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "timeEnd": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    },
+    "toJsonString": {
+      "!doc": "fn()",
+      "!type": "fn()"
+    }
+  }
+}

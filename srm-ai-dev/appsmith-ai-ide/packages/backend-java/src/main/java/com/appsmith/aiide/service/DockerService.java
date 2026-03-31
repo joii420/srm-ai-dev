@@ -15,12 +15,9 @@ import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.jboss.logging.Logger;
 
+import com.appsmith.aiide.http.IHttpService;
 import java.io.ByteArrayOutputStream;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -36,9 +33,9 @@ public class DockerService {
     private static final Logger LOG = Logger.getLogger(DockerService.class);
 
     private DockerClient dockerClient;
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .build();
+
+    @jakarta.inject.Inject
+    IHttpService httpService;
 
     @PostConstruct
     void init() {
@@ -63,7 +60,8 @@ public class DockerService {
             double cpuLimit,
             List<String> env,
             Map<String, String> tmpfsMounts,
-            List<Integer> exposePorts
+            List<Integer> exposePorts,
+            List<String> volumeBinds
     ) {
     }
 
@@ -91,6 +89,26 @@ public class DockerService {
                 .withPortBindings(portBindings)
                 .withTmpFs(config.tmpfsMounts());
 
+        // Volume bind mounts (format: "hostPath:containerPath")
+        if (config.volumeBinds() != null && !config.volumeBinds().isEmpty()) {
+            List<Bind> binds = new java.util.ArrayList<>();
+            for (String spec : config.volumeBinds()) {
+                // Split on last colon before container path (starts with /)
+                // This avoids confusion with Windows drive letter colon (e.g. D:/path)
+                int containerPathStart = spec.indexOf(":/");
+                if (containerPathStart > 0) {
+                    String hostPath = spec.substring(0, containerPathStart);
+                    String containerPath = spec.substring(containerPathStart + 1);
+                    binds.add(new Bind(hostPath, new Volume(containerPath)));
+                } else {
+                    LOG.warnf("Invalid volume bind spec (skipping): %s", spec);
+                }
+            }
+            if (!binds.isEmpty()) {
+                hostConfig.withBinds(binds);
+            }
+        }
+
         // Print equivalent docker run command for debugging
         StringBuilder cmd = new StringBuilder("docker run -d");
         cmd.append(String.format(" --memory=%dm", config.memoryLimit() / 1_048_576L));
@@ -103,6 +121,11 @@ public class DockerService {
         }
         config.tmpfsMounts().forEach((mount, opts) ->
                 cmd.append(String.format(" --tmpfs %s:%s", mount, opts)));
+        if (config.volumeBinds() != null) {
+            for (String bind : config.volumeBinds()) {
+                cmd.append(String.format(" -v %s", bind));
+            }
+        }
         cmd.append(" ").append(config.imageName());
         LOG.infof("Equivalent docker command:\n%s", cmd);
 
@@ -232,13 +255,8 @@ public class DockerService {
     public boolean healthCheck(String containerId) {
         try {
             String aiProxyAddr = getContainerEndpoints(containerId).aiProxy();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://" + aiProxyAddr + "/api/health"))
-                    .timeout(Duration.ofSeconds(5))
-                    .GET()
-                    .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            return response.statusCode() == 200;
+            IHttpService.Response response = httpService.getWithStatus("http://" + aiProxyAddr + "/api/health");
+            return response.statusCode == 200;
         } catch (Exception e) {
             LOG.debugf("Health check failed for container %s: %s", containerId, e.getMessage());
             return false;
@@ -248,7 +266,7 @@ public class DockerService {
     /**
      * Container endpoint holder: host addresses for AI Proxy (3000) and File Manager (3001).
      */
-    public record ContainerEndpoints(String aiProxy, String fileManager) {
+    public record ContainerEndpoints(String aiProxy, String fileManager, String reduxNodeService) {
     }
 
     /**
@@ -292,6 +310,7 @@ public class DockerService {
 
                 String aiProxyHost = null;
                 String fileManagerHost = null;
+                String reduxNodeServiceHost = null;
 
                 for (Map.Entry<ExposedPort, Ports.Binding[]> entry : bindings.entrySet()) {
                     int containerPort = entry.getKey().getPort();
@@ -303,14 +322,17 @@ public class DockerService {
                                 aiProxyHost = "localhost:" + hostPort;
                             } else if (containerPort == 3001) {
                                 fileManagerHost = "localhost:" + hostPort;
+                            } else if (containerPort == 3200) {
+                                reduxNodeServiceHost = "localhost:" + hostPort;
                             }
                         }
                     }
                 }
 
                 if (aiProxyHost != null && fileManagerHost != null) {
-                    LOG.infof("Container endpoints (Windows): AI Proxy=%s, File Manager=%s", aiProxyHost, fileManagerHost);
-                    return new ContainerEndpoints(aiProxyHost, fileManagerHost);
+                    LOG.infof("Container endpoints (Windows): AI Proxy=%s, File Manager=%s, ReduxNodeService=%s",
+                            aiProxyHost, fileManagerHost, reduxNodeServiceHost);
+                    return new ContainerEndpoints(aiProxyHost, fileManagerHost, reduxNodeServiceHost);
                 }
             }
         } else {
@@ -330,7 +352,7 @@ public class DockerService {
                 }
                 if (ip != null) {
                     LOG.infof("Container endpoints (Linux): IP=%s", ip);
-                    return new ContainerEndpoints(ip + ":3000", ip + ":3001");
+                    return new ContainerEndpoints(ip + ":3000", ip + ":3001", ip + ":3200");
                 }
             }
         }
@@ -343,8 +365,8 @@ public class DockerService {
      * Falls back to sensible defaults if not configured.
      */
     public ContainerLimits readLimitsFromSystemConfig() {
-        long memory = 1_073_741_824L; // 1GB default
-        double cpu = 1.0;
+        long memory = 2_147_483_648L; // 2GB default
+        double cpu = 2.0;
 
         SystemConfig memConfig = SystemConfig.findByKey("container.memoryLimit");
         if (memConfig != null && memConfig.value != null) {

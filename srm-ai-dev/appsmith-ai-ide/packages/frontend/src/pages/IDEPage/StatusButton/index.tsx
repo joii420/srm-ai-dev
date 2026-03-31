@@ -225,6 +225,23 @@ const StatusButton: React.FC<StatusButtonProps> = ({
         throw new Error(body.message || `签入失败 (HTTP ${response.status})`);
       }
 
+      // Check for appsmith sync errors (git push succeeded but sync had issues)
+      const result = await response.json().catch(() => ({})) as {
+        success?: boolean;
+        commitHash?: string;
+        appsmithSyncErrors?: string[];
+      };
+
+      if (result.appsmithSyncErrors && result.appsmithSyncErrors.length > 0) {
+        const errMsg = '代码已提交，但Appsmith同步入库失败：' + result.appsmithSyncErrors.join('; ');
+        setDialogError(errMsg);
+        // Still complete the checkout since git push succeeded
+        setTimeout(() => {
+          onCheckoutComplete();
+        }, 3000);
+        return;
+      }
+
       setDialogPhase('idle');
       setCommitMessage('');
       onCheckoutComplete();

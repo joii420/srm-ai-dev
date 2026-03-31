@@ -214,7 +214,7 @@ const CreatePageDialog: React.FC<CreatePageDialogProps> = ({ onClose, onSuccess 
   const [description, setDescription] = useState('');
   const [type, setType] = useState<'appsmith' | 'normal'>('appsmith');
   const [gitBranch, setGitBranch] = useState('dev');
-  const [appsmithEditUrl, setAppsmithEditUrl] = useState('');
+  const [appsmithPageId, setAppsmithPageId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -229,7 +229,7 @@ const CreatePageDialog: React.FC<CreatePageDialogProps> = ({ onClose, onSuccess 
         description: description.trim() || undefined,
         type,
         gitBranch: gitBranch.trim() || 'dev',
-        ...(type === 'appsmith' && appsmithEditUrl.trim() ? { appsmithEditUrl: appsmithEditUrl.trim() } : {}),
+        ...(type === 'appsmith' && appsmithPageId.trim() ? { appsmithPageId: appsmithPageId.trim() } : {}),
       });
       onSuccess();
     } catch (err: unknown) {
@@ -305,15 +305,15 @@ const CreatePageDialog: React.FC<CreatePageDialogProps> = ({ onClose, onSuccess 
 
           {type === 'appsmith' && (
             <label style={labelStyle}>
-              <span>Appsmith 编辑页 URL</span>
+              <span>Appsmith PageId</span>
               <input
                 className="commit-input"
-                placeholder="http://appsmith-host/app/.../edit/jsObjects/..."
-                value={appsmithEditUrl}
-                onChange={(e) => setAppsmithEditUrl(e.target.value)}
+                placeholder="例如: 6803e29ae4b0cb228bd0e8b2"
+                value={appsmithPageId}
+                onChange={(e) => setAppsmithPageId(e.target.value)}
                 disabled={submitting}
               />
-              <span style={hintStyle}>签出时自动同步 JS 对象到工作区（选填）</span>
+              <span style={hintStyle}>Appsmith 页面 ID，签出时自动拼接编辑接口同步 JS 对象（选填）</span>
             </label>
           )}
         </div>

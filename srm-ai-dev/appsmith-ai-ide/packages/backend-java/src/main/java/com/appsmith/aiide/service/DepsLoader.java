@@ -2,16 +2,12 @@ package com.appsmith.aiide.service;
 
 import com.appsmith.aiide.entity.Checkout;
 import com.appsmith.aiide.entity.Dependency;
+import com.appsmith.aiide.http.IHttpService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -26,9 +22,8 @@ public class DepsLoader {
 
     private static final Logger LOG = Logger.getLogger(DepsLoader.class);
 
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .build();
+    @Inject
+    IHttpService httpService;
 
     @Inject
     DockerService dockerService;
@@ -116,17 +111,12 @@ public class DepsLoader {
         }
 
         try {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(dep.url))
-                    .timeout(Duration.ofSeconds(30))
-                    .GET()
-                    .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() == 200) {
-                return response.body();
+            IHttpService.Response response = httpService.getWithStatus(dep.url);
+            if (response.statusCode == 200) {
+                return response.body;
             }
             LOG.warnf("Non-200 response (%d) fetching dependency %s from %s",
-                    response.statusCode(), dep.namespace, dep.url);
+                    response.statusCode, dep.namespace, dep.url);
             return null;
         } catch (Exception e) {
             LOG.warnf("Error fetching dependency %s from %s: %s", dep.namespace, dep.url, e.getMessage());
@@ -144,16 +134,9 @@ public class DepsLoader {
                     "{\"path\":\"/deps/%s.js\",\"content\":%s}",
                     namespace, escapeJson(content));
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(fileManagerUrl))
-                    .timeout(Duration.ofSeconds(10))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                LOG.warnf("File write failed for %s.js: HTTP %d", namespace, response.statusCode());
+            IHttpService.Response response = httpService.postJsonWithStatus(fileManagerUrl, jsonBody);
+            if (response.statusCode != 200) {
+                LOG.warnf("File write failed for %s.js: HTTP %d", namespace, response.statusCode);
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to write dependency to container: " + e.getMessage(), e);
@@ -165,12 +148,7 @@ public class DepsLoader {
      */
     private void notifyContainerRefresh(String containerIp) {
         try {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://" + containerIp + "/api/context/refresh"))
-                    .timeout(Duration.ofSeconds(5))
-                    .POST(HttpRequest.BodyPublishers.noBody())
-                    .build();
-            httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            httpService.post("http://" + containerIp + "/api/context/refresh", null);
         } catch (Exception e) {
             LOG.warnf("Failed to notify container refresh at %s: %s", containerIp, e.getMessage());
         }

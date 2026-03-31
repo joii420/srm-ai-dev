@@ -17,11 +17,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.jboss.logging.Logger;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
+import com.appsmith.aiide.http.IHttpService;
 import java.util.Map;
 import java.util.UUID;
 
@@ -41,9 +37,8 @@ public class AuthResource {
     @Inject
     RequestContext requestContext;
 
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .build();
+    @Inject
+    IHttpService httpService;
 
     @POST
     @Path("/login")
@@ -167,23 +162,15 @@ public class AuthResource {
                     {"username": "%s", "password": "%s"}
                     """.formatted(username, password);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(apiUrl))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
-                    .timeout(Duration.ofSeconds(10))
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() == 200) {
+            IHttpService.Response response = httpService.postJsonWithStatus(apiUrl, body);
+            if (response.statusCode == 200) {
                 // Parse role from response; default to "developer" if not present
-                String responseBody = response.body();
-                if (responseBody.contains("\"admin\"")) {
+                if (response.body.contains("\"admin\"")) {
                     return "admin";
                 }
                 return "developer";
             }
-            LOG.warnf("External auth returned status %d for user '%s'", response.statusCode(), username);
+            LOG.warnf("External auth returned status %d for user '%s'", response.statusCode, username);
             return null;
         } catch (Exception e) {
             LOG.errorf(e, "External auth call failed for user '%s'", username);

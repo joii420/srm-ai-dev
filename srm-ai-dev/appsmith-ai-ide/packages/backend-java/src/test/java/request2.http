@@ -1,0 +1,36 @@
+# @no-proxy
+###
+POST http://test.srm.wzhf.com:9000/script-engine/editLock/checkOut
+Content-Type: application/json
+
+{
+  "code": "joiiflowtest",
+  "acct": "admin"
+}
+
+###
+POST http://test.srm.wzhf.com:9000/script-engine/editLock/checkIn
+Content-Type: application/json
+
+{
+  "code": "joiitest02",
+  "acct": "admin"
+}
+
+
+###
+GET http://127.0.0.1:7368/health
+
+###
+POST http://localhost:3200/sessions
+Content-Type: application/json
+
+{"authToken": "your-jwt-token", "backendUrl": "http://appsmith:8080"}
+
+###
+GET http://localhost:3200/sessions
+
+###
+DELETE http://localhost:3200/sessions/3e06ae48-c8ef-4ed6-9766-ae28544139a9
+
+###

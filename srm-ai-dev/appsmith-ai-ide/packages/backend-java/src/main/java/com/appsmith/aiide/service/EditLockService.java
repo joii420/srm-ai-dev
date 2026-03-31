@@ -1,22 +1,13 @@
 package com.appsmith.aiide.service;
 
 import com.appsmith.aiide.config.AppConfig;
+import com.appsmith.aiide.http.IHttpService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.validation.groups.Default;
-import org.apache.hc.client5.http.impl.routing.DefaultProxyRoutePlanner;
-import org.apache.hc.core5.http.HttpHost;
 import org.jboss.logging.Logger;
 
-import java.net.InetSocketAddress;
-import java.net.ProxySelector;
-import java.net.URI;
 import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Map;
 
 /**
@@ -35,15 +26,8 @@ public class EditLockService {
     @Inject
     AppConfig appConfig;
 
-    private final HttpClient httpClient;
-
-    {
-        httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(30))
-                .proxy(HttpClient.Builder.NO_PROXY)
-                .proxy(ProxySelector.of(InetSocketAddress.createUnresolved("127.0.0.1", 7890)))
-                .build();
-    }
+    @Inject
+    IHttpService httpService;
 
     /**
      * Whether the external edit-lock API is configured.
@@ -73,20 +57,13 @@ public class EditLockService {
         try {
             LOG.infof("[EditLock] >>> GET %s", url);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("Content-Type", "application/json;charset=UTF-8")
-                    .timeout(Duration.ofSeconds(10))
-                    .GET()
-                    .build();
+            IHttpService.Response response = httpService.getWithStatus(url);
+            LOG.infof("[EditLock] <<< queryState status=%d response=%s", response.statusCode, response.body);
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            LOG.infof("[EditLock] <<< queryState status=%d response=%s", response.statusCode(), response.body());
-
-            if (response.statusCode() == 200) {
-                return parseResponse(response.body());
+            if (response.statusCode == 200) {
+                return parseResponse(response.body);
             }
-            LOG.warnf("[EditLock] queryState returned non-200 status: %d", response.statusCode());
+            LOG.warnf("[EditLock] queryState returned non-200 status: %d", response.statusCode);
             return null;
         } catch (Exception e) {
             LOG.errorf(e, "[EditLock] queryState failed: GET %s", url);
@@ -113,18 +90,11 @@ public class EditLockService {
         try {
             LOG.infof("[EditLock] >>> POST %s body=%s", url, body);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("Content-Type", "application/json;charset=UTF-8")
-                    .timeout(Duration.ofSeconds(10))
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
-                    .build();
+            IHttpService.Response response = httpService.postJsonWithStatus(url, body);
+            LOG.infof("[EditLock] <<< checkOut status=%d response=%s", response.statusCode, response.body);
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            LOG.infof("[EditLock] <<< checkOut status=%d response=%s", response.statusCode(), response.body());
-
-            if (response.statusCode() == 200) {
-                Map<String, Object> parsed = parseResponse(response.body());
+            if (response.statusCode == 200) {
+                Map<String, Object> parsed = parseResponse(response.body);
                 if (parsed != null) {
                     Object data = parsed.get("data");
                     if (data instanceof Map<?, ?> dataMap) {
@@ -133,7 +103,7 @@ public class EditLockService {
                     }
                 }
             }
-            LOG.warnf("[EditLock] checkOut returned non-200 status: %d", response.statusCode());
+            LOG.warnf("[EditLock] checkOut returned non-200 status: %d", response.statusCode);
             return false;
         } catch (Exception e) {
             LOG.errorf(e, "[EditLock] checkOut failed: POST %s body=%s", url, body);
@@ -159,15 +129,8 @@ public class EditLockService {
         try {
             LOG.infof("[EditLock] >>> POST %s body=%s", url, body);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("Content-Type", "application/json;charset=UTF-8")
-                    .timeout(Duration.ofSeconds(10))
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            LOG.infof("[EditLock] <<< checkIn status=%d response=%s", response.statusCode(), response.body());
+            IHttpService.Response response = httpService.postJsonWithStatus(url, body);
+            LOG.infof("[EditLock] <<< checkIn status=%d response=%s", response.statusCode, response.body);
         } catch (Exception e) {
             LOG.errorf(e, "[EditLock] checkIn failed: POST %s body=%s", url, body);
         }

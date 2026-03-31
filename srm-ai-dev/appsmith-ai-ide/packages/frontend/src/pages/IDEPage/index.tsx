@@ -11,6 +11,7 @@ import ChatPanel, { type CodeSuggestion } from './ChatPanel';
 interface PageStatus {
   id: string;
   name: string;
+  type: string;
   status: 'free' | 'available' | 'checkedout' | 'mine';
   checkedOutBy: { username: string; displayName: string } | null;
 }
@@ -314,7 +315,7 @@ const IDEPage: React.FC = () => {
       {/* ═══ IDE WORKSPACE ═══ */}
       <div className="ide-wrap">
         <div className="ide-top-area">
-          <FileTree pageId={pageId} mode={mode} />
+          <FileTree pageId={pageId} mode={mode} pageType={pageStatus?.type} />
           <div
             className="filetree-resize-handle"
             onMouseDown={(e) => {

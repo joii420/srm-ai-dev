@@ -19,7 +19,7 @@ public class PageDto {
     public String description;
     public String gitlabRepoUrl;
     public String gitBranch;
-    public String appsmithEditUrl;
+    public String appsmithPageId;
     public String status;
     public Object checkedOutBy;  // null | { username, displayName }
 
@@ -34,7 +34,7 @@ public class PageDto {
         dto.description = page.description;
         dto.gitlabRepoUrl = page.gitlabRepoUrl;
         dto.gitBranch = page.gitBranch;
-        dto.appsmithEditUrl = page.appsmithEditUrl;
+        dto.appsmithPageId = page.appsmithPageId;
         dto.status = "free";
         dto.checkedOutBy = null;
         return dto;

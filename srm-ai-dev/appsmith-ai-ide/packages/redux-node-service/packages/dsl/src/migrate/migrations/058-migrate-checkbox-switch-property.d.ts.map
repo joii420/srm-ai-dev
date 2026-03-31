@@ -1,0 +1,1 @@
+{"version":3,"file":"058-migrate-checkbox-switch-property.d.ts","sourceRoot":"","sources":["058-migrate-checkbox-switch-property.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,SAAS,EAAE,MAAM,UAAU,CAAC;AAE1C,oBAAY,gBAAgB;IAC1B,IAAI,SAAS;IACb,KAAK,UAAU;CAChB;AAED,oBAAY,aAAa;IACvB,IAAI,SAAS;IACb,KAAK,UAAU;CAChB;AAED,eAAO,MAAM,6BAA6B,eAAgB,SAAS,cAgBlE,CAAC"}

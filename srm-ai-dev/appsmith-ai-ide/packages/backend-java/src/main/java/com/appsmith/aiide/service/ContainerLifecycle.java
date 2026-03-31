@@ -12,14 +12,10 @@ import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.context.ManagedExecutor;
 import org.jboss.logging.Logger;
 
+import com.appsmith.aiide.http.IHttpService;
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -37,7 +33,7 @@ import java.util.function.Consumer;
 public class ContainerLifecycle {
 
     private static final Logger LOG = Logger.getLogger(ContainerLifecycle.class);
-    private static final long CHECKOUT_TIMEOUT_SECONDS = 60;
+    private static final long CHECKOUT_TIMEOUT_SECONDS = 180;
 
     @Inject
     AppConfig appConfig;
@@ -61,11 +57,10 @@ public class ContainerLifecycle {
     AppsmithSyncService appsmithSyncService;
 
     @Inject
-    ManagedExecutor managedExecutor;
+    IHttpService httpService;
 
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .build();
+    @Inject
+    ManagedExecutor managedExecutor;
 
     /**
      * Result of a checkout orchestration.
@@ -279,18 +274,20 @@ public class ContainerLifecycle {
             // Step 1: Create container
             emitStep(onStep, "create_container", "in_progress");
             DockerService.ContainerLimits limits = dockerService.readLimitsFromSystemConfig();
+
             DockerService.ContainerConfig containerConfig = new DockerService.ContainerConfig(
                     appConfig.getContainerImageName(),
                     limits.memoryBytes(),
                     limits.cpuLimit(),
                     buildContainerEnv(pageId, pageName),
                     Map.of("/tmp/ssh", "rw,noexec,nosuid,size=1m"),
-                    List.of(3000, 3001)
+                    List.of(3000, 3001),
+                    List.of()
             );
             containerId = dockerService.createContainer(containerConfig);
             emitStep(onStep, "create_container", "completed");
 
-            // Resolve both service endpoints
+            // Resolve service endpoints
             DockerService.ContainerEndpoints endpoints = dockerService.getContainerEndpoints(containerId);
             LOG.infof("Container endpoints: AI Proxy=%s, File Manager=%s", endpoints.aiProxy(), endpoints.fileManager());
 
@@ -302,6 +299,18 @@ public class ContainerLifecycle {
 
             // Step 3: Git clone — use SSH or HTTPS depending on URL format
             emitStep(onStep, "git_clone", "in_progress");
+            // Fix legacy repo URLs: git@host:port/path -> ssh://git@host:port/path
+            // The old format "git@host:port/path" treats ":port" as path (SSH default port 22),
+            // but we need ssh:// format to specify a non-standard port (e.g. 2222).
+            String currentPrefix = appConfig.getGitlabRepoPrefix();
+            if (currentPrefix.startsWith("ssh://") && gitlabRepoUrl.startsWith("git@")) {
+                // Derive old prefix from current: ssh://git@host:port/group/ -> git@host:port/group/
+                String oldPrefix = currentPrefix.replace("ssh://", "");
+                if (gitlabRepoUrl.startsWith(oldPrefix)) {
+                    gitlabRepoUrl = currentPrefix + gitlabRepoUrl.substring(oldPrefix.length());
+                    LOG.infof("Fixed legacy repo URL to: %s", gitlabRepoUrl);
+                }
+            }
             String cloneUrl = gitlabRepoUrl.startsWith("https://")
                     ? appConfig.buildAuthenticatedRepoUrl(gitlabRepoUrl)
                     : gitlabRepoUrl;
@@ -318,7 +327,9 @@ public class ContainerLifecycle {
             if ("appsmith".equals(pageType) && appsmithEditUrl != null && !appsmithEditUrl.isBlank()) {
                 emitStep(onStep, "sync_appsmith", "in_progress");
                 try {
-                    boolean changed = appsmithSyncService.syncToContainer(containerId, appsmithEditUrl, branch);
+                    // Extract appsmithPageId from the edit URL query parameter
+                    String appsmithPageId = extractAppsmithPageId(appsmithEditUrl);
+                    boolean changed = appsmithSyncService.syncToContainer(containerId, appsmithEditUrl, branch, appsmithPageId);
                     LOG.infof("Appsmith sync completed, changes=%s", changed);
                 } catch (Exception e) {
                     LOG.warnf("Appsmith sync failed (non-fatal): %s", e.getMessage());
@@ -505,13 +516,7 @@ public class ContainerLifecycle {
                         skill.name,
                         skill.prompt != null ? skill.prompt.replace("\"", "\\\"").replace("\n", "\\n") : "");
 
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create("http://" + containerIp + "/api/skills/register"))
-                        .timeout(Duration.ofSeconds(5))
-                        .header("Content-Type", "application/json")
-                        .POST(HttpRequest.BodyPublishers.ofString(payload))
-                        .build();
-                httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                httpService.postJson("http://" + containerIp + "/api/skills/register", payload);
             } catch (Exception e) {
                 LOG.warnf("Failed to inject skill %s: %s", skill.name, e.getMessage());
             }
@@ -526,13 +531,8 @@ public class ContainerLifecycle {
         int maxAttempts = 30;
         for (int i = 0; i < maxAttempts; i++) {
             try {
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create("http://" + containerIp + "/api/health"))
-                        .timeout(Duration.ofSeconds(3))
-                        .GET()
-                        .build();
-                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() == 200) {
+                IHttpService.Response response = httpService.getWithStatus("http://" + containerIp + "/api/health");
+                if (response.statusCode == 200) {
                     LOG.infof("Container service ready at %s (attempt %d)", containerIp, i + 1);
                     return;
                 }
@@ -559,15 +559,10 @@ public class ContainerLifecycle {
         // 1. AI Proxy health (port 3000)
         LOG.info("Verifying AI Proxy health...");
         try {
-            HttpRequest aiRequest = HttpRequest.newBuilder()
-                    .uri(URI.create("http://" + endpoints.aiProxy() + "/api/health"))
-                    .timeout(Duration.ofSeconds(5))
-                    .GET()
-                    .build();
-            HttpResponse<String> aiResponse = httpClient.send(aiRequest, HttpResponse.BodyHandlers.ofString());
-            LOG.infof("AI Proxy health: %d — %s", aiResponse.statusCode(), aiResponse.body());
-            if (aiResponse.statusCode() != 200) {
-                throw new RuntimeException("AI Proxy health check failed: HTTP " + aiResponse.statusCode());
+            IHttpService.Response aiResponse = httpService.getWithStatus("http://" + endpoints.aiProxy() + "/api/health");
+            LOG.infof("AI Proxy health: %d — %s", aiResponse.statusCode, aiResponse.body);
+            if (aiResponse.statusCode != 200) {
+                throw new RuntimeException("AI Proxy health check failed: HTTP " + aiResponse.statusCode);
             }
         } catch (RuntimeException e) {
             throw e;
@@ -578,13 +573,8 @@ public class ContainerLifecycle {
         // 2. File Manager health (port 3001)
         LOG.info("Verifying File Manager health...");
         try {
-            HttpRequest fmRequest = HttpRequest.newBuilder()
-                    .uri(URI.create("http://" + endpoints.fileManager() + "/files"))
-                    .timeout(Duration.ofSeconds(5))
-                    .GET()
-                    .build();
-            HttpResponse<String> fmResponse = httpClient.send(fmRequest, HttpResponse.BodyHandlers.ofString());
-            LOG.infof("File Manager status: %d", fmResponse.statusCode());
+            IHttpService.Response fmResponse = httpService.getWithStatus("http://" + endpoints.fileManager() + "/files");
+            LOG.infof("File Manager status: %d", fmResponse.statusCode);
         } catch (Exception e) {
             LOG.warnf("File Manager check failed (non-fatal): %s", e.getMessage());
         }
@@ -636,6 +626,28 @@ public class ContainerLifecycle {
         if (onStep != null) {
             onStep.accept(new CheckoutStepEvent(step, status, message));
         }
+    }
+
+    /**
+     * Extract appsmithPageId from the edit URL query parameter (defaultPageId).
+     * URL format: ...?defaultPageId=XXX&viewPageId=XXX
+     */
+    private String extractAppsmithPageId(String editUrl) {
+        try {
+            java.net.URI uri = java.net.URI.create(editUrl);
+            String query = uri.getQuery();
+            if (query != null) {
+                for (String param : query.split("&")) {
+                    String[] kv = param.split("=", 2);
+                    if (kv.length == 2 && "defaultPageId".equals(kv[0])) {
+                        return kv[1];
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOG.warnf("Failed to extract appsmithPageId from URL: %s", editUrl);
+        }
+        return null;
     }
 
     private void cleanupTempFiles(String containerId) {

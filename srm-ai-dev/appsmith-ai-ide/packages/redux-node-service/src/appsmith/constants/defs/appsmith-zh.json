@@ -1,0 +1,154 @@
+{
+  "zh_CN": {
+    "FilePickerWidgetV2": {
+      "label": "选择文件",
+      "computedLabel": "已选择 NUM 个文件",
+      "modalSetting": {
+        "closeModal": "Close",
+        "importFrom": "Import from %{name}",
+        "addingMoreFiles": "添加更多文件中",
+        "addMoreFiles": "添加更多文件",
+        "dashboardWindowTitle": "File Uploader Window (Press escape to close)",
+        "dashboardTitle": "File Uploader",
+        "copyLinkToClipboardSuccess": "Link copied to clipboard",
+        "copyLinkToClipboardFallback": "Copy the URL below",
+        "copyLink": "Copy link",
+        "fileSource": "File source: %{name}",
+        "back": "返回",
+        "addMore": "添加更多",
+        "removeFile": "Remove file",
+        "editFile": "Edit file",
+        "editing": "Editing %{file}",
+        "finishEditingFile": "Finish editing file",
+        "save": "保存",
+        "saveChanges": "Save changes",
+        "cancel": "取消",
+        "myDevice": "My Device",
+        "dropPasteFiles": "拖拽文件到这里或 %{browseFiles}",
+        "dropPasteFolders": "拖拽文件到这里或 %{browseFolders}",
+        "dropPasteBoth": "Drop files here, %{browseFiles} or %{browseFolders}",
+        "dropPasteImportFiles": "Drop files here, %{browseFiles} or import from:",
+        "dropPasteImportFolders": "Drop files here, %{browseFolders} or import from:",
+        "dropPasteImportBoth": "Drop files here, %{browseFiles}, %{browseFolders} or import from:",
+        "importFiles": "Import files from:",
+        "dropHint": "Drop your files here",
+        "browseFiles": "点击选择文件",
+        "browseFolders": "browse folders",
+        "uploadComplete": "Upload complete",
+        "uploadPaused": "Upload paused",
+        "resumeUpload": "Resume upload",
+        "pauseUpload": "Pause upload",
+        "retryUpload": "Retry upload",
+        "cancelUpload": "取消上传",
+        "xFilesSelected": {
+          "0": "已选择 %{smart_count} 个文件",
+          "1": "已选择 %{smart_count} 个文件"
+        },
+        "uploadingXFiles": {
+          "0": "上传 %{smart_count} 个文件",
+          "1": "上传 %{smart_count} 个文件"
+        },
+        "processingXFiles": {
+          "0": "Processing %{smart_count} file",
+          "1": "Processing %{smart_count} files"
+        },
+        "recoveredXFiles": {
+          "0": "We could not fully recover 1 file. Please re-select it and resume the upload.",
+          "1": "We could not fully recover %{smart_count} files. Please re-select them and resume the upload."
+        },
+
+        "recoveredAllFiles": "We restored all files. You can now resume the upload.",
+        "sessionRestored": "Session restored",
+        "reSelect": "Re-select",
+        "poweredBy2": "%{backwardsCompat} %{uppy}",
+        "poweredBy": "Powered by",
+        "uploadXFiles": {
+          "0": "上传 %{smart_count} 个文件",
+          "1": "上传 %{smart_count} 个文件"
+        },
+        "youCanOnlyUploadFileTypes": "你只能上传: %{types}",
+        "noNewAlreadyUploading": "无法添加新文件: 已上传",
+        "noDuplicates": "无法添加重复文件 '%{fileName}', 该文件已存在",
+        "exceedsSize": "%{file} 超过了允许的最大大小："
+      }
+    }
+  },
+  "zh_TW": {
+    "FilePickerWidgetV2": {
+      "computedLabel": "已选择 ${props.files.length} 个文件"
+    }
+  },
+  "en": {
+    "FilePickerWidgetV2": {
+      "label": "Select Files",
+      "computedLabel": "NUM files selected",
+      "modalSetting": {
+        "closeModal": "Close",
+        "importFrom": "Import from %{name}",
+        "addingMoreFiles": "Adding more files",
+        "addMoreFiles": "Add more files",
+        "dashboardWindowTitle": "File Uploader Window (Press escape to close)",
+        "dashboardTitle": "File Uploader",
+        "copyLinkToClipboardSuccess": "Link copied to clipboard",
+        "copyLinkToClipboardFallback": "Copy the URL below",
+        "copyLink": "Copy link",
+        "fileSource": "File source: %{name}",
+        "back": "Back",
+        "addMore": "Add more",
+        "removeFile": "Remove file",
+        "editFile": "Edit file",
+        "editing": "Editing %{file}",
+        "finishEditingFile": "Finish editing file",
+        "save": "Save",
+        "saveChanges": "Save changes",
+        "cancel": "Cancel",
+        "myDevice": "My Device",
+        "dropPasteFiles": "Drop files here or %{browseFiles}",
+        "dropPasteFolders": "Drop files here or %{browseFolders}",
+        "dropPasteBoth": "Drop files here, %{browseFiles} or %{browseFolders}",
+        "dropPasteImportFiles": "Drop files here, %{browseFiles} or import from:",
+        "dropPasteImportFolders": "Drop files here, %{browseFolders} or import from:",
+        "dropPasteImportBoth": "Drop files here, %{browseFiles}, %{browseFolders} or import from:",
+        "importFiles": "Import files from:",
+        "dropHint": "Drop your files here",
+        "browseFiles": "browse files",
+        "browseFolders": "browse folders",
+        "uploadComplete": "Upload complete",
+        "uploadPaused": "Upload paused",
+        "resumeUpload": "Resume upload",
+        "pauseUpload": "Pause upload",
+        "retryUpload": "Retry upload",
+        "cancelUpload": "Cancel upload",
+        "xFilesSelected": {
+          "0": "%{smart_count} file selected",
+          "1": "%{smart_count} files selected"
+        },
+        "uploadingXFiles": {
+          "0": "Uploading %{smart_count} file",
+          "1": "Uploading %{smart_count} files"
+        },
+        "processingXFiles": {
+          "0": "Processing %{smart_count} file",
+          "1": "Processing %{smart_count} files"
+        },
+        "recoveredXFiles": {
+          "0": "We could not fully recover 1 file. Please re-select it and resume the upload.",
+          "1": "We could not fully recover %{smart_count} files. Please re-select them and resume the upload."
+        },
+        "recoveredAllFiles": "We restored all files. You can now resume the upload.",
+        "sessionRestored": "Session restored",
+        "reSelect": "Re-select",
+        "poweredBy2": "%{backwardsCompat} %{uppy}",
+        "poweredBy": "Powered by",
+        "uploadXFiles": {
+          "0": "Upload %{smart_count} file",
+          "1": "Upload %{smart_count} files"
+        },
+        "youCanOnlyUploadFileTypes": "You can only upload: %{types}",
+        "noNewAlreadyUploading": "Cannot add new files: already uploading",
+        "noDuplicates": "Cannot add the duplicate file '%{fileName}', it already exists",
+        "exceedsSize": "%{file} exceeds maximum allowed size of"
+      }
+    }
+  }
+}

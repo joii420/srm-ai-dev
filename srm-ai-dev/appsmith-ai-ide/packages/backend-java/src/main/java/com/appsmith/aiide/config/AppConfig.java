@@ -27,6 +27,9 @@ public class AppConfig {
     @ConfigProperty(name = "aiide.gitlab-repo-prefix")
     String gitlabRepoPrefix;
 
+    @ConfigProperty(name = "aiide.gitlab-api-base-url", defaultValue = "")
+    String gitlabApiBaseUrl;
+
     @ConfigProperty(name = "aiide.backend-url-for-container")
     String backendUrlForContainer;
 
@@ -39,6 +42,9 @@ public class AppConfig {
     @ConfigProperty(name = "aiide.ai-agent-url", defaultValue = "")
     String aiAgentUrl;
 
+    @ConfigProperty(name = "aiide.appsmith-api-base-url", defaultValue = "")
+    String appsmithApiBaseUrl;
+
     @ConfigProperty(name = "aiide.appsmith-session", defaultValue = "")
     String appsmithSession;
 
@@ -47,6 +53,12 @@ public class AppConfig {
 
     @ConfigProperty(name = "aiide.edit-lock-api-url", defaultValue = "")
     String editLockApiUrl;
+
+    @ConfigProperty(name = "aiide.redux-node-service-path", defaultValue = "")
+    String reduxNodeServicePath;
+
+    @ConfigProperty(name = "aiide.redux-node-service-url", defaultValue = "http://localhost:3200")
+    String reduxNodeServiceUrl;
 
     public String getSshKeyEncryptSecret() {
         return sshKeyEncryptSecret;
@@ -68,6 +80,10 @@ public class AppConfig {
         return gitlabRepoPrefix;
     }
 
+    public String getGitlabApiBaseUrl() {
+        return gitlabApiBaseUrl;
+    }
+
     public String getBackendUrlForContainer() {
         return backendUrlForContainer;
     }
@@ -84,6 +100,10 @@ public class AppConfig {
         return aiAgentUrl;
     }
 
+    public String getAppsmithApiBaseUrl() {
+        return appsmithApiBaseUrl;
+    }
+
     public String getAppsmithSession() {
         return appsmithSession;
     }
@@ -94,6 +114,14 @@ public class AppConfig {
 
     public String getEditLockApiUrl() {
         return editLockApiUrl;
+    }
+
+    public String getReduxNodeServicePath() {
+        return reduxNodeServicePath;
+    }
+
+    public String getReduxNodeServiceUrl() {
+        return reduxNodeServiceUrl;
     }
 
     /**

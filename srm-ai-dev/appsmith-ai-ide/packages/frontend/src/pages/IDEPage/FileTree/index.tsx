@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { apiClient } from '../../../services/api';
 import { useEditorStore, EditorTab } from '../../../stores/editorStore';
 import type { IDEMode } from '../StatusButton';
@@ -47,6 +47,39 @@ function getFileIcon(fileName: string): string {
 }
 
 /* ------------------------------------------------------------------ */
+/*  File naming validation (strategy by page type)                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Validate jsObject file name for appsmith pages.
+ * Rules: starts with letter, no Chinese, no symbols (except trailing .js), must be .js file.
+ */
+function validateAppsmithFileName(name: string): string | null {
+  if (!name) return '文件名不能为空';
+  // Remove .js suffix for validation if present
+  const baseName = name.endsWith('.js') ? name.slice(0, -3) : name;
+  if (!baseName) return '文件名不能为空';
+  if (!/^[a-zA-Z]/.test(baseName)) return '文件名必须以英文字母开头';
+  if (/[\u4e00-\u9fff]/.test(baseName)) return '文件名不能包含汉字';
+  if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(baseName)) return '文件名只能包含英文字母、数字和下划线';
+  if (!name.endsWith('.js')) return '文件名必须以 .js 结尾';
+  return null;
+}
+
+/**
+ * Validate file name based on page type.
+ * Returns error message or null if valid.
+ */
+function validateFileName(name: string, pageType?: string): string | null {
+  if (pageType === 'appsmith') {
+    return validateAppsmithFileName(name);
+  }
+  // Normal type: basic validation only (future: add specific rules)
+  if (!name || !name.trim()) return '文件名不能为空';
+  return null;
+}
+
+/* ------------------------------------------------------------------ */
 /*  Dialog component                                                   */
 /* ------------------------------------------------------------------ */
 
@@ -58,6 +91,8 @@ interface DialogProps {
   defaultValue?: string;
   confirmText?: string;
   cancelText?: string;
+  /** Optional input validator. Returns error string or null if valid. */
+  validate?: (value: string) => string | null;
   onConfirm: (value?: string) => void;
   onCancel: () => void;
 }
@@ -70,10 +105,22 @@ const Dialog: React.FC<DialogProps> = ({
   defaultValue = '',
   confirmText = '确定',
   cancelText = '取消',
+  validate,
   onConfirm,
   onCancel,
 }) => {
   const [value, setValue] = useState(defaultValue);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const tryConfirm = () => {
+    const trimmed = input ? value.trim() : undefined;
+    if (input && !trimmed) return;
+    if (input && validate && trimmed) {
+      const err = validate(trimmed);
+      if (err) { setValidationError(err); return; }
+    }
+    onConfirm(trimmed);
+  };
 
   return (
     <div className="loading-screen on" onClick={onCancel}>
@@ -86,17 +133,18 @@ const Dialog: React.FC<DialogProps> = ({
             className="commit-input"
             placeholder={inputPlaceholder}
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={(e) => { setValue(e.target.value); setValidationError(null); }}
             autoFocus
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && value.trim()) onConfirm(value.trim());
+              if (e.key === 'Enter') tryConfirm();
             }}
           />
         )}
+        {validationError && <p className="lc-error">{validationError}</p>}
         <div className="dialog-buttons">
           <button
             className="btn btn-p"
-            onClick={() => onConfirm(input ? value.trim() : undefined)}
+            onClick={tryConfirm}
             disabled={input ? !value.trim() : false}
             style={{ opacity: input && !value.trim() ? 0.5 : 1 }}
           >
@@ -348,7 +396,8 @@ const TreeNodeRow: React.FC<TreeNodeRowProps> = ({ node, depth, pageId, mode, pa
         <Dialog
           title="新建文件"
           input
-          inputPlaceholder="输入文件名"
+          inputPlaceholder={pageType === 'appsmith' ? '例如: MyObject.js' : '输入文件名'}
+          validate={(name) => validateFileName(name, pageType)}
           onConfirm={(name) => name && handleCreate(name, 'file')}
           onCancel={() => setDialog(null)}
         />
@@ -368,6 +417,7 @@ const TreeNodeRow: React.FC<TreeNodeRowProps> = ({ node, depth, pageId, mode, pa
           input
           inputPlaceholder="输入新名称"
           defaultValue={node.name}
+          validate={(name) => validateFileName(name, pageType)}
           onConfirm={(name) => name && name !== node.name && handleRename(name)}
           onCancel={() => setDialog(null)}
         />
@@ -380,18 +430,109 @@ const TreeNodeRow: React.FC<TreeNodeRowProps> = ({ node, depth, pageId, mode, pa
 /*  FileTree                                                           */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/*  DepsPanel — shows dependency files from /deps/ directory            */
+/* ------------------------------------------------------------------ */
+
+const DepsPanel: React.FC<{ pageId: string }> = ({ pageId }) => {
+  const [depsFiles, setDepsFiles] = useState<TreeNode[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { openFile } = useEditorStore();
+
+  const fetchDeps = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await apiClient.get<TreeNode[] | { tree: TreeNode[] }>(
+        `/pages/${pageId}/container/tree`,
+      );
+      const data = res.data;
+      const tree: TreeNode[] = Array.isArray(data) ? data : data.tree;
+      // Find the deps directory and show its children
+      const depsNode = tree.find((n) => n.name === 'deps' && n.type === 'directory');
+      setDepsFiles(depsNode?.children ?? []);
+    } catch {
+      setDepsFiles([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [pageId]);
+
+  useEffect(() => {
+    fetchDeps();
+  }, [fetchDeps]);
+
+  const handleClick = (node: TreeNode) => {
+    if (node.type === 'file') {
+      openFile({
+        id: node.path,
+        filePath: node.path,
+        fileName: node.name,
+        language: getLanguage(node.name),
+        readOnly: true,
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="center-col" style={{ padding: 20 }}>
+        <span style={{ color: 'var(--t2)', fontSize: 13 }}>加载中...</span>
+      </div>
+    );
+  }
+
+  if (depsFiles.length === 0) {
+    return (
+      <div className="center-col" style={{ padding: 20 }}>
+        <span style={{ color: 'var(--t3)', fontSize: 13 }}>暂无依赖文件</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="file-tree-body" role="tree">
+      {depsFiles.map((node) => (
+        <div
+          key={node.path}
+          className="fi"
+          style={{ paddingLeft: 12 }}
+          onClick={() => handleClick(node)}
+          role="treeitem"
+          tabIndex={0}
+        >
+          <span className="fi-icon">{getFileIcon(node.name)}</span>
+          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {node.name}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/*  FileTree (main component with tabs)                                */
+/* ------------------------------------------------------------------ */
+
+type LeftTab = 'files' | 'deps';
+
 const FileTree: React.FC<FileTreeProps> = ({ pageId, mode, pageType }) => {
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const isEditable = mode === 'editable';
-  const canCreateDir = isEditable && pageType !== 'appsmith';
+  const isAppsmith = pageType === 'appsmith';
+  const canCreateDir = isEditable && !isAppsmith;
+
+  const [activeTab, setActiveTab] = useState<LeftTab>('files');
 
   // Root-level dialog
   const [rootDialog, setRootDialog] = useState<'newFile' | 'newDir' | null>(null);
 
   const fetchTree = useCallback(async () => {
-    if (!pageId || pageId === 'undefined') return;
+    // Wait until page status is loaded (pageType is set) to avoid double fetch
+    // when mode transitions from initial 'readonly-free' to actual mode
+    if (!pageId || pageId === 'undefined' || pageType === undefined) return;
     setLoading(true);
     setError(null);
     try {
@@ -408,15 +549,30 @@ const FileTree: React.FC<FileTreeProps> = ({ pageId, mode, pageType }) => {
     } finally {
       setLoading(false);
     }
-  }, [pageId, mode]);
+  }, [pageId, mode, pageType]);
 
   useEffect(() => {
     fetchTree();
   }, [fetchTree]);
 
+  /**
+   * For appsmith pages, filter tree to only show jsObjects directory and its contents.
+   */
+  const displayTree = useMemo(() => {
+    if (!isAppsmith) return tree;
+    const jsObjectsNode = tree.find((n) => n.name === 'jsObjects' && n.type === 'directory');
+    if (jsObjectsNode && jsObjectsNode.children) {
+      return jsObjectsNode.children;
+    }
+    return [];
+  }, [tree, isAppsmith]);
+
   const handleRootCreate = async (name: string, type: 'file' | 'dir') => {
     try {
-      if (type === 'file') {
+      if (isAppsmith) {
+        const jsName = name.endsWith('.js') ? name.slice(0, -3) : name;
+        await apiClient.post(`/pages/${pageId}/jsobject/create`, { name: jsName });
+      } else if (type === 'file') {
         await apiClient.post(`/pages/${pageId}/container/files/${encodeURIComponent(name)}`, {
           content: '',
         });
@@ -434,80 +590,101 @@ const FileTree: React.FC<FileTreeProps> = ({ pageId, mode, pageType }) => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="ide-left">
-        <div className="sl-section">
-          <span className="sl-label">文件</span>
-        </div>
+  // --- Files tab content ---
+  const renderFilesTab = () => {
+    if (loading) {
+      return (
         <div className="center-col" style={{ padding: 20 }}>
-          <span style={{ color: 'var(--t2)', fontSize: 12 }}>加载中...</span>
+          <span style={{ color: 'var(--t2)', fontSize: 13 }}>加载中...</span>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  if (error) {
-    return (
-      <div className="ide-left">
-        <div className="sl-section">
-          <span className="sl-label">文件</span>
-        </div>
+    if (error) {
+      return (
         <div className="center-col" style={{ padding: 20 }}>
-          <span style={{ color: 'var(--red)', fontSize: 12 }}>{error}</span>
+          <span style={{ color: 'var(--red)', fontSize: 13 }}>{error}</span>
           <button className="retry-btn-sm" onClick={fetchTree}>重试</button>
         </div>
-      </div>
+      );
+    }
+
+    return (
+      <>
+        <div className="sl-section">
+          <span className="sl-label">{isAppsmith ? 'JS Objects' : '文件'}</span>
+          {isEditable && (
+            <span className="sl-actions">
+              <button
+                className="fi-act-btn"
+                title={isAppsmith ? '新建 JS Object' : '新建文件'}
+                onClick={() => setRootDialog('newFile')}
+              >+</button>
+              {canCreateDir && (
+                <button
+                  className="fi-act-btn"
+                  title="新建目录"
+                  onClick={() => setRootDialog('newDir')}
+                >{'\u{1F4C1}'}</button>
+              )}
+            </span>
+          )}
+        </div>
+        <div className="file-tree-body" role="tree">
+          {displayTree.length === 0 ? (
+            <div className="center-col" style={{ padding: 20 }}>
+              <span style={{ color: 'var(--t3)', fontSize: 13 }}>
+                {isAppsmith ? '暂无 JS Object 文件' : '无文件'}
+              </span>
+            </div>
+          ) : (
+            displayTree.map((node) => (
+              <TreeNodeRow
+                key={node.path}
+                node={node}
+                depth={0}
+                pageId={pageId}
+                mode={mode}
+                pageType={pageType}
+                onRefresh={fetchTree}
+              />
+            ))
+          )}
+        </div>
+      </>
     );
-  }
+  };
 
   return (
     <div className="ide-left">
-      <div className="sl-section">
-        <span className="sl-label">文件</span>
-        {isEditable && (
-          <span className="sl-actions">
-            <button
-              className="fi-act-btn"
-              title="新建文件"
-              onClick={() => setRootDialog('newFile')}
-            >+</button>
-            {canCreateDir && (
-              <button
-                className="fi-act-btn"
-                title="新建目录"
-                onClick={() => setRootDialog('newDir')}
-              >{'\u{1F4C1}'}</button>
-            )}
-          </span>
-        )}
-      </div>
-      <div className="file-tree-body" role="tree">
-        {tree.length === 0 ? (
-          <div className="center-col" style={{ padding: 20 }}>
-            <span style={{ color: 'var(--t3)', fontSize: 12 }}>无文件</span>
+      {/* Tab bar: only show when editable (container is running) */}
+      {isEditable && (
+        <div className="left-tabs">
+          <div
+            className={`left-tab${activeTab === 'files' ? ' on' : ''}`}
+            onClick={() => setActiveTab('files')}
+          >
+            项目文件
           </div>
-        ) : (
-          tree.map((node) => (
-            <TreeNodeRow
-              key={node.path}
-              node={node}
-              depth={0}
-              pageId={pageId}
-              mode={mode}
-              pageType={pageType}
-              onRefresh={fetchTree}
-            />
-          ))
-        )}
-      </div>
+          <div
+            className={`left-tab${activeTab === 'deps' ? ' on' : ''}`}
+            onClick={() => setActiveTab('deps')}
+          >
+            项目依赖
+          </div>
+        </div>
+      )}
+
+      {/* Tab content */}
+      {activeTab === 'files' || !isEditable ? renderFilesTab() : <DepsPanel pageId={pageId} />}
 
       {/* Root-level dialogs */}
       {rootDialog === 'newFile' && (
         <Dialog
-          title="新建文件"
+          title={isAppsmith ? '新建 JS Object' : '新建文件'}
           input
-          inputPlaceholder="输入文件名"
+          inputPlaceholder={isAppsmith ? '例如: MyObject.js' : '输入文件名'}
+          validate={(name) => validateFileName(name, pageType)}
           onConfirm={(name) => name && handleRootCreate(name, 'file')}
           onCancel={() => setRootDialog(null)}
         />

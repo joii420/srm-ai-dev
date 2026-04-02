@@ -6,6 +6,7 @@ import com.appsmith.aiide.dto.SystemConfigDto;
 import com.appsmith.aiide.entity.SystemConfig;
 import com.appsmith.aiide.filter.AdminOnly;
 import com.appsmith.aiide.filter.RequestContext;
+import com.appsmith.aiide.service.SystemConfigService;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -36,19 +37,27 @@ public class SystemConfigResource {
     @Inject
     RequestContext requestContext;
 
+    @Inject
+    SystemConfigService systemConfigService;
+
+    /** Managed config keys shown in the UI */
+    private static final List<String> MANAGED_KEYS = List.of(
+            SystemConfigService.APPSMITH_SESSION,
+            SystemConfigService.GITLAB_API_BASE_URL,
+            SystemConfigService.GITLAB_REPO_PREFIX,
+            SystemConfigService.GIT_TOKEN
+    );
+
     /**
-     * List all system configs (admin only).
+     * List managed system configs (admin only).
      */
     @GET
     public Response listAll() {
         List<SystemConfig> configs = SystemConfig.listAll();
-        var dtos = configs.stream().map(c -> {
-            var dto = new SystemConfigDto();
-            dto.key = c.key;
-            dto.value = c.value;
-            dto.description = c.description;
-            return dto;
-        }).collect(Collectors.toList());
+        var dtos = configs.stream()
+                .filter(c -> MANAGED_KEYS.contains(c.key))
+                .map(this::toDto)
+                .collect(Collectors.toList());
 
         return Response.ok(dtos).build();
     }
@@ -70,14 +79,29 @@ public class SystemConfigResource {
             config = new SystemConfig();
             config.key = dto.key;
         }
-        config.value = dto.value;
-        if (dto.description != null) {
-            config.description = dto.description;
-        }
+        // JSONB column requires valid JSON. Wrap plain strings as JSON string: xxx → "xxx"
+        config.value = wrapAsJsonString(dto.value);
+        if (dto.name != null) config.name = dto.name;
+        if (dto.description != null) config.description = dto.description;
+        if (dto.type != null) config.type = dto.type;
+        if (dto.datasource != null) config.datasource = dto.datasource;
         config.persist();
+
+        // Refresh cache so new value takes effect immediately
+        systemConfigService.refreshCache(dto.key);
 
         LOG.infof("System config '%s' updated by %s", dto.key, requestContext.getUsername());
         return Response.ok(Map.of("success", true, "key", dto.key)).build();
+    }
+
+    /**
+     * Refresh config cache (admin only).
+     */
+    @POST
+    @Path("/refresh-cache")
+    public Response refreshCache() {
+        systemConfigService.refreshCache();
+        return Response.ok(Map.of("success", true, "message", "Cache refreshed")).build();
     }
 
     /**
@@ -90,7 +114,6 @@ public class SystemConfigResource {
         try {
             String encrypted = encryptSshKey(request.privateKey);
 
-            // Store encrypted key in system config
             SystemConfig config = SystemConfig.findByKey("ssh-private-key");
             if (config == null) {
                 config = new SystemConfig();
@@ -114,14 +137,13 @@ public class SystemConfigResource {
     }
 
     /**
-     * Test SSH connection to a GitLab instance (admin only).
+     * Test SSH connection (admin only).
      */
     @POST
     @Path("/ssh-test")
     public Response testSshConnection(Map<String, String> body) {
         String host = body != null ? body.get("host") : null;
         if (host == null || host.isBlank()) {
-            // Fallback: read from stored config
             SystemConfig config = SystemConfig.findByKey("ssh-private-key");
             if (config != null && config.value instanceof Map<?, ?> valueMap) {
                 Object domain = valueMap.get("gitlabDomain");
@@ -131,48 +153,67 @@ public class SystemConfigResource {
 
         if (host == null || host.isBlank()) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(Map.of("error", "Bad Request", "message", "host is required (or store an SSH key first)"))
+                    .entity(Map.of("error", "Bad Request", "message", "host is required"))
                     .build();
         }
 
         int port = 22;
         if (body != null && body.containsKey("port")) {
-            try {
-                port = Integer.parseInt(body.get("port"));
-            } catch (NumberFormatException ignored) {
-                // Keep default 22
-            }
+            try { port = Integer.parseInt(body.get("port")); } catch (NumberFormatException ignored) {}
         }
 
         try (var socket = new Socket()) {
             socket.connect(new InetSocketAddress(host, port), 5000);
-            LOG.infof("SSH test successful: %s:%d by %s", host, port, requestContext.getUsername());
-            return Response.ok(Map.of(
-                    "success", true,
-                    "host", host,
-                    "port", port,
-                    "message", "SSH connection successful"
-            )).build();
+            return Response.ok(Map.of("success", true, "host", host, "port", port, "message", "SSH connection successful")).build();
         } catch (Exception e) {
-            LOG.warnf("SSH test failed: %s:%d - %s", host, port, e.getMessage());
-            return Response.ok(Map.of(
-                    "success", false,
-                    "host", host,
-                    "port", port,
-                    "message", "SSH connection failed: " + e.getMessage()
-            )).build();
+            return Response.ok(Map.of("success", false, "host", host, "port", port, "message", "SSH connection failed: " + e.getMessage())).build();
         }
     }
 
     // --- Private helpers ---
 
+    private SystemConfigDto toDto(SystemConfig c) {
+        var dto = new SystemConfigDto();
+        dto.key = c.key;
+        dto.name = c.name;
+        dto.value = unwrapJsonString(c.value);
+        dto.description = c.description;
+        dto.type = c.type != null ? c.type : "input";
+        dto.datasource = c.datasource;
+        return dto;
+    }
+
+    /** Strip surrounding quotes from JSONB string values: "xxx" → xxx */
+    private Object unwrapJsonString(Object val) {
+        if (val == null) return "";
+        if (val instanceof String s) {
+            if (s.length() >= 2 && s.startsWith("\"") && s.endsWith("\"")) {
+                return s.substring(1, s.length() - 1);
+            }
+            return s;
+        }
+        return val;
+    }
+
+    /** Wrap plain string as JSON string for JSONB column: xxx → "xxx" */
+    private Object wrapAsJsonString(Object val) {
+        if (val == null) return "\"\"";
+        if (val instanceof String s) {
+            // Already valid JSON (starts with " or { or [) — keep as-is
+            if (s.startsWith("\"") || s.startsWith("{") || s.startsWith("[")) {
+                return s;
+            }
+            // Wrap plain string: xxx → "xxx"
+            return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+        }
+        // Non-string (Map, List etc.) — already valid JSON object
+        return val;
+    }
+
     private String encryptSshKey(String plainText) throws Exception {
         String secret = appConfig.getSshKeyEncryptSecret();
-        // Pad or truncate to 16 bytes for AES-128
-        byte[] keyBytes = Arrays.copyOf(
-                secret.getBytes(StandardCharsets.UTF_8), 16);
+        byte[] keyBytes = Arrays.copyOf(secret.getBytes(StandardCharsets.UTF_8), 16);
         SecretKeySpec keySpec = new SecretKeySpec(keyBytes, "AES");
-
         Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
         cipher.init(Cipher.ENCRYPT_MODE, keySpec);
         byte[] encrypted = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));

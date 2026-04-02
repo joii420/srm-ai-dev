@@ -116,6 +116,29 @@ public class HttpUtil implements IHttpService {
         }
     }
 
+    @Override
+    public Response postJsonWithStatus(String url, String json, Map<String, String> extraHeaders, int readTimeoutMs) throws IOException {
+        Map<String, String> headers = new LinkedHashMap<>();
+        headers.put("Content-Type", "application/json;charset=UTF-8");
+        headers.put("Accept", "application/json");
+        if (extraHeaders != null) headers.putAll(extraHeaders);
+
+        HttpURLConnection conn = openConnection(url, "POST", headers, readTimeoutMs);
+        try {
+            if (json != null && !json.isEmpty()) {
+                conn.setDoOutput(true);
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write(json.getBytes(StandardCharsets.UTF_8));
+                }
+            }
+            int status = conn.getResponseCode();
+            String body = readBody(conn, status);
+            return new Response(status, body);
+        } finally {
+            conn.disconnect();
+        }
+    }
+
     // ------------------------------------------------------------------ PUT
 
     @Override
@@ -134,6 +157,26 @@ public class HttpUtil implements IHttpService {
         }
     }
 
+    // ------------------------------------------------------------------ PUT with status
+
+    @Override
+    public Response putWithStatus(String url, String body, Map<String, String> headers) throws IOException {
+        HttpURLConnection conn = openConnection(url, "PUT", headers);
+        try {
+            if (body != null && !body.isEmpty()) {
+                conn.setDoOutput(true);
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write(body.getBytes(StandardCharsets.UTF_8));
+                }
+            }
+            int status = conn.getResponseCode();
+            String respBody = readBody(conn, status);
+            return new Response(status, respBody);
+        } finally {
+            conn.disconnect();
+        }
+    }
+
     // ------------------------------------------------------------------ DELETE
 
     @Override
@@ -146,17 +189,32 @@ public class HttpUtil implements IHttpService {
         }
     }
 
+    @Override
+    public Response deleteWithStatus(String url, Map<String, String> headers) throws IOException {
+        HttpURLConnection conn = openConnection(url, "DELETE", headers);
+        try {
+            int status = conn.getResponseCode();
+            String body = readBody(conn, status);
+            return new Response(status, body);
+        } finally {
+            conn.disconnect();
+        }
+    }
+
     // ------------------------------------------------------------------ Private helpers
 
     private static HttpURLConnection openConnection(String url, String method, Map<String, String> headers)
             throws IOException {
+        return openConnection(url, method, headers, READ_TIMEOUT);
+    }
+
+    private static HttpURLConnection openConnection(String url, String method, Map<String, String> headers, int readTimeoutMs)
+            throws IOException {
         HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
         conn.setRequestMethod(method);
         conn.setConnectTimeout(CONNECT_TIMEOUT);
-        conn.setReadTimeout(READ_TIMEOUT);
-        // Disable keep-alive to avoid "Unexpected end of file" when server closes idle connections
+        conn.setReadTimeout(readTimeoutMs);
         conn.setRequestProperty("Connection", "close");
-        // Only set Content-Type for methods that carry a body (POST/PUT), not for GET/DELETE
         if ("POST".equals(method) || "PUT".equals(method)) {
             conn.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
         }
@@ -184,7 +242,12 @@ public class HttpUtil implements IHttpService {
         try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
             StringBuilder sb = new StringBuilder();
             String line;
-            while ((line = br.readLine()) != null) sb.append(line);
+            boolean first = true;
+            while ((line = br.readLine()) != null) {
+                if (!first) sb.append('\n');
+                sb.append(line);
+                first = false;
+            }
             return sb.toString();
         }
     }

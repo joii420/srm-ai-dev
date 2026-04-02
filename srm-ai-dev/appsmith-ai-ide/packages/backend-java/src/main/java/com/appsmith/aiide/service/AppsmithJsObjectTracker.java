@@ -12,13 +12,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -31,15 +24,15 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @ApplicationScoped
 public class AppsmithJsObjectTracker {
+    static boolean flag = true;
 
     private static final Logger LOG = Logger.getLogger(AppsmithJsObjectTracker.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    /** Long-timeout HttpClient for redux-node-service calls (biz/init can take up to 120s) */
-    private static final Duration REDUX_REQUEST_TIMEOUT = Duration.ofSeconds(130);
-    private final HttpClient longTimeoutClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(15))
-            .build();
+    /**
+     * Timeout for redux-node-service calls in milliseconds (biz/init can take up to 120s)
+     */
+    private static final int REDUX_TIMEOUT_MS = 130_000;
 
     @Inject
     AppConfig appConfig;
@@ -358,8 +351,8 @@ public class AppsmithJsObjectTracker {
 
         for (PendingOperation op : state.pendingOperations) {
             try {
-                // Log request body without file content (truncate "body" field value)
-                LOG.infof("JsObjectTracker: executing %s, request: %s", op, truncateBodyField(op.body));
+                LOG.infof("JsObjectTracker: >>> %s %s", op.method, op.url);
+                LOG.infof("JsObjectTracker: >>> request body: %s", truncateBodyField(op.body));
 
                 IHttpService.Response resp;
                 switch (op.method) {
@@ -372,15 +365,17 @@ public class AppsmithJsObjectTracker {
                     default -> throw new IllegalArgumentException("Unsupported method: " + op.method);
                 }
 
-                if (resp.isSuccess()) {
-                    LOG.infof("JsObjectTracker: %s succeeded (HTTP %d)", op, resp.statusCode);
-                } else {
-                    String errMsg = String.format("Appsmith API %s failed (HTTP %d): %s", op, resp.statusCode, resp.body);
+                LOG.infof("JsObjectTracker: <<< %s %s HTTP %d, response: %s",
+                        op.method, op.url, resp.statusCode, resp.body);
+
+                if (!resp.isSuccess()) {
+                    String errMsg = String.format("Appsmith API %s %s failed (HTTP %d): %s",
+                            op.method, op.url, resp.statusCode, resp.body);
                     LOG.errorf("JsObjectTracker: %s", errMsg);
                     if (firstError == null) firstError = errMsg;
                 }
             } catch (Exception e) {
-                String errMsg = String.format("Appsmith API %s exception: %s", op, e.getMessage());
+                String errMsg = String.format("Appsmith API %s %s exception: %s", op.method, op.url, e.getMessage());
                 LOG.errorf(e, "JsObjectTracker: %s", errMsg);
                 if (firstError == null) firstError = errMsg;
             }
@@ -404,7 +399,6 @@ public class AppsmithJsObjectTracker {
             LOG.info("JsObjectTracker: no content changes to sync");
             return null;
         }
-
         ContainerState state = containerStates.get(containerId);
         if (state == null) {
             String err = "JsObjectTracker: no state for container " + containerId + ", cannot sync content";
@@ -449,32 +443,33 @@ public class AppsmithJsObjectTracker {
 
         try {
             // Step 2: POST /sessions to create a new session (use long-timeout client)
+            String createSessionUrl = reduxBaseUrl + "/sessions";
             String createSessionBody = "{\"authToken\":\"your-jwt-token\",\"backendUrl\":\"http://appsmith:8080\"}";
-            LOG.info("JsObjectTracker: creating redux-node-service session");
-            IHttpService.Response createResp = reduxPost(reduxBaseUrl + "/sessions", createSessionBody);
+            LOG.infof("JsObjectTracker: >>> POST %s", createSessionUrl);
+            LOG.infof("JsObjectTracker: >>> request body: %s", createSessionBody);
+            IHttpService.Response createResp = httpService.postJsonWithStatus(createSessionUrl, createSessionBody, null, REDUX_TIMEOUT_MS);
+            LOG.infof("JsObjectTracker: <<< POST %s HTTP %d, response: %s",
+                    createSessionUrl, createResp.statusCode, createResp.body);
 
             if (!createResp.isSuccess()) {
-                String err = String.format("Failed to create redux-node-service session (HTTP %d): %s",
+                String err = String.format("Failed to create session (HTTP %d): %s",
                         createResp.statusCode, createResp.body);
-                LOG.errorf("JsObjectTracker: %s", err);
                 return err;
             }
 
             JsonNode createResult = objectMapper.readTree(createResp.body);
             if (!createResult.path("success").asBoolean(false)) {
                 String err = "Create session returned success=false: " + createResp.body;
-                LOG.errorf("JsObjectTracker: %s", err);
                 return err;
             }
 
             sessionId = createResult.path("result").path("sessionId").asText(null);
             if (sessionId == null) {
                 String err = "Create session response missing sessionId: " + createResp.body;
-                LOG.errorf("JsObjectTracker: %s", err);
                 return err;
             }
 
-            LOG.infof("JsObjectTracker: created redux-node-service session %s", sessionId);
+            LOG.infof("JsObjectTracker: session created: %s", sessionId);
 
             // Step 3: POST /sessions/:id/biz/init
             String initBody;
@@ -488,19 +483,23 @@ public class AppsmithJsObjectTracker {
                 return "Failed to build init body: " + e.getMessage();
             }
 
-            LOG.infof("JsObjectTracker: POST biz/init, pageId=%s (timeout=%ds)", state.pageId, REDUX_REQUEST_TIMEOUT.toSeconds());
-            IHttpService.Response initResp = reduxPost(
-                    reduxBaseUrl + "/sessions/" + sessionId + "/biz/init", initBody);
+            String initUrl = reduxBaseUrl + "/sessions/" + sessionId + "/biz/init";
+            LOG.infof("JsObjectTracker: >>> POST %s (timeout=%dms), pageId=%s, body length=%s",
+                    initUrl, REDUX_TIMEOUT_MS, state.pageId, initBody);
+            IHttpService.Response initResp = httpService.postJsonWithStatus(initUrl, initBody, null, REDUX_TIMEOUT_MS);
+            LOG.infof("JsObjectTracker: <<< POST %s HTTP %d, response: %s",
+                    initUrl, initResp.statusCode,
+                    initResp.body != null && initResp.body.length() > 500
+                            ? initResp.body.substring(0, 500) + "...[truncated]" : initResp.body);
+
             if (!initResp.isSuccess()) {
                 String err = String.format("biz/init failed (HTTP %d): %s", initResp.statusCode, initResp.body);
-                LOG.errorf("JsObjectTracker: %s", err);
                 return err;
             }
 
             JsonNode initResult = objectMapper.readTree(initResp.body);
             if (!initResult.path("success").asBoolean(false)) {
                 String err = "biz/init returned success=false: " + initResp.body;
-                LOG.errorf("JsObjectTracker: %s", err);
                 return err;
             }
 
@@ -520,15 +519,22 @@ public class AppsmithJsObjectTracker {
                 }
 
                 String collectionId = collection.path("id").asText("");
-                LOG.infof("JsObjectTracker: updating js-action '%s' (id=%s), body length=%d",
-                        collectionName, collectionId, newBody.length());
 
                 String updateBody = String.format("{\"id\":\"%s\",\"body\":\"%s\"}",
                         escapeJson(collectionId), escapeJson(newBody));
 
+                String updateUrl = reduxBaseUrl + "/sessions/" + sessionId + "/biz/update/js-action";
+
                 try {
-                    IHttpService.Response updateResp = reduxPost(
-                            reduxBaseUrl + "/sessions/" + sessionId + "/biz/update/js-action", updateBody);
+//                    flag = !flag;
+//                    if (flag) {
+//                    Thread.sleep(300);
+//                    }
+                    LOG.infof("JsObjectTracker: >>> POST %s, collection='%s' (id=%s), body=%s",
+                            updateUrl, collectionName, collectionId, truncateBodyField(updateBody));
+                    IHttpService.Response updateResp = httpService.postJsonWithStatus(updateUrl, updateBody, null, REDUX_TIMEOUT_MS);
+                    LOG.infof("JsObjectTracker: <<< POST %s HTTP %d, response: %s",
+                            updateUrl, updateResp.statusCode, updateResp.body);
 
                     if (!updateResp.isSuccess()) {
                         String err = String.format("update/js-action failed for '%s' (HTTP %d): %s",
@@ -543,7 +549,7 @@ public class AppsmithJsObjectTracker {
                     boolean edit = updateResult.path("result").path("edit").asBoolean(false);
                     JsonNode httpActions = updateResult.path("result").path("httpActions");
 
-                    if (success && edit && httpActions.isArray() && httpActions.size() > 0) {
+                    if (success && edit) {
                         LOG.infof("JsObjectTracker: '%s' has %d httpActions to execute", collectionName, httpActions.size());
 
                         String appsmithBaseUrl = getAppsmithBaseUrl();
@@ -551,20 +557,18 @@ public class AppsmithJsObjectTracker {
                         // 4.1 Call PUT /api/v1/collections/actions/{collectionId}/body to update full content
                         String contentUpdateUrl = appsmithBaseUrl + "/api/v1/collections/actions/" + collectionId + "/body";
                         String contentUpdateBody = String.format("{\"body\":\"%s\"}", escapeJson(newBody));
-                        LOG.infof("JsObjectTracker: 4.1 updating collection body: PUT %s, body length=%d",
-                                contentUpdateUrl, newBody.length());
+                        LOG.infof("JsObjectTracker: [4.1] >>> PUT %s, body length=%d", contentUpdateUrl, newBody.length());
                         try {
                             IHttpService.Response contentResp = putWithStatus(contentUpdateUrl, contentUpdateBody, appsmithHeaders);
-                            if (contentResp.isSuccess()) {
-                                LOG.infof("JsObjectTracker: 4.1 collection body update succeeded for '%s'", collectionName);
-                            } else {
-                                String err = String.format("4.1 collection body update failed for '%s' (HTTP %d): %s",
-                                        collectionName, contentResp.statusCode, contentResp.body);
-                                LOG.errorf("JsObjectTracker: %s", err);
+                            LOG.infof("JsObjectTracker: [4.1] <<< PUT %s HTTP %d, response: %s",
+                                    contentUpdateUrl, contentResp.statusCode, contentResp.body);
+                            if (!contentResp.isSuccess()) {
+                                String err = String.format("[4.1] PUT %s failed (HTTP %d): %s",
+                                        contentUpdateUrl, contentResp.statusCode, contentResp.body);
                                 if (firstError == null) firstError = err;
                             }
                         } catch (Exception e) {
-                            String err = String.format("4.1 collection body update exception for '%s': %s", collectionName, e.getMessage());
+                            String err = String.format("[4.1] PUT %s exception: %s", contentUpdateUrl, e.getMessage());
                             LOG.errorf(e, "JsObjectTracker: %s", err);
                             if (firstError == null) firstError = err;
                         }
@@ -575,7 +579,7 @@ public class AppsmithJsObjectTracker {
                             String actionUrl = appsmithBaseUrl + "/api/" + action.path("url").asText("");
                             String actionBody = action.has("body") ? objectMapper.writeValueAsString(action.path("body")) : null;
 
-                            LOG.infof("JsObjectTracker: httpAction %s %s, request: %s",
+                            LOG.infof("JsObjectTracker: [4.2] >>> %s %s, request: %s",
                                     actionMethod, actionUrl, truncateBodyField(actionBody));
 
                             try {
@@ -594,16 +598,15 @@ public class AppsmithJsObjectTracker {
                                     }
                                 }
 
-                                if (actionResp.isSuccess()) {
-                                    LOG.infof("JsObjectTracker: httpAction %s %s succeeded:　%s", actionMethod, actionUrl, actionResp.toString());
-                                } else {
-                                    String err = String.format("httpAction %s %s failed (HTTP %d): %s",
+                                LOG.infof("JsObjectTracker: [4.2] <<< %s %s HTTP %d, response: %s",
+                                        actionMethod, actionUrl, actionResp.statusCode, actionResp.body);
+                                if (!actionResp.isSuccess()) {
+                                    String err = String.format("[4.2] %s %s failed (HTTP %d): %s",
                                             actionMethod, actionUrl, actionResp.statusCode, actionResp.body);
-                                    LOG.errorf("JsObjectTracker: %s", err);
                                     if (firstError == null) firstError = err;
                                 }
                             } catch (Exception e) {
-                                String err = String.format("httpAction %s %s exception: %s", actionMethod, actionUrl, e.getMessage());
+                                String err = String.format("[4.2] %s %s exception: %s", actionMethod, actionUrl, e.getMessage());
                                 LOG.errorf(e, "JsObjectTracker: %s", err);
                                 if (firstError == null) firstError = err;
                             }
@@ -627,8 +630,9 @@ public class AppsmithJsObjectTracker {
             // Step 5: DELETE /sessions/:id — must always be called
             if (sessionId != null) {
                 try {
-                    reduxDelete(reduxBaseUrl + "/sessions/" + sessionId);
-                    LOG.infof("JsObjectTracker: deleted redux-node-service session %s", sessionId);
+                    String delUrl = reduxBaseUrl + "/sessions/" + sessionId;
+                    IHttpService.Response delResp = httpService.deleteWithStatus(delUrl, Map.of());
+                    LOG.infof("JsObjectTracker: deleted redux-node-service session %s (HTTP %d)", sessionId, delResp.statusCode);
                 } catch (Exception e) {
                     LOG.warnf("JsObjectTracker: failed to delete session %s: %s", sessionId, e.getMessage());
                 }
@@ -672,7 +676,7 @@ public class AppsmithJsObjectTracker {
         }
     }
 
-    private Map<String, String> buildAppsmithHeaders() {
+    public Map<String, String> buildAppsmithHeaders() {
         String session = appConfig.getAppsmithSession();
         String xsrfToken = appConfig.getAppsmithXsrfToken();
 
@@ -714,53 +718,9 @@ public class AppsmithJsObjectTracker {
      */
     private IHttpService.Response putWithStatus(String url, String body, Map<String, String> headers) {
         try {
-            String responseBody = httpService.put(url, body, headers);
-            return new IHttpService.Response(200, responseBody);
+            return httpService.putWithStatus(url, body, headers);
         } catch (Exception e) {
             return new IHttpService.Response(500, e.getMessage());
-        }
-    }
-
-    /**
-     * POST JSON to redux-node-service with long timeout (biz/init can take up to 120s).
-     * Uses a dedicated HttpClient instead of the global IHttpService.
-     */
-    private IHttpService.Response reduxPost(String url, String json) {
-        try {
-            HttpRequest.Builder builder = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("Content-Type", "application/json;charset=UTF-8")
-                    .header("Accept", "application/json")
-                    .timeout(REDUX_REQUEST_TIMEOUT);
-            if (json != null && !json.isEmpty()) {
-                builder.POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8));
-            } else {
-                builder.POST(HttpRequest.BodyPublishers.noBody());
-            }
-            HttpResponse<String> resp = longTimeoutClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
-            return new IHttpService.Response(resp.statusCode(), resp.body());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return new IHttpService.Response(500, "Interrupted: " + e.getMessage());
-        } catch (IOException e) {
-            return new IHttpService.Response(500, "IO error: " + e.getMessage());
-        }
-    }
-
-    /**
-     * DELETE to redux-node-service with long timeout.
-     */
-    private void reduxDelete(String url) throws IOException {
-        try {
-            HttpRequest req = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .timeout(Duration.ofSeconds(30))
-                    .DELETE()
-                    .build();
-            longTimeoutClient.send(req, HttpResponse.BodyHandlers.ofString());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException("Interrupted", e);
         }
     }
 

@@ -26,6 +26,9 @@ public class DependencyResource {
     @Inject
     RequestContext requestContext;
 
+    @Inject
+    com.appsmith.aiide.service.DepsLoader depsLoader;
+
     /**
      * List all dependencies.
      */
@@ -134,7 +137,7 @@ public class DependencyResource {
                     .build();
         }
 
-        // TODO: Call DepsLoader.refresh(dep)
+        depsLoader.refreshDep(dep.id);
         LOG.infof("Dependency refreshed: %s by %s", dep.namespace, requestContext.getUsername());
         return Response.ok(Map.of("success", true, "namespace", dep.namespace)).build();
     }
@@ -145,7 +148,7 @@ public class DependencyResource {
     @POST
     @Path("/batch/refresh")
     public Response refreshAll() {
-        // TODO: Call DepsLoader.refreshAll()
+        depsLoader.refreshAllDeps();
         long count = Dependency.count();
         LOG.infof("All dependencies refreshed (%d) by %s", count, requestContext.getUsername());
         return Response.ok(Map.of("success", true, "count", count)).build();

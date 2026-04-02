@@ -63,11 +63,20 @@ public interface IHttpService {
 
     Response postJsonWithStatus(String url, String json, Map<String, String> extraHeaders) throws IOException;
 
+    /** POST JSON with custom read timeout (milliseconds). */
+    Response postJsonWithStatus(String url, String json, Map<String, String> extraHeaders, int readTimeoutMs) throws IOException;
+
     // ------------------------------------------------------------------ PUT
 
     String put(String url, String body, Map<String, String> headers) throws IOException;
 
+    // ------------------------------------------------------------------ PUT with status
+
+    Response putWithStatus(String url, String body, Map<String, String> headers) throws IOException;
+
     // ------------------------------------------------------------------ DELETE
 
     String delete(String url, Map<String, String> headers) throws IOException;
+
+    Response deleteWithStatus(String url, Map<String, String> headers) throws IOException;
 }

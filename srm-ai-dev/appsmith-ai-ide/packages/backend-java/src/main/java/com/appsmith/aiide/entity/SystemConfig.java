@@ -28,12 +28,25 @@ public class SystemConfig extends PanacheEntityBase {
     @Column(name = "\"key\"", length = 100, unique = true, nullable = false)
     public String key;
 
+    /** Display name shown in config UI, e.g. "APPSMITH会话" */
+    @Column(length = 100)
+    public String name;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
     public Object value;
 
     @Column(columnDefinition = "TEXT")
     public String description;
+
+    /** Input type: "input" or "dropdown", default "input" */
+    @Column(length = 20)
+    public String type = "input";
+
+    /** Dropdown options as JSON array: [{"text":"Option1","value":"v1"}, ...] */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    public Object datasource;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by")

@@ -50,7 +50,13 @@
       "Bash(xargs grep:*)",
       "Bash(grep -n \"pageType\\\\|page.type\\\\|type.*appsmith\" /d/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide/packages/frontend/src/pages/IDEPage/*.tsx)",
       "Bash(cmd.exe /c \"mvnw.cmd compile -q\")",
-      "Bash(mvn compile:*)"
+      "Bash(mvn compile:*)",
+      "Bash(grep -r skills.json /d/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide/packages/container-services --include=*.ts)",
+      "Bash(grep -r \"skills.*register\\\\|/api/skills/register\" /d/a-joii/project/srm-ai/ai-code/srm-ai-dev/appsmith-ai-ide/packages/backend --include=*.ts)",
+      "Bash(PGPASSWORD=aiide_dev psql -h localhost -U aiide -d aiide -c \"\\\\d system_configs\" 2>&1)",
+      "Bash(where psql:*)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Program Files \\(x86\\)/**)"
     ]
   }
 }

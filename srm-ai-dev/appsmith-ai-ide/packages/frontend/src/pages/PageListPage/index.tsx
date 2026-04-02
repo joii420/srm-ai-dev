@@ -13,6 +13,20 @@ interface PageItem {
   gitBranch: string;
   status: 'free' | 'available' | 'checkedout' | 'mine';
   checkedOutBy: { username: string; displayName: string } | null;
+  updatedAt: string | null;
+  checkedOutAt: string | null;
+}
+
+/** Format ISO datetime string to readable local time */
+function formatTime(isoStr: string | null | undefined): string {
+  if (!isoStr) return '-';
+  try {
+    const d = new Date(isoStr);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } catch {
+    return isoStr;
+  }
 }
 
 type StatusFilter = 'all' | 'free' | 'mine';
@@ -108,18 +122,19 @@ const PageListPage: React.FC = () => {
 
   return (
     <div className="checkout-wrap">
-      <div className="hero">
+      <div className="checkout-hero">
         <h1>程序列表</h1>
       </div>
 
-      <div className="toolbar">
-        <input
-          type="text"
-          placeholder="搜索程序名称..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="search-box"
-        />
+      <div className="checkout-toolbar">
+        <div className="search-box">
+          <input
+            type="text"
+            placeholder="搜索程序名称..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
         <div className="filter-tabs">
           {filterButtons.map((btn) => (
             <button
@@ -171,19 +186,12 @@ const PageListPage: React.FC = () => {
                 {page.description && (
                   <div className="pc-desc">{page.description}</div>
                 )}
-                <div className="pc-info">
-                  <span className="pc-branch">
-                    {page.gitlabRepoUrl.replace(/^https?:\/\/[^/]+\//, '')}
-                  </span>
-                  <span className="pc-branch">分支: {page.gitBranch || 'dev'}</span>
+                <div className="pc-meta">
+                  <span>修改时间: {formatTime(page.updatedAt)}</span>
+                  {(page.status === 'mine' || otherCheckout) && page.checkedOutAt && (
+                    <span>签出时间: {formatTime(page.checkedOutAt)}</span>
+                  )}
                 </div>
-                {otherCheckout && (
-                  <div className="checkout-footer">
-                    <span>
-                      由 {page.checkedOutBy?.displayName || '其他用户'} 签出中
-                    </span>
-                  </div>
-                )}
               </div>
             );
           })}

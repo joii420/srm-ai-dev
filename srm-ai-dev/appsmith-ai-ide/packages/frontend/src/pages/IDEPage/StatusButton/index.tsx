@@ -11,7 +11,7 @@ interface CheckoutStep {
 }
 
 const CHECKOUT_STEPS: CheckoutStep[] = [
-  { key: 'lock', label: '锁定页面' },
+  { key: 'edit_lock_checkout', label: '锁定页面' },
   { key: 'create_container', label: '创建容器' },
   { key: 'inject_ssh_key', label: '注入SSH密钥' },
   { key: 'git_clone', label: '克隆代码' },
@@ -39,6 +39,8 @@ type DialogPhase =
   | 'checkin-discard'        // 签入：确认丢弃未保存内容
   | 'checkin-message'        // 签入：输入 commit message
   | 'checkin-submitting'     // 签入：提交中
+  | 'checkin-expired'        // 签入：容器已失效，可强制释放
+  | 'checkin-force-releasing' // 强制释放中
   | 'abandon-confirm'        // 退出：确认还原所有变更
   | 'abandon-submitting';    // 退出：销毁中
 
@@ -113,9 +115,11 @@ const StatusButton: React.FC<StatusButtonProps> = ({
             buffer = lines.pop() || '';
 
             for (const line of lines) {
-              if (line.startsWith('data: ')) {
+              // SSE format: "data:{...}" or "data: {...}"
+              if (line.startsWith('data:')) {
+                const jsonStr = line.startsWith('data: ') ? line.slice(6) : line.slice(5);
                 try {
-                  const data = JSON.parse(line.slice(6)) as {
+                  const data = JSON.parse(jsonStr) as {
                     step?: string;
                     status?: string;
                     error?: string;
@@ -177,6 +181,7 @@ const StatusButton: React.FC<StatusButtonProps> = ({
 
   const handleCheckinClick = useCallback(() => {
     setDialogError(null);
+    setError(null);
     setCommitMessage('');
 
     if (hasUnsavedFiles()) {
@@ -222,6 +227,12 @@ const StatusButton: React.FC<StatusButtonProps> = ({
           return;
         }
 
+        if (response.status === 404 && body.error === 'NotFound') {
+          setDialogError('容器已失效：' + (body.message || ''));
+          setDialogPhase('checkin-expired');
+          return;
+        }
+
         throw new Error(body.message || `签入失败 (HTTP ${response.status})`);
       }
 
@@ -263,6 +274,7 @@ const StatusButton: React.FC<StatusButtonProps> = ({
 
   const handleAbandonClick = useCallback(() => {
     setDialogError(null);
+    setError(null);
     setDialogPhase('abandon-confirm');
   }, []);
 
@@ -293,6 +305,36 @@ const StatusButton: React.FC<StatusButtonProps> = ({
   }, [pageId, token, onCheckoutComplete]);
 
   /* ---------------------------------------------------------------- */
+  /*  Force Release (容器失效时强制归还)                                  */
+  /* ---------------------------------------------------------------- */
+
+  const submitForceRelease = useCallback(async () => {
+    setDialogPhase('checkin-force-releasing');
+    setDialogError(null);
+
+    try {
+      const response = await fetch(`/api/pages/${pageId}/release`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({})) as { message?: string };
+        throw new Error(body.message || `强制释放失败 (HTTP ${response.status})`);
+      }
+
+      setDialogPhase('idle');
+      onCheckoutComplete();
+    } catch (err) {
+      setDialogError(err instanceof Error ? err.message : String(err));
+      setDialogPhase('checkin-expired');
+    }
+  }, [pageId, token, onCheckoutComplete]);
+
+  /* ---------------------------------------------------------------- */
   /*  Common                                                           */
   /* ---------------------------------------------------------------- */
 
@@ -307,19 +349,14 @@ const StatusButton: React.FC<StatusButtonProps> = ({
   /* ---------------------------------------------------------------- */
 
   if (checkoutInProgress || error) {
-    const activeStep = currentStepIndex >= 0 && currentStepIndex < CHECKOUT_STEPS.length
-      ? CHECKOUT_STEPS[currentStepIndex]
-      : null;
-
     return (
       <div className="loading-screen on">
         {!error && <div className="spin" />}
         <p className="load-h">
           {error ? '签出失败' : '正在初始化开发环境'}
         </p>
-        {activeStep && !error && (
-          <p className="load-sub">{activeStep.label}...</p>
-        )}
+
+        {/* Step progress list */}
         <div className="steps">
           {CHECKOUT_STEPS.map((step, idx) => {
             let cls = 'step';
@@ -336,13 +373,19 @@ const StatusButton: React.FC<StatusButtonProps> = ({
             );
           })}
         </div>
+
         {error && (
-          <>
-            <p style={{ color: 'var(--red)', fontSize: 12, marginTop: 8 }}>{error}</p>
-            <button className="btn btn-p" onClick={() => { setError(null); startCheckout(); }}>
-              重试
-            </button>
-          </>
+          <div className="loading-card" style={{ marginTop: 12 }}>
+            <p className="lc-error" style={{ textAlign: 'center' }}>{error}</p>
+            <div className="dialog-buttons">
+              <button className="btn btn-p" onClick={() => { setError(null); startCheckout(); }}>
+                重试
+              </button>
+              <button className="btn btn-grey" style={{ cursor: 'pointer' }} onClick={() => setError(null)}>
+                关闭
+              </button>
+            </div>
+          </div>
         )}
       </div>
     );
@@ -468,6 +511,44 @@ const StatusButton: React.FC<StatusButtonProps> = ({
               style={{ cursor: 'pointer' }}
               onClick={handleCancel}
               disabled={isSubmitting}
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 签入：容器失效，可强制释放
+  if (dialogPhase === 'checkin-expired' || dialogPhase === 'checkin-force-releasing') {
+    const isReleasing = dialogPhase === 'checkin-force-releasing';
+
+    return (
+      <div className="loading-screen on">
+        <div className="loading-card">
+          <p className="lc-title">容器已失效</p>
+          <p className="dialog-text">
+            当前容器已失效，无法正常签入。点击"强制归还"可释放页面，恢复可签出状态。
+          </p>
+          {dialogError && <p className="lc-error">{dialogError}</p>}
+          <div className="dialog-buttons">
+            <button
+              className="btn btn-amb"
+              onClick={() => void submitForceRelease()}
+              disabled={isReleasing}
+              style={{
+                opacity: isReleasing ? 0.5 : 1,
+                cursor: isReleasing ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {isReleasing ? '释放中...' : '强制归还'}
+            </button>
+            <button
+              className="btn btn-grey"
+              style={{ cursor: 'pointer' }}
+              onClick={handleCancel}
+              disabled={isReleasing}
             >
               取消
             </button>

@@ -22,6 +22,8 @@ public class PageDto {
     public String appsmithPageId;
     public String status;
     public Object checkedOutBy;  // null | { username, displayName }
+    public String updatedAt;     // page last modified time
+    public String checkedOutAt;  // checkout time (when status is mine/checkedout)
 
     /**
      * Build from Page entity, with checkout status computed separately.
@@ -37,6 +39,7 @@ public class PageDto {
         dto.appsmithPageId = page.appsmithPageId;
         dto.status = "free";
         dto.checkedOutBy = null;
+        dto.updatedAt = page.updatedAt != null ? page.updatedAt.toString() : null;
         return dto;
     }
 

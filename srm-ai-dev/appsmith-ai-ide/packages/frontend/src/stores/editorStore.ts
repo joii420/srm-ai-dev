@@ -5,6 +5,8 @@ export interface EditorTab {
   filePath: string;
   fileName: string;
   language: string;
+  /** If true, file is read-only regardless of IDE mode (e.g. dependency files) */
+  readOnly?: boolean;
 }
 
 export interface CursorPosition {
@@ -23,6 +25,7 @@ interface EditorState {
   markUnsaved: (tabId: string) => void;
   markSaved: (tabId: string) => void;
   clearAllUnsaved: () => void;
+  clearAllTabs: () => void;
   hasUnsavedFiles: () => boolean;
   setCursorPosition: (pos: CursorPosition) => void;
   renameTab: (oldPath: string, newTab: EditorTab) => void;
@@ -76,6 +79,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   clearAllUnsaved: () => set({ unsavedFiles: new Set<string>() }),
+
+  clearAllTabs: () => set({ openTabs: [], activeTabId: null, unsavedFiles: new Set<string>(), cursorPosition: null }),
 
   hasUnsavedFiles: () => get().unsavedFiles.size > 0,
 

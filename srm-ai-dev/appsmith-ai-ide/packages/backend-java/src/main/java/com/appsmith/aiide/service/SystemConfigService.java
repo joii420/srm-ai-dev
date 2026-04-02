@@ -1,0 +1,80 @@
+package com.appsmith.aiide.service;
+
+import com.appsmith.aiide.entity.SystemConfig;
+import jakarta.enterprise.context.ApplicationScoped;
+import org.jboss.logging.Logger;
+
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Cached read service for system_configs table.
+ * All business code reads config values through this service.
+ */
+@ApplicationScoped
+public class SystemConfigService {
+
+    private static final Logger LOG = Logger.getLogger(SystemConfigService.class);
+
+    /** Config key constants */
+    public static final String APPSMITH_SESSION = "appsmith.session";
+    public static final String GITLAB_API_BASE_URL = "gitlab.api.base.url";
+    public static final String GITLAB_REPO_PREFIX = "gitlab.repo.prefix";
+    public static final String GIT_TOKEN = "git.token";
+
+    /** Sentinel value to cache "key exists but value is empty" */
+    private static final String EMPTY_SENTINEL = "__EMPTY__";
+
+    private final ConcurrentHashMap<String, String> cache = new ConcurrentHashMap<>();
+
+    /**
+     * Get config value by key. Checks cache first, then DB.
+     *
+     * @return value string, or empty string if not found
+     */
+    public String getValue(String key) {
+        String cached = cache.get(key);
+        if (cached != null) {
+            return EMPTY_SENTINEL.equals(cached) ? "" : cached;
+        }
+
+        // Cache miss — query DB
+        try {
+            SystemConfig config = SystemConfig.findByKey(key);
+            if (config != null && config.value != null) {
+                String raw = config.value instanceof String s ? s : config.value.toString();
+                // Strip ALL layers of surrounding quotes from JSONB string
+                // Hibernate may return "xxx" or even ""xxx"" depending on JSONB mapping
+                String val = raw;
+                while (val.length() >= 2 && val.startsWith("\"") && val.endsWith("\"")) {
+                    val = val.substring(1, val.length() - 1);
+                }
+                LOG.infof("SystemConfigService: key='%s', raw='%.30s', resolved='%.30s'",
+                        key, raw, val);
+                cache.put(key, val.isEmpty() ? EMPTY_SENTINEL : val);
+                return val;
+            }
+            LOG.warnf("SystemConfigService: key='%s' not found in DB", key);
+        } catch (Exception e) {
+            LOG.warnf("SystemConfigService: failed to read key '%s' from DB: %s", key, e.getMessage());
+        }
+
+        cache.put(key, EMPTY_SENTINEL);
+        return "";
+    }
+
+    /**
+     * Refresh cache for a single key (call after update).
+     */
+    public void refreshCache(String key) {
+        cache.remove(key);
+        LOG.infof("SystemConfigService: cache refreshed for key '%s'", key);
+    }
+
+    /**
+     * Refresh entire cache (call for bulk changes).
+     */
+    public void refreshCache() {
+        cache.clear();
+        LOG.info("SystemConfigService: full cache cleared");
+    }
+}

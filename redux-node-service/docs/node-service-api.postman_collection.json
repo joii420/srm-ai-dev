@@ -1,0 +1,215 @@
+{
+  "info": {
+    "name": "Redux Node Service API",
+    "description": "统一返回格式：\n- 成功: { success: true, message: \"\", result: any }\n- 失败: { success: false, message: \"...\", errorCode: \"ERROR_CODE\", result: null }\n\nHTTP 状态码始终 200，通过 errorCode 区分错误类型。\n\n典型流程：\n1. POST /sessions 创建会话\n2. POST /sessions/:id/biz/init 业务初始化\n3. POST /sessions/:id/eval/setup 初始化求值\n4. POST /sessions/:id/dispatch 派发数据\n5. POST /sessions/:id/eval/tree 触发求值\n6. GET /sessions/:id/state/evaluations/tree 读取结果",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3100", "type": "string" },
+    { "key": "sessionId", "value": "", "type": "string", "description": "自动填充" }
+  ],
+  "item": [
+    {
+      "name": "1. 健康检查",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] } },
+          "response": [{ "name": "成功", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"success\": true,\n  \"message\": \"\",\n  \"result\": {\n    \"status\": \"ok\",\n    \"uptime\": 120,\n    \"sessions\": 0,\n    \"memory\": { \"heapUsed\": \"65MB\", \"rss\": \"114MB\" }\n  }\n}" }]
+        }
+      ]
+    },
+    {
+      "name": "2. 会话管理",
+      "item": [
+        {
+          "name": "POST /sessions",
+          "event": [{ "listen": "test", "script": { "exec": ["var d=pm.response.json();","if(d.result&&d.result.sessionId){pm.collectionVariables.set('sessionId',d.result.sessionId);}"], "type": "text/javascript" }}],
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"authToken\": \"your-token\",\n  \"backendUrl\": \"http://appsmith:8080\"\n}" }, "url": { "raw": "{{baseUrl}}/sessions", "host": ["{{baseUrl}}"], "path": ["sessions"] }, "description": "authToken (string, 可选)\nbackendUrl (string, 可选)" },
+          "response": [
+            { "name": "成功", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\"success\":true,\"message\":\"\",\"result\":{\"sessionId\":\"3f8ab32c-...\",\"createdAt\":\"2026-03-26T03:05:50.724Z\"}}" },
+            { "name": "失败", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\"success\":false,\"message\":\"创建失败\",\"errorCode\":\"SESSION_CREATE_FAILED\",\"result\":null}" }
+          ]
+        },
+        {
+          "name": "GET /sessions",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/sessions", "host": ["{{baseUrl}}"], "path": ["sessions"] } },
+          "response": [{ "name": "成功", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\"success\":true,\"message\":\"\",\"result\":[{\"id\":\"3f8ab32c-...\",\"authToken\":\"your-tok...\",\"backendUrl\":\"http://appsmith:8080\"}]}" }]
+        },
+        {
+          "name": "DELETE /sessions/:id",
+          "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/sessions/{{sessionId}}", "host": ["{{baseUrl}}"], "path": ["sessions","{{sessionId}}"] } },
+          "response": [
+            { "name": "成功", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\"success\":true,\"message\":\"\",\"result\":null}" },
+            { "name": "失败 - 会话不存在", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\"success\":false,\"message\":\"Session not found\",\"errorCode\":\"SESSION_NOT_FOUND\",\"result\":null}" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. 状态操作",
+      "item": [
+        {
+          "name": "GET state",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/sessions/{{sessionId}}/state", "host": ["{{baseUrl}}"], "path": ["sessions","{{sessionId}}","state"] } },
+          "response": [{ "name": "成功", "code": 200, "body": "{\"success\":true,\"message\":\"\",\"result\":{\"entities\":{},\"ui\":{},\"evaluations\":{}}}" }]
+        },
+        {
+          "name": "GET state/:slice",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/sessions/{{sessionId}}/state/entities", "host": ["{{baseUrl}}"], "path": ["sessions","{{sessionId}}","state","entities"] } },
+          "response": [
+            { "name": "成功", "code": 200, "body": "{\"success\":true,\"message\":\"\",\"result\":{\"canvasWidgets\":{},\"actions\":[]}}" },
+            { "name": "失败 - 切片不存在", "code": 200, "body": "{\"success\":false,\"message\":\"Slice \\\"xxx\\\" not found\",\"errorCode\":\"SLICE_NOT_FOUND\",\"result\":null}" }
+          ]
+        },
+        {
+          "name": "GET state/:slice/:sub",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/sessions/{{sessionId}}/state/entities/canvasWidgets", "host": ["{{baseUrl}}"], "path": ["sessions","{{sessionId}}","state","entities","canvasWidgets"] } },
+          "response": [
+            { "name": "成功", "code": 200, "body": "{\"success\":true,\"message\":\"\",\"result\":{}}" },
+            { "name": "失败 - 切片不存在", "code": 200, "body": "{\"success\":false,\"message\":\"Sub-slice \\\"xxx\\\" not found\",\"errorCode\":\"SLICE_NOT_FOUND\",\"result\":null}" }
+          ]
+        },
+        {
+          "name": "POST dispatch",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"type\": \"UPDATE_LAYOUT\",\n  \"payload\": {\n    \"widgets\": {\n      \"0\": { \"widgetId\": \"0\", \"type\": \"CANVAS_WIDGET\" }\n    }\n  }\n}" }, "url": { "raw": "{{baseUrl}}/sessions/{{sessionId}}/dispatch", "host": ["{{baseUrl}}"], "path": ["sessions","{{sessionId}}","dispatch"] }, "description": "type (string, 必填)\npayload (any, 可选)" },
+          "response": [
+            { "name": "成功", "code": 200, "body": "{\"success\":true,\"message\":\"\",\"result\":null}" },
+            { "name": "失败 - Action 非法", "code": 200, "body": "{\"success\":false,\"message\":\"Action must have a \\\"type\\\" field\",\"errorCode\":\"ACTION_INVALID\",\"result\":null}" }
+          ]
+        },
+        {
+          "name": "POST dispatch-batch",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"actions\": [\n    { \"type\": \"SET_APP_MODE\", \"payload\": { \"mode\": \"EDIT\" } },\n    { \"type\": \"SET_THEME\", \"payload\": \"LIGHT\" }\n  ]\n}" }, "url": { "raw": "{{baseUrl}}/sessions/{{sessionId}}/dispatch-batch", "host": ["{{baseUrl}}"], "path": ["sessions","{{sessionId}}","dispatch-batch"] } },
+          "response": [
+            { "name": "成功", "code": 200, "body": "{\"success\":true,\"message\":\"\",\"result\":{\"dispatched\":2}}" },
+            { "name": "失败 - 格式非法", "code": 200, "body": "{\"success\":false,\"message\":\"Body must have an \\\"actions\\\" array\",\"errorCode\":\"ACTION_INVALID\",\"result\":null}" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. 求值引擎",
+      "item": [
+        {
+          "name": "POST eval/setup",
+          "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/sessions/{{sessionId}}/eval/setup", "host": ["{{baseUrl}}"], "path": ["sessions","{{sessionId}}","eval","setup"] } },
+          "response": [
+            { "name": "成功", "code": 200, "body": "{\"success\":true,\"message\":\"\",\"result\":\"Evaluation setup started\"}" },
+            { "name": "失败", "code": 200, "body": "{\"success\":false,\"message\":\"...\",\"errorCode\":\"EVAL_ERROR\",\"result\":null}" }
+          ]
+        },
+        {
+          "name": "POST eval/tree",
+          "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/sessions/{{sessionId}}/eval/tree?timeout=20000", "host": ["{{baseUrl}}"], "path": ["sessions","{{sessionId}}","eval","tree"], "query": [{"key":"timeout","value":"20000","description":"可选，默认30000"}] } },
+          "response": [
+            { "name": "成功", "code": 200, "body": "{\"success\":true,\"message\":\"\",\"result\":{\"elapsed\":107,\"tree\":{\"MainContainer\":{\"ENTITY_TYPE\":\"WIDGET\"}}}}" },
+            { "name": "超时", "code": 200, "body": "{\"success\":true,\"message\":\"\",\"result\":{\"timedOut\":true,\"elapsed\":30001,\"tree\":{}}}" }
+          ]
+        },
+        {
+          "name": "POST eval/expression",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"expression\": \"1 + 1\"\n}" }, "url": { "raw": "{{baseUrl}}/sessions/{{sessionId}}/eval/expression", "host": ["{{baseUrl}}"], "path": ["sessions","{{sessionId}}","eval","expression"] }, "description": "expression (string, 必填)" },
+          "response": [
+            { "name": "成功", "code": 200, "body": "{\"success\":true,\"message\":\"\",\"result\":{\"expression\":\"1 + 1\",\"dispatched\":true}}" },
+            { "name": "失败 - 缺参", "code": 200, "body": "{\"success\":false,\"message\":\"expression is required\",\"errorCode\":\"MISSING_PARAM\",\"result\":null}" }
+          ]
+        },
+        {
+          "name": "POST eval/trigger",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"trigger\": \"{{Api1.run()}}\",\n  \"eventType\": \"ON_CLICK\"\n}" }, "url": { "raw": "{{baseUrl}}/sessions/{{sessionId}}/eval/trigger", "host": ["{{baseUrl}}"], "path": ["sessions","{{sessionId}}","eval","trigger"] }, "description": "trigger (string, 必填)\neventType (string, 可选)\ntriggerMeta (object, 可选)" },
+          "response": [
+            { "name": "成功", "code": 200, "body": "{\"success\":true,\"message\":\"\",\"result\":{\"trigger\":\"{{Api1.run()}}\",\"dispatched\":true}}" },
+            { "name": "失败 - 缺参", "code": 200, "body": "{\"success\":false,\"message\":\"trigger is required\",\"errorCode\":\"MISSING_PARAM\",\"result\":null}" }
+          ]
+        },
+        {
+          "name": "POST eval/validate",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"property\": \"Table1.tableData\",\n  \"value\": [{ \"id\": 1 }]\n}" }, "url": { "raw": "{{baseUrl}}/sessions/{{sessionId}}/eval/validate", "host": ["{{baseUrl}}"], "path": ["sessions","{{sessionId}}","eval","validate"] }, "description": "property (string, 必填)\nvalue (any, 可选)\nprops (object, 可选)\nvalidation (object, 可选)" },
+          "response": [
+            { "name": "成功", "code": 200, "body": "{\"success\":true,\"message\":\"\",\"result\":{\"property\":\"Table1.tableData\",\"dispatched\":true}}" },
+            { "name": "失败 - 缺参", "code": 200, "body": "{\"success\":false,\"message\":\"property is required\",\"errorCode\":\"MISSING_PARAM\",\"result\":null}" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Selector",
+      "item": [
+        {
+          "name": "POST select",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"selector\": \"getWidgets\"\n}" }, "url": { "raw": "{{baseUrl}}/sessions/{{sessionId}}/select", "host": ["{{baseUrl}}"], "path": ["sessions","{{sessionId}}","select"] }, "description": "selector (string, 必填): getDataTree/getUnevaluatedDataTree/getWidgets/getPageList/getCurrentPageId/getAppMode\nargs (array, 可选)" },
+          "response": [
+            { "name": "成功", "code": 200, "body": "{\"success\":true,\"message\":\"\",\"result\":{\"0\":{\"widgetId\":\"0\"}}}" },
+            { "name": "失败 - 未找到", "code": 200, "body": "{\"success\":false,\"message\":\"Selector \\\"xxx\\\" not found. Available: getDataTree, getWidgets, ...\",\"errorCode\":\"SELECTOR_NOT_FOUND\",\"result\":null}" },
+            { "name": "失败 - 缺参", "code": 200, "body": "{\"success\":false,\"message\":\"selector name is required\",\"errorCode\":\"MISSING_PARAM\",\"result\":null}" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Saga",
+      "item": [
+        {
+          "name": "POST saga/init",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"applicationId\": \"app_123\",\n  \"pageId\": \"page_456\"\n}" }, "url": { "raw": "{{baseUrl}}/sessions/{{sessionId}}/saga/init", "host": ["{{baseUrl}}"], "path": ["sessions","{{sessionId}}","saga","init"] }, "description": "applicationId (string, 必填)\npageId (string, 必填)" },
+          "response": [
+            { "name": "成功", "code": 200, "body": "{\"success\":true,\"message\":\"\",\"result\":{\"dispatched\":true}}" },
+            { "name": "失败 - 缺参", "code": 200, "body": "{\"success\":false,\"message\":\"applicationId and pageId are required\",\"errorCode\":\"MISSING_PARAM\",\"result\":null}" }
+          ]
+        },
+        {
+          "name": "POST saga/execute-action",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"actionId\": \"action_abc\",\n  \"params\": { \"limit\": 10 }\n}" }, "url": { "raw": "{{baseUrl}}/sessions/{{sessionId}}/saga/execute-action", "host": ["{{baseUrl}}"], "path": ["sessions","{{sessionId}}","saga","execute-action"] }, "description": "actionId (string, 必填)\nparams (object, 可选)" },
+          "response": [
+            { "name": "成功", "code": 200, "body": "{\"success\":true,\"message\":\"\",\"result\":{\"dispatched\":true}}" },
+            { "name": "失败 - 缺参", "code": 200, "body": "{\"success\":false,\"message\":\"actionId is required\",\"errorCode\":\"MISSING_PARAM\",\"result\":null}" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. 代理",
+      "item": [
+        {
+          "name": "GET proxy/v1/users/me",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/sessions/{{sessionId}}/proxy/v1/users/me", "host": ["{{baseUrl}}"], "path": ["sessions","{{sessionId}}","proxy","v1","users","me"] }, "description": "透传到后端，自动注入 Authorization。成功时直接返回后端响应体（不套统一格式）。" },
+          "response": [
+            { "name": "失败 - 后端不可达", "code": 200, "body": "{\"success\":false,\"message\":\"Backend unavailable: http://appsmith:8080/api/v1/users/me\",\"errorCode\":\"BACKEND_UNAVAILABLE\",\"result\":null}" },
+            { "name": "失败 - 超时", "code": 200, "body": "{\"success\":false,\"message\":\"Backend timeout: http://appsmith:8080/api/v1/users/me\",\"errorCode\":\"BACKEND_TIMEOUT\",\"result\":null}" }
+          ]
+        },
+        {
+          "name": "GET proxy/v1/tenants/current",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/sessions/{{sessionId}}/proxy/v1/tenants/current", "host": ["{{baseUrl}}"], "path": ["sessions","{{sessionId}}","proxy","v1","tenants","current"] } },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "8. 业务路由",
+      "item": [
+        {
+          "name": "POST biz/init",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"pageId\": \"page_123\",\n  \"pageContext\": { \"test\": true }\n}" }, "url": { "raw": "{{baseUrl}}/sessions/{{sessionId}}/biz/init", "host": ["{{baseUrl}}"], "path": ["sessions","{{sessionId}}","biz","init"] }, "description": "pageId (string, 必填)\npageContext (object, 必填)" },
+          "response": [
+            { "name": "成功", "code": 200, "body": "{\"success\":true,\"message\":\"\",\"result\":\"初始化成功\"}" },
+            { "name": "失败 - 初始化异常", "code": 200, "body": "{\"success\":false,\"message\":\"初始化异常\",\"errorCode\":\"INIT_CRASH\",\"result\":null}" },
+            { "name": "失败 - 初始化超时", "code": 200, "body": "{\"success\":false,\"message\":\"初始化超时: raceForAction([...]) timed out after 120000ms\",\"errorCode\":\"TIMEOUT\",\"result\":null}" },
+            { "name": "失败 - 缺参", "code": 200, "body": "{\"success\":false,\"message\":\"pageId 为必填参数\",\"errorCode\":\"MISSING_PARAM\",\"result\":null}" }
+          ]
+        },
+        {
+          "name": "POST biz/update/js-action",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"id\": \"js-collection-id-123\",\n  \"body\": \"export default { myFunc: () => {} }\"\n}" }, "url": { "raw": "{{baseUrl}}/sessions/{{sessionId}}/biz/update/js-action", "host": ["{{baseUrl}}"], "path": ["sessions","{{sessionId}}","biz","update","js-action"] }, "description": "id (string, 必填): JS Collection ID\nbody (string, 必填): 期望的 body 内容\n\n通过 getJSCollectionDataById 获取对应 JS Collection，比较 config.body 与传入 body 是否一致。" },
+          "response": [
+            { "name": "成功 - 一致", "code": 200, "body": "{\"success\":true,\"message\":\"\",\"result\":true}" },
+            { "name": "成功 - 不一致", "code": 200, "body": "{\"success\":true,\"message\":\"\",\"result\":false}" },
+            { "name": "失败 - 未找到", "code": 200, "body": "{\"success\":false,\"message\":\"未找到 id 为 xxx 的 JS Collection\",\"errorCode\":\"JS_COLLECTION_NOT_FOUND\",\"result\":null}" },
+            { "name": "失败 - 缺参", "code": 200, "body": "{\"success\":false,\"message\":\"id 为必填参数\",\"errorCode\":\"MISSING_PARAM\",\"result\":null}" }
+          ]
+        }
+      ]
+    }
+  ]
+}

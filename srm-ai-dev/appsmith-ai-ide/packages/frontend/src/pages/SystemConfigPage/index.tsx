@@ -1,53 +1,49 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../../services/api';
 
-/* ------------------------------------------------------------------ */
-/*  Types                                                              */
-/* ------------------------------------------------------------------ */
-
-interface ConfigEntry {
-  id: string;
-  key: string;
-  value: unknown;
-  description: string | null;
-  updatedAt: string;
+interface DatasourceOption {
+  text: string;
+  value: string;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Component                                                          */
-/* ------------------------------------------------------------------ */
+interface ConfigEntry {
+  key: string;
+  name: string | null;
+  value: unknown;
+  description: string | null;
+  type: string;
+  datasource: DatasourceOption[] | null;
+}
 
 const SystemConfigPage: React.FC = () => {
   const [configs, setConfigs] = useState<ConfigEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Record<string, string>>({});
-  const [sshTestResult, setSshTestResult] = useState<string | null>(null);
-  const [sshTesting, setSshTesting] = useState(false);
+  const [originalValues, setOriginalValues] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  // SSH key form
-  const [sshPrivateKey, setSshPrivateKey] = useState('');
-  const [sshGitlabDomain, setSshGitlabDomain] = useState('');
-  const [sshSaving, setSshSaving] = useState(false);
+  /** Strip surrounding quotes from JSONB string values */
+  const unwrapValue = (val: unknown): string => {
+    if (val == null) return '';
+    if (typeof val === 'string') return val;
+    const s = JSON.stringify(val);
+    // JSONB stores strings as "xxx", JSON.stringify produces "\"xxx\"" — unwrap
+    if (s.startsWith('"') && s.endsWith('"')) return s.slice(1, -1);
+    return s;
+  };
 
   const fetchConfigs = useCallback(async () => {
     try {
       setLoading(true);
       const res = await apiClient.get<ConfigEntry[]>('/system-config');
       setConfigs(res.data);
-
-      // Initialize edit values
       const values: Record<string, string> = {};
       for (const c of res.data) {
-        values[c.key] = typeof c.value === 'string' ? c.value : JSON.stringify(c.value, null, 2);
+        values[c.key] = unwrapValue(c.value);
       }
       setEditValues(values);
-
-      // Pre-fill gitlab domain if available
-      const gitDomain = res.data.find((c) => c.key === 'git.gitlabDomain');
-      if (gitDomain && typeof gitDomain.value === 'string') {
-        setSshGitlabDomain(gitDomain.value);
-      }
+      setOriginalValues({ ...values });
     } catch {
       console.error('Failed to fetch system config');
     } finally {
@@ -55,311 +51,159 @@ const SystemConfigPage: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    void fetchConfigs();
-  }, [fetchConfigs]);
+  useEffect(() => { void fetchConfigs(); }, [fetchConfigs]);
 
-  const handleSave = async (key: string) => {
-    setSaving(key);
+  const setVal = (key: string, val: string) => {
+    setEditValues((prev) => ({ ...prev, [key]: val }));
+    setSaveMsg(null);
+  };
+
+  /** Find keys that have been changed */
+  const changedKeys = Object.keys(editValues).filter(
+    (k) => editValues[k] !== originalValues[k],
+  );
+
+  const handleSaveAll = async () => {
+    if (changedKeys.length === 0) return;
+    setSaving(true);
+    setSaveMsg(null);
     try {
-      let value: unknown;
-      const raw = editValues[key] ?? '';
-      try {
-        value = JSON.parse(raw);
-      } catch {
-        value = raw;
+      for (const key of changedKeys) {
+        await apiClient.put('/system-config', { key, value: editValues[key] });
       }
-      await apiClient.put('/system-config', { key, value });
+      setSaveMsg({ ok: true, text: `已保存 ${changedKeys.length} 项配置` });
       await fetchConfigs();
     } catch {
-      console.error(`Failed to save config: ${key}`);
+      setSaveMsg({ ok: false, text: '保存失败' });
     } finally {
-      setSaving(null);
+      setSaving(false);
     }
-  };
-
-  const handleSshKeySave = async () => {
-    if (!sshPrivateKey.trim() || !sshGitlabDomain.trim()) return;
-    setSshSaving(true);
-    try {
-      await apiClient.put('/system-config/ssh-key', {
-        privateKey: sshPrivateKey,
-        gitlabDomain: sshGitlabDomain,
-      });
-      setSshPrivateKey('');
-      setSshTestResult(null);
-      await fetchConfigs();
-    } catch {
-      console.error('Failed to save SSH key');
-    } finally {
-      setSshSaving(false);
-    }
-  };
-
-  const handleSshTest = async () => {
-    setSshTesting(true);
-    setSshTestResult(null);
-    try {
-      const res = await apiClient.post<{ success: boolean; message: string }>(
-        '/system-config/ssh-test',
-      );
-      setSshTestResult(
-        res.data.success ? `成功: ${res.data.message}` : `失败: ${res.data.message}`,
-      );
-    } catch {
-      setSshTestResult('测试失败: 无法连接到服务器');
-    } finally {
-      setSshTesting(false);
-    }
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const content = ev.target?.result;
-      if (typeof content === 'string') {
-        setSshPrivateKey(content);
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const getEditValue = (key: string) => editValues[key] ?? '';
-
-  const setEditValue = (key: string, value: string) => {
-    setEditValues((prev) => ({ ...prev, [key]: value }));
-  };
-
-  /* ---------------------------------------------------------------- */
-  /*  Grouped configs                                                  */
-  /* ---------------------------------------------------------------- */
-
-  const containerKeys = [
-    'container.memoryLimit',
-    'container.cpuLimit',
-    'container.maxConcurrent',
-    'container.healthCheckTimeout',
-  ];
-  const claudeKeys = [
-    'claude.disabledTools',
-    'claude.allowedPaths',
-    'claude.deniedPaths',
-  ];
-  const jwtKeys = ['auth.jwtExpiresIn'];
-  const otherKeys = configs
-    .map((c) => c.key)
-    .filter(
-      (k) =>
-        !containerKeys.includes(k) &&
-        !claudeKeys.includes(k) &&
-        !jwtKeys.includes(k) &&
-        k !== 'git.sshKey' &&
-        k !== 'git.gitlabDomain',
-    );
-
-  const renderConfigField = (key: string) => {
-    const config = configs.find((c) => c.key === key);
-    if (!config) return null;
-
-    return (
-      <div key={key} style={styles.field}>
-        <div style={styles.fieldHeader}>
-          <label style={styles.fieldLabel}>{key}</label>
-          {config.description && (
-            <span style={styles.fieldDesc}>{config.description}</span>
-          )}
-        </div>
-        <div style={styles.fieldRow}>
-          <textarea
-            style={styles.textarea}
-            value={getEditValue(key)}
-            onChange={(e) => setEditValue(key, e.target.value)}
-            rows={typeof config.value === 'object' ? 3 : 1}
-          />
-          <button
-            style={styles.saveBtn}
-            onClick={() => handleSave(key)}
-            disabled={saving === key}
-          >
-            {saving === key ? '保存中...' : '保存'}
-          </button>
-        </div>
-      </div>
-    );
   };
 
   if (loading) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.loading}>加载中...</div>
-      </div>
-    );
+    return <div style={S.page}><p style={{ color: '#6c7086', textAlign: 'center', padding: 40 }}>加载中...</p></div>;
   }
 
   return (
-    <div style={styles.container}>
-      <h1 style={styles.title}>系统配置</h1>
-
-      {/* Container Resources */}
-      <section style={styles.section}>
-        <h2 style={styles.sectionTitle}>容器资源</h2>
-        {containerKeys.map(renderConfigField)}
-      </section>
-
-      {/* Claude Tools */}
-      <section style={styles.section}>
-        <h2 style={styles.sectionTitle}>Claude 工具配置</h2>
-        {claudeKeys.map(renderConfigField)}
-      </section>
-
-      {/* SSH Key */}
-      <section style={styles.section}>
-        <h2 style={styles.sectionTitle}>SSH 密钥</h2>
-        <div style={styles.field}>
-          <div style={styles.fieldHeader}>
-            <label style={styles.fieldLabel}>私钥文件</label>
-            <span style={styles.fieldDesc}>上传 SSH 私钥文件用于 GitLab 访问</span>
-          </div>
-          <input
-            type="file"
-            onChange={handleFileUpload}
-            style={{ marginBottom: 8, color: '#a6adc8', fontSize: 13 }}
-          />
-          {sshPrivateKey && (
-            <div style={{ fontSize: 12, color: '#a6e3a1', marginBottom: 8 }}>
-              已选择密钥 ({sshPrivateKey.length} 字符)
-            </div>
+    <div style={S.page}>
+      <div style={S.header}>
+        <h1 style={S.title}>系统配置</h1>
+        <div style={S.headerRight}>
+          {saveMsg && (
+            <span style={{ fontSize: 13, color: saveMsg.ok ? '#a6e3a1' : '#f38ba8' }}>
+              {saveMsg.text}
+            </span>
           )}
-        </div>
-        <div style={styles.field}>
-          <div style={styles.fieldHeader}>
-            <label style={styles.fieldLabel}>GitLab 域名</label>
-          </div>
-          <input
-            style={styles.input}
-            value={sshGitlabDomain}
-            onChange={(e) => setSshGitlabDomain(e.target.value)}
-            placeholder="如: gitlab.example.com"
-          />
-        </div>
-        <div style={styles.sshActions}>
           <button
-            style={styles.saveBtn}
-            onClick={handleSshKeySave}
-            disabled={sshSaving || !sshPrivateKey.trim() || !sshGitlabDomain.trim()}
-          >
-            {sshSaving ? '保存中...' : '保存密钥'}
-          </button>
-          <button
-            style={styles.testBtn}
-            onClick={handleSshTest}
-            disabled={sshTesting}
-          >
-            {sshTesting ? '测试中...' : '测试连接'}
-          </button>
-        </div>
-        {sshTestResult && (
-          <div
             style={{
-              ...styles.testResult,
-              color: sshTestResult.startsWith('成功') ? '#a6e3a1' : '#f38ba8',
+              ...S.saveBtn,
+              opacity: changedKeys.length === 0 || saving ? 0.5 : 1,
+              cursor: changedKeys.length === 0 || saving ? 'default' : 'pointer',
             }}
+            onClick={handleSaveAll}
+            disabled={changedKeys.length === 0 || saving}
           >
-            {sshTestResult}
-          </div>
-        )}
-      </section>
+            {saving ? '保存中...' : '保存'}
+          </button>
+        </div>
+      </div>
 
-      {/* JWT Settings */}
-      <section style={styles.section}>
-        <h2 style={styles.sectionTitle}>JWT 设置</h2>
-        {jwtKeys.map(renderConfigField)}
-      </section>
-
-      {/* Other configs */}
-      {otherKeys.length > 0 && (
-        <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>其他配置</h2>
-          {otherKeys.map(renderConfigField)}
-        </section>
-      )}
+      <div style={S.form}>
+        {configs.map((c) => {
+          const changed = editValues[c.key] !== originalValues[c.key];
+          return (
+            <div key={c.key} style={{ ...S.row, ...(changed ? S.rowChanged : {}) }}>
+              <div style={S.labelCol}>
+                <label style={S.label}>{c.name || c.key}</label>
+                {c.description && <span style={S.desc}>{c.description}</span>}
+              </div>
+              <div style={S.valueCol}>
+                {c.type === 'dropdown' && c.datasource ? (
+                  <select
+                    style={S.input}
+                    value={editValues[c.key] ?? ''}
+                    onChange={(e) => setVal(c.key, e.target.value)}
+                  >
+                    <option value="">-- 请选择 --</option>
+                    {c.datasource.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.text}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    style={S.input}
+                    value={editValues[c.key] ?? ''}
+                    onChange={(e) => setVal(c.key, e.target.value)}
+                    placeholder={c.description || ''}
+                  />
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
 
-/* ------------------------------------------------------------------ */
-/*  Styles                                                             */
-/* ------------------------------------------------------------------ */
-
-const styles: Record<string, React.CSSProperties> = {
-  container: {
+const S: Record<string, React.CSSProperties> = {
+  page: {
     padding: 24,
-    maxWidth: 900,
+    maxWidth: 1100,
     margin: '0 auto',
     color: '#cdd6f4',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 700,
-    color: '#cdd6f4',
-    margin: '0 0 24px 0',
-  },
-  loading: {
-    textAlign: 'center' as const,
-    padding: 40,
-    color: '#6c7086',
-  },
-  section: {
-    background: '#313244',
-    borderRadius: 8,
-    padding: 20,
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 20,
+  },
+  headerRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 700,
+    margin: 0,
+  },
+  form: {
+    background: '#313244',
     border: '1px solid #45475a',
+    borderRadius: 8,
+    padding: '4px 0',
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 600,
-    color: '#89b4fa',
-    margin: '0 0 16px 0',
-    borderBottom: '1px solid #45475a',
-    paddingBottom: 8,
+  row: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '14px 24px',
+    borderBottom: '1px solid rgba(69,71,90,0.4)',
+    gap: 24,
   },
-  field: {
-    marginBottom: 16,
+  rowChanged: {
+    background: 'rgba(137,180,250,0.06)',
   },
-  fieldHeader: {
-    marginBottom: 4,
+  labelCol: {
+    width: 160,
+    flexShrink: 0,
   },
-  fieldLabel: {
-    fontSize: 13,
+  label: {
+    fontSize: 14,
     fontWeight: 600,
     color: '#cdd6f4',
-    fontFamily: 'monospace',
-  },
-  fieldDesc: {
     display: 'block',
+  },
+  desc: {
     fontSize: 11,
     color: '#6c7086',
+    display: 'block',
     marginTop: 2,
   },
-  fieldRow: {
-    display: 'flex',
-    gap: 8,
-    alignItems: 'flex-start',
-  },
-  textarea: {
+  valueCol: {
     flex: 1,
-    background: '#1e1e2e',
-    border: '1px solid #45475a',
-    borderRadius: 6,
-    color: '#cdd6f4',
-    fontSize: 13,
-    padding: '8px 10px',
-    fontFamily: 'monospace',
-    resize: 'vertical' as const,
-    outline: 'none',
   },
   input: {
     width: '100%',
@@ -368,44 +212,20 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 6,
     color: '#cdd6f4',
     fontSize: 13,
-    padding: '8px 10px',
+    padding: '8px 12px',
     outline: 'none',
     boxSizing: 'border-box' as const,
-    fontFamily: 'inherit',
+    fontFamily: 'monospace',
   },
   saveBtn: {
     background: '#89b4fa',
     color: '#1e1e2e',
     border: 'none',
     borderRadius: 6,
-    padding: '8px 16px',
-    fontSize: 13,
+    padding: '8px 24px',
+    fontSize: 14,
     fontWeight: 600,
     cursor: 'pointer',
-    whiteSpace: 'nowrap' as const,
-  },
-  testBtn: {
-    background: '#a6e3a1',
-    color: '#1e1e2e',
-    border: 'none',
-    borderRadius: 6,
-    padding: '8px 16px',
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: 'pointer',
-    whiteSpace: 'nowrap' as const,
-  },
-  sshActions: {
-    display: 'flex',
-    gap: 8,
-    marginTop: 12,
-  },
-  testResult: {
-    marginTop: 8,
-    fontSize: 13,
-    padding: '6px 10px',
-    background: '#1e1e2e',
-    borderRadius: 4,
   },
 };
 

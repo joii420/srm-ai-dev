@@ -45,8 +45,8 @@ const Editor = React.forwardRef<EditorHandle, EditorProps>(({
   const loadedFiles = useRef<Set<string>>(new Set());
   const editorRef = useRef<monacoTypes.editor.IStandaloneCodeEditor | null>(null);
 
-  const isReadOnly = mode !== 'editable';
   const activeTab = openTabs.find((t) => t.id === activeTabId);
+  const isReadOnly = mode !== 'editable' || (activeTab?.readOnly === true);
 
   // Load file content when tab becomes active — uses ref to prevent re-fetch loops
   const loadFileContent = useCallback(
@@ -254,6 +254,7 @@ const Editor = React.forwardRef<EditorHandle, EditorProps>(({
           </div>
         ) : activeTab ? (
           <MonacoEditor
+            key={activeTab.id + (isReadOnly ? ':ro' : ':rw')}
             height="100%"
             language={activeTab.language}
             value={fileContents[activeTab.id] ?? ''}

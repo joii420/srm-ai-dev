@@ -1,0 +1,1 @@
+import { getCurrentStore } from '../adapters/storeContext'; const store: any = { getState: () => getCurrentStore()?.getState?.(), dispatch: (...args: any[]) => getCurrentStore()?.dispatch?.(...args) }; export default store;

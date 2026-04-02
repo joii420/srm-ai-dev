@@ -1,0 +1,29 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@appsmith/*": ["appsmith/ee/*", "appsmith/ce/*"],
+      "actions/*": ["appsmith/actions/*"],
+      "api/*": ["appsmith/api/*"],
+      "constants/*": ["appsmith/constants/*"],
+      "components/*": ["appsmith/components/*"],
+      "reducers/*": ["appsmith/reducers/*"],
+      "sagas/*": ["appsmith/sagas/*"],
+      "selectors/*": ["appsmith/selectors/*"],
+      "utils/*": ["appsmith/utils/*"],
+      "assets/*": ["appsmith/assets/*"],
+      "entities/*": ["appsmith/entities/*"],
+      "workers/*": ["appsmith/workers/*"],
+      "ee/*": ["appsmith/ee/*"],
+      "ce/*": ["appsmith/ce/*"],
+      "middleware/*": ["appsmith/middleware/*"],
+      "WidgetProvider/*": ["appsmith/WidgetProvider/*"],
+      "layoutSystems/*": ["appsmith/layoutSystems/*"],
+      "UITelemetry/*": ["appsmith/UITelemetry/*"],
+      "pages/*": ["appsmith/pages/*"],
+      "plugins/*": ["appsmith/plugins/*"],
+      "templates/*": ["appsmith/templates/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "packages", "src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.spec.ts", "src/**/*.spec.tsx", "src/**/test.ts"]
+}

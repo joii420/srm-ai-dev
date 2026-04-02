@@ -1,16 +1,25 @@
 package com.appsmith.aiide.config;
 
+import com.appsmith.aiide.service.SystemConfigService;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.Optional;
 
 /**
- * Central application configuration backed by MicroProfile Config.
- * Values are sourced from application.properties and environment variables.
+ * Central application configuration.
+ *
+ * Static configs: read from application.properties (immutable at runtime).
+ * Dynamic configs (4 items): read from system_configs DB table via SystemConfigService (with cache).
  */
 @ApplicationScoped
 public class AppConfig {
+
+    @Inject
+    SystemConfigService systemConfigService;
+
+    // ---- Static configs (from properties file) ----
 
     @ConfigProperty(name = "aiide.ssh-key-encrypt-secret")
     String sshKeyEncryptSecret;
@@ -24,17 +33,8 @@ public class AppConfig {
     @ConfigProperty(name = "aiide.external-auth-api-url")
     Optional<String> externalAuthApiUrl;
 
-    @ConfigProperty(name = "aiide.gitlab-repo-prefix")
-    String gitlabRepoPrefix;
-
-    @ConfigProperty(name = "aiide.gitlab-api-base-url", defaultValue = "")
-    String gitlabApiBaseUrl;
-
     @ConfigProperty(name = "aiide.backend-url-for-container")
     String backendUrlForContainer;
-
-    @ConfigProperty(name = "aiide.git-token")
-    Optional<String> gitToken;
 
     @ConfigProperty(name = "aiide.ssh-key-path", defaultValue = "")
     String sshKeyPath;
@@ -44,9 +44,6 @@ public class AppConfig {
 
     @ConfigProperty(name = "aiide.appsmith-api-base-url", defaultValue = "")
     String appsmithApiBaseUrl;
-
-    @ConfigProperty(name = "aiide.appsmith-session", defaultValue = "")
-    String appsmithSession;
 
     @ConfigProperty(name = "aiide.appsmith-xsrf-token", defaultValue = "")
     String appsmithXsrfToken;
@@ -60,84 +57,51 @@ public class AppConfig {
     @ConfigProperty(name = "aiide.redux-node-service-url", defaultValue = "http://localhost:3200")
     String reduxNodeServiceUrl;
 
-    public String getSshKeyEncryptSecret() {
-        return sshKeyEncryptSecret;
-    }
+    // ---- Static config getters ----
 
-    public String getContainerImageName() {
-        return containerImageName;
-    }
+    public String getSshKeyEncryptSecret() { return sshKeyEncryptSecret; }
+    public String getContainerImageName() { return containerImageName; }
+    public int getMaxConcurrent() { return maxConcurrent; }
+    public Optional<String> getExternalAuthApiUrl() { return externalAuthApiUrl; }
+    public String getBackendUrlForContainer() { return backendUrlForContainer; }
+    public String getSshKeyPath() { return sshKeyPath; }
+    public String getAiAgentUrl() { return aiAgentUrl; }
+    public String getAppsmithApiBaseUrl() { return appsmithApiBaseUrl; }
+    public String getAppsmithXsrfToken() { return appsmithXsrfToken; }
+    public String getEditLockApiUrl() { return editLockApiUrl; }
+    public String getReduxNodeServicePath() { return reduxNodeServicePath; }
+    public String getReduxNodeServiceUrl() { return reduxNodeServiceUrl; }
 
-    public int getMaxConcurrent() {
-        return maxConcurrent;
-    }
+    // ---- Dynamic config getters (from DB via SystemConfigService) ----
 
-    public Optional<String> getExternalAuthApiUrl() {
-        return externalAuthApiUrl;
-    }
-
-    public String getGitlabRepoPrefix() {
-        return gitlabRepoPrefix;
+    public String getAppsmithSession() {
+        return systemConfigService.getValue(SystemConfigService.APPSMITH_SESSION);
     }
 
     public String getGitlabApiBaseUrl() {
-        return gitlabApiBaseUrl;
+        return systemConfigService.getValue(SystemConfigService.GITLAB_API_BASE_URL);
     }
 
-    public String getBackendUrlForContainer() {
-        return backendUrlForContainer;
+    public String getGitlabRepoPrefix() {
+        return systemConfigService.getValue(SystemConfigService.GITLAB_REPO_PREFIX);
     }
 
     public Optional<String> getGitToken() {
-        return gitToken;
-    }
-
-    public String getSshKeyPath() {
-        return sshKeyPath;
-    }
-
-    public String getAiAgentUrl() {
-        return aiAgentUrl;
-    }
-
-    public String getAppsmithApiBaseUrl() {
-        return appsmithApiBaseUrl;
-    }
-
-    public String getAppsmithSession() {
-        return appsmithSession;
-    }
-
-    public String getAppsmithXsrfToken() {
-        return appsmithXsrfToken;
-    }
-
-    public String getEditLockApiUrl() {
-        return editLockApiUrl;
-    }
-
-    public String getReduxNodeServicePath() {
-        return reduxNodeServicePath;
-    }
-
-    public String getReduxNodeServiceUrl() {
-        return reduxNodeServiceUrl;
+        String val = systemConfigService.getValue(SystemConfigService.GIT_TOKEN);
+        return (val != null && !val.isBlank()) ? Optional.of(val) : Optional.empty();
     }
 
     /**
      * Build a git repo URL with embedded token for HTTPS authentication.
-     * Input:  https://github.com/user/Repo.git
-     * Output: https://{token}@github.com/user/Repo.git
-     *
-     * If no token is configured or URL is SSH, returns the original URL.
      */
     public String buildAuthenticatedRepoUrl(String repoUrl) {
-        if (gitToken.isEmpty() || gitToken.get().isBlank()) {
+        Optional<String> token = getGitToken();
+        if (token.isEmpty() || token.get().isBlank()) {
             return repoUrl;
         }
         if (!repoUrl.startsWith("https://")) {
             return repoUrl;
         }
-        return repoUrl.replace("https://", "https://" + gitToken.get() + "@");
+        return repoUrl.replace("https://", "https://" + token.get() + "@");
     }
 }

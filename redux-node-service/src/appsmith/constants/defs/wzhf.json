@@ -1,0 +1,242 @@
+{
+  "!name": "LIB/com",
+  "com": {
+    "getFuzzyQueryParams": {
+      "!type": "fn(object)"
+    },
+    "sendAsyncMessage": {
+      "!type": "fn(object)"
+    },
+    "cl_get_current": {
+      "!type": "fn(string, string)"
+    },
+    "global": {
+      "!type": "fn()"
+    },
+    "cl_auth": {
+      "!type": "fn(string, string, string)"
+    },
+    "cl_auth_chk_act": {
+      "!type": "fn(string, object)"
+    },
+    "cl_lock_begin": {
+      "!type": "fn(string, string, string, object)"
+    },
+    "cl_lock_end": {
+      "!type": "fn(string)"
+    },
+    "check_lang": {
+      "!type": "fn()"
+    },
+    "set_multilanguage": {
+      "!type": "fn(string, string, array)"
+    },
+    "check_exist": {
+      "!type": "fn(object)"
+    },
+    "cellSelected": {
+      "!type": "fn()"
+    },
+    "rowSelectedGetCurrentIndex": {
+      "!type": "fn()"
+    },
+    "selectedArrowUp": {
+      "!type": "fn()"
+    },
+    "selectedArrowDown": {
+      "!type": "fn()"
+    },
+    "fuzzy_query": {
+      "!type": "fn(array)"
+    },
+    "rx_query": {
+      "!type": "fn(string, object)"
+    },
+    "rx_insert": {
+      "!type": "fn(string, array)"
+    },
+    "rx_remove": {
+      "!type": "fn(string, object)"
+    },
+    "rx_update": {
+      "!type": "fn(string, object, object)"
+    },
+    "verify_dateTime": {
+      "!type": "fn(object)"
+    },
+    "verify_time": {
+      "!type": "fn(object)"
+    },
+    "verify_date": {
+      "!type": "fn(object)"
+    },
+    "close_current_task": {
+      "!type": "fn(string)"
+    },
+    "cl_log_page": {
+      "!type": "fn(string, string, string)"
+    },
+    "cl_log_action": {
+      "!type": "fn(string, string, string, string)"
+    },
+    "cl_log_data": {
+      "!type": "fn(string, string, string, string, object, object)"
+    },
+    "cl_close_content": {
+      "!type": "fn()"
+    },
+    "get_title_msg": {
+      "!type": "fn(string, string)"
+    },
+    "get_error_msg": {
+      "!type": "fn(string, string)"
+    },
+    "showMessage": {
+      "!type": "fn(object, string, string)"
+    },
+    "showMaterials": {
+      "!type": "fn(object, string)"
+    },
+    "set_evail": {
+      "!type": "fn(object)"
+    },
+    "get_evail": {
+      "!type": "fn(string)"
+    },
+    "set_comp_entry": {
+      "!type": "fn(string, boolean, string)"
+    },
+    "set_comp_visible": {
+      "!type": "fn(string, boolean)"
+    },
+    "set_comp_readOnly": {
+      "!type": "fn(string, boolean)"
+    },
+    "set_comp_required": {
+      "!type": "fn(string, boolean)"
+    },
+    "set_comp_att_text": {
+      "!type": "fn(string, string)"
+    },
+    "set_comp_label_color": {
+      "!type": "fn(string, string)"
+    },
+    "set_comp_font_color": {
+      "!type": "fn(string, string)"
+    },
+    "set_comp_bgcolor": {
+      "!type": "fn(string, string)"
+    },
+    "get_dropDownData": {
+      "!type": "fn(string)"
+    },
+    "params_valid": {
+      "!type": "fn(string, string)"
+    },
+    "exceSql": {
+      "!type": "fn(string, object, string)"
+    },
+    "set_where": {
+      "!type": "fn(string)"
+    },
+    "set_where_b": {
+      "!type": "fn(object)"
+    },
+    "trans_singlequota": {
+      "!type": "fn(string)"
+    },
+    "set_comp_mask": {
+      "!type": "fn(string, string)"
+    },
+    "set_comp_format": {
+      "!type": "fn(string, string, string)"
+    },
+    "get_compType": {
+      "!type": "fn(string)"
+    },
+    "set_clearValue": {
+      "!type": "fn(string)"
+    },
+    "get_compValue": {
+      "!type": "fn(string)"
+    },
+    "get_uuid": {
+      "!type": "fn()"
+    },
+    "set_tool_enable": {
+      "!type": "fn(string, string, boolean)"
+    },
+    "set_sleep": {
+      "!type": "fn(number)"
+    },
+    "get_today": {
+      "!type": "fn(string, string)"
+    },
+    "get_dbType": {
+      "!type": "fn(string)"
+    },
+    "get_PathParams": {
+      "!type": "fn()"
+    },
+    "get_errMessage": {
+      "!type": "fn(string, string, object)"
+    },
+    "get_errMessage_table": {
+      "!type": "fn(string, string, object)"
+    },
+    "get_errTableMessage": {
+      "!type": "fn()"
+    },
+    "get_errTableMessage11": {
+      "!type": "fn(object)"
+    },
+    "get_menu_data": {
+      "!type": "fn(string)"
+    },
+    "ui_dialog": {
+      "!type": "fn(string)"
+    },
+    "getComponents": {
+      "!type": "fn(object, object, string)"
+    },
+    "get_pageData": {
+      "!type": "fn(string)"
+    },
+    "get_ProgramData": {
+      "!type": "fn(string, string)"
+    },
+    "get_MoreData": {
+      "!type": "fn(string, string)"
+    },
+    "get_RelevantProceduresData": {
+      "!type": "fn(string, string)"
+    },
+    "get_ScreenData": {
+      "!type": "fn(string, string)"
+    },
+    "get_AnchorPoint": {
+      "!type": "fn(string, string)"
+    },
+    "set_ScreenData": {
+      "!type": "fn(string, string)"
+    },
+    "set_header_properties": {
+      "!type": "fn(object)"
+    },
+    "set_comps_properties": {
+      "!type": "fn(string, object)"
+    },
+    "set_FieldSource": {
+      "!type": "fn(string, array)"
+    },
+    "set_Screen": {
+      "!type": "fn(string, string)"
+    },
+    "set_treeGridHeaderUp": {
+      "!type": "fn(string, array)"
+    },
+    "get_q_qryData": {
+      "!type": "fn(object)"
+    }
+  }
+}

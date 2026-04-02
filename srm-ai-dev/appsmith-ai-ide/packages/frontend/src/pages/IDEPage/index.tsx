@@ -26,6 +26,7 @@ const IDEPage: React.FC = () => {
     setActiveTab,
     closeTab,
     hasUnsavedFiles,
+    clearAllTabs,
   } = useEditorStore();
 
   const [pageStatus, setPageStatus] = useState<PageStatus | null>(null);
@@ -36,38 +37,26 @@ const IDEPage: React.FC = () => {
   const [editLockState, setEditLockState] = useState<EditLockState | null>(null);
   const editorRef = useRef<EditorHandle>(null);
 
+  // Track if initial load has been done to prevent duplicate calls
+  const initialLoaded = useRef(false);
+
   const fetchPageStatus = useCallback(async () => {
     if (!pageId) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.get<{ pages: PageStatus[] } | PageStatus[]>('/pages');
-      const data = res.data;
-      const pages = Array.isArray(data) ? data : data.pages;
-      const found = pages.find((p) => p.id === pageId);
-      if (found) {
-        if ((found.status as string) === 'available') {
-          found.status = 'free';
-        }
-        setPageStatus(found);
-      } else {
-        setPageStatus({
-          id: pageId!,
-          name: pageId!,
-          status: 'free',
-          checkedOutBy: null,
-        });
+      const res = await apiClient.get<PageStatus>(`/pages/${pageId}`);
+      const found = res.data;
+      if ((found.status as string) === 'available') {
+        found.status = 'free';
       }
+      setPageStatus(found);
     } catch {
       setError('加载页面状态失败');
     } finally {
       setLoading(false);
     }
   }, [pageId]);
-
-  useEffect(() => {
-    fetchPageStatus();
-  }, [fetchPageStatus]);
 
   const fetchEditLockState = useCallback(() => {
     if (!pageId) return;
@@ -85,9 +74,13 @@ const IDEPage: React.FC = () => {
       });
   }, [pageId]);
 
+  // Initial load: fetch page status and edit lock state once
   useEffect(() => {
+    if (initialLoaded.current) return;
+    initialLoaded.current = true;
+    fetchPageStatus();
     fetchEditLockState();
-  }, [fetchEditLockState]);
+  }, [fetchPageStatus, fetchEditLockState]);
 
   const determineMode = (): IDEMode => {
     if (!pageStatus) return 'readonly-free';
@@ -99,8 +92,10 @@ const IDEPage: React.FC = () => {
   const mode = determineMode();
 
   const handleCheckoutComplete = useCallback(() => {
+    clearAllTabs();
     fetchPageStatus();
-  }, [fetchPageStatus]);
+    fetchEditLockState();
+  }, [fetchPageStatus, clearAllTabs, fetchEditLockState]);
 
   useEffect(() => {
     if (mode !== 'editable' || !pageId) return;
@@ -225,7 +220,7 @@ const IDEPage: React.FC = () => {
             >
               程序
             </span>
-            <span className="page-name-pill" style={{ fontSize: 11 }}>
+            <span className="page-name-pill">
               {pageName}
             </span>
           </div>

@@ -115,6 +115,7 @@ public class PageResource {
 
             Checkout active = Checkout.findActiveByPageId(entity.id.toString());
             if (active != null) {
+                dto.checkedOutAt = active.checkedOutAt != null ? active.checkedOutAt.toString() : null;
                 if (active.user != null && active.user.id.toString().equals(currentUserId)) {
                     dto.status = "mine";
                 } else {
@@ -127,6 +128,38 @@ public class PageResource {
             pages.add(dto);
         }
         return Response.ok(Map.of("pages", pages)).build();
+    }
+
+    /**
+     * Get a single page by ID with checkout status.
+     */
+    @GET
+    @Path("/{pageId}")
+    public Response getPage(@PathParam("pageId") String pageId) {
+        String currentUserId = requestContext.getUserId();
+
+        Page entity = Page.findById(UUID.fromString(pageId));
+        if (entity == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "NotFound", "message", "Page not found: " + pageId))
+                    .build();
+        }
+
+        PageDto dto = PageDto.from(entity);
+        Checkout active = Checkout.findActiveByPageId(pageId);
+        if (active != null) {
+            dto.checkedOutAt = active.checkedOutAt != null ? active.checkedOutAt.toString() : null;
+            if (active.user != null && active.user.id.toString().equals(currentUserId)) {
+                dto.status = "mine";
+            } else {
+                dto.status = "checkedout";
+                if (active.user != null) {
+                    dto.setCheckedOutByUser(active.user.username, active.user.displayName);
+                }
+            }
+        }
+
+        return Response.ok(dto).build();
     }
 
     /**
@@ -788,8 +821,8 @@ public class PageResource {
                         LOG.info("Checkin: appsmith pending operations executed successfully");
                     }
 
-                    // 4b. Collect content changes for jsObject files (only Modified, not rename)
-                    Map<String, String> changedJsFiles = collectChangedJsObjectContents(containerId);
+                    // 4b. Read all jsObject files — let redux-node-service compare internally
+                    Map<String, String> changedJsFiles = collectAllJsObjectContents(containerId);
                     if (!changedJsFiles.isEmpty()) {
                         LOG.infof("Checkin: %d jsObject file(s) with content changes", changedJsFiles.size());
 
@@ -867,32 +900,44 @@ public class PageResource {
         String userId = requestContext.getUserId();
 
         Checkout checkout = Checkout.findActiveByPageId(pageId);
-        if (checkout == null) {
-            return Response.ok(Map.of("success", true, "message", "No active checkout")).build();
-        }
 
-        // Verify the user owns this checkout
-        if (checkout.user != null && !checkout.user.id.toString().equals(userId)) {
-            return Response.status(Response.Status.FORBIDDEN)
-                    .entity(Map.of("error", "Forbidden", "message", "You do not own this checkout"))
-                    .build();
-        }
+        if (checkout != null) {
+            // Verify the user owns this checkout
+            if (checkout.user != null && !checkout.user.id.toString().equals(userId)) {
+                return Response.status(Response.Status.FORBIDDEN)
+                        .entity(Map.of("error", "Forbidden", "message", "You do not own this checkout"))
+                        .build();
+            }
 
-        // Close checkout record
-        checkout.status = "released";
-        checkout.checkedInAt = OffsetDateTime.now();
+            // Close checkout record
+            checkout.status = "released";
+            checkout.checkedInAt = OffsetDateTime.now();
 
-        // Best-effort destroy container
-        if (checkout.containerId != null) {
-            jsObjectTracker.cleanup(checkout.containerId);
-            try {
-                dockerService.destroyContainer(checkout.containerId);
-            } catch (Exception e) {
-                LOG.warnf("Failed to destroy container %s during release: %s", checkout.containerId, e.getMessage());
+            // Best-effort destroy container
+            if (checkout.containerId != null) {
+                jsObjectTracker.cleanup(checkout.containerId);
+                try {
+                    dockerService.destroyContainer(checkout.containerId);
+                } catch (Exception e) {
+                    LOG.warnf("Failed to destroy container %s during release: %s", checkout.containerId, e.getMessage());
+                }
             }
         }
 
-        LOG.infof("Checkout released: pageId=%s, userId=%s", pageId, userId);
+        // Always release external edit lock (even if checkout record is gone)
+        if (editLockService.isEnabled()) {
+            try {
+                Page page = Page.findById(UUID.fromString(pageId));
+                if (page != null) {
+                    editLockService.checkIn(page.name, requestContext.getUsername());
+                    LOG.infof("Release: edit lock released for page %s", page.name);
+                }
+            } catch (Exception ex) {
+                LOG.warnf("Failed to release external edit lock after release: %s", ex.getMessage());
+            }
+        }
+
+        LOG.infof("Checkout released: pageId=%s, userId=%s, hadCheckoutRecord=%s", pageId, userId, checkout != null);
         return Response.ok(Map.of("success", true)).build();
     }
 
@@ -952,24 +997,31 @@ public class PageResource {
     }
 
     /**
-     * Get file tree for a page (GitLab proxy or mock).
+     * Get file tree for a page (readonly mode).
+     * Appsmith type: fetches from Appsmith API.
+     * Normal type: returns empty tree (no container running).
      */
     @GET
     @Path("/{pageId}/tree")
     public Response getTree(@PathParam("pageId") String pageId) {
-        // TODO: Proxy to GitLab API or DemoDataService
-        return Response.ok(Map.of(
-                "pageId", pageId,
-                "tree", List.of(
-                        Map.of("name", "src", "type", "tree", "path", "src"),
-                        Map.of("name", "README.md", "type", "blob", "path", "README.md"),
-                        Map.of("name", "package.json", "type", "blob", "path", "package.json")
-                )
-        )).build();
+        try {
+            Page page = Page.findById(UUID.fromString(pageId));
+            if (page != null && "appsmith".equals(page.type)
+                    && page.appsmithPageId != null && !page.appsmithPageId.isBlank()) {
+                return buildAppsmithFileTree(page);
+            }
+        } catch (Exception e) {
+            LOG.warnf("Failed to build tree for page %s: %s", pageId, e.getMessage());
+        }
+
+        // Normal type without container: return empty tree
+        return Response.ok(List.of()).build();
     }
 
     /**
-     * Get file content for a page (GitLab proxy or mock).
+     * Get file content for a page (readonly mode).
+     * Appsmith type: fetches body from Appsmith API editResponse.
+     * Normal type: returns empty content (no container running).
      */
     @GET
     @Path("/{pageId}/files")
@@ -980,12 +1032,69 @@ public class PageResource {
                     .build();
         }
 
-        // TODO: Proxy to GitLab API or DemoDataService
-        return Response.ok(Map.of(
-                "pageId", pageId,
-                "path", path,
-                "content", "// Mock file content for " + path
-        )).build();
+        try {
+            Page page = Page.findById(UUID.fromString(pageId));
+            if (page != null && "appsmith".equals(page.type)
+                    && page.appsmithPageId != null && !page.appsmithPageId.isBlank()
+                    && path.startsWith("jsObjects/") && path.endsWith(".js")) {
+
+                // Extract collection name from path: jsObjects/Xxx.js → Xxx
+                String collectionName = path.substring("jsObjects/".length(), path.length() - ".js".length());
+                String content = fetchAppsmithCollectionBody(page, collectionName);
+                if (content != null) {
+                    return Response.ok(Map.of("content", content)).build();
+                }
+                return Response.ok(Map.of("content", "")).build();
+            }
+        } catch (Exception e) {
+            LOG.warnf("Failed to fetch appsmith file content for %s: %s", path, e.getMessage());
+        }
+
+        return Response.ok(Map.of("content", "")).build();
+    }
+
+    /**
+     * Fetch a single collection's body from Appsmith editResponse.
+     */
+    private String fetchAppsmithCollectionBody(Page page, String collectionName) {
+        String baseUrl = appConfig.getAppsmithApiBaseUrl();
+        if (baseUrl.isBlank()) return null;
+
+        String editUrl = String.format(baseUrl, page.appsmithPageId, page.appsmithPageId);
+        Map<String, String> headers = jsObjectTracker.buildAppsmithHeaders();
+
+        try {
+            IHttpService.Response resp = httpService.getWithStatus(editUrl, headers);
+            if (!resp.isSuccess()) return null;
+
+            com.fasterxml.jackson.databind.JsonNode root = new com.fasterxml.jackson.databind.ObjectMapper().readTree(resp.body);
+            com.fasterxml.jackson.databind.JsonNode collections = root.path("data").path("unpublishedActionCollections").path("data");
+
+            if (collections.isArray()) {
+                for (com.fasterxml.jackson.databind.JsonNode item : collections) {
+                    if (collectionName.equals(item.path("name").asText())) {
+                        return item.path("body").asText("");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOG.warnf("Failed to fetch collection body '%s': %s", collectionName, e.getMessage());
+        }
+        return null;
+    }
+
+    // --- JsObject naming validation ---
+
+    /**
+     * Validate jsObject name: must start with letter, no Chinese, only letters/digits/underscore.
+     * @return error message or null if valid
+     */
+    private static String validateJsObjectName(String name) {
+        if (name == null || name.isBlank()) return "名称不能为空";
+        if (!name.matches("^[a-zA-Z].*")) return "名称必须以英文字母开头";
+        if (name.matches(".*[\\u4e00-\\u9fff].*")) return "名称不能包含汉字";
+        if (!name.matches("^[a-zA-Z][a-zA-Z0-9_]*$")) return "名称只能包含英文字母、数字和下划线";
+        return null;
     }
 
     // --- JsObject Operation Endpoints (Appsmith pages only) ---
@@ -1012,6 +1121,13 @@ public class PageResource {
             if (oldName == null || oldName.isBlank() || newName == null || newName.isBlank()) {
                 return Response.status(Response.Status.BAD_REQUEST)
                         .entity(Map.of("error", "BadRequest", "message", "oldName and newName are required"))
+                        .build();
+            }
+
+            String nameError = validateJsObjectName(newName);
+            if (nameError != null) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("error", "BadRequest", "message", nameError))
                         .build();
             }
 
@@ -1067,6 +1183,13 @@ public class PageResource {
             if (name == null || name.isBlank()) {
                 return Response.status(Response.Status.BAD_REQUEST)
                         .entity(Map.of("error", "BadRequest", "message", "name is required"))
+                        .build();
+            }
+
+            String nameError = validateJsObjectName(name);
+            if (nameError != null) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("error", "BadRequest", "message", nameError))
                         .build();
             }
 
@@ -1262,38 +1385,153 @@ public class PageResource {
     }
 
     /**
-     * Proxy tree request to container.
+     * Get file tree.
+     * - Appsmith type + current user has active checkout → proxy to container (git repo)
+     * - Appsmith type + NOT checked out by current user → fetch from Appsmith API
+     * - Normal type → proxy to container
      */
     @GET
     @Path("/{pageId}/container/tree")
     public Response proxyContainerTree(@PathParam("pageId") String pageId) {
+        try {
+            Page page = Page.findById(UUID.fromString(pageId));
+            if (page != null && "appsmith".equals(page.type)
+                    && page.appsmithPageId != null && !page.appsmithPageId.isBlank()) {
+
+                // Check if current user has active checkout (container is running)
+                String currentUserId = requestContext.getUserId();
+                Checkout active = Checkout.findActiveByPageId(pageId);
+                boolean myCheckout = active != null && active.user != null
+                        && active.user.id.toString().equals(currentUserId);
+
+                if (!myCheckout) {
+                    // Not checked out by me → use Appsmith API
+                    return buildAppsmithFileTree(page);
+                }
+                // My checkout → fall through to container proxy
+            }
+        } catch (Exception e) {
+            LOG.warnf("Failed to check page type for tree, falling back to container: %s", e.getMessage());
+        }
+
+        // Normal type or my checkout: proxy to container File Manager
         return proxyToContainer(pageId, "GET", "/files", null, MediaType.APPLICATION_JSON);
+    }
+
+    /**
+     * Build file tree for appsmith pages from Appsmith editResponse API.
+     * Extracts collection names from unpublishedActionCollections.data.
+     */
+    private Response buildAppsmithFileTree(Page page) {
+        String baseUrl = appConfig.getAppsmithApiBaseUrl();
+        if (baseUrl.isBlank()) {
+            return Response.status(Response.Status.BAD_GATEWAY)
+                    .entity(Map.of("error", "Bad Gateway", "message", "Appsmith API base URL not configured"))
+                    .build();
+        }
+
+        String editUrl = String.format(baseUrl, page.appsmithPageId, page.appsmithPageId);
+        Map<String, String> headers = jsObjectTracker.buildAppsmithHeaders();
+
+        try {
+            IHttpService.Response resp = httpService.getWithStatus(editUrl, headers);
+            if (!resp.isSuccess()) {
+                LOG.errorf("Appsmith tree API returned HTTP %d for page %s", resp.statusCode, page.name);
+                return Response.status(resp.statusCode == 401 ? Response.Status.UNAUTHORIZED : Response.Status.BAD_GATEWAY)
+                        .entity(Map.of("error", "AppsmithApiError",
+                                "message", resp.statusCode == 401
+                                        ? "Appsmith API 认证失败，请检查系统配置中的 APPSMITH会话"
+                                        : "Appsmith API 请求失败 (HTTP " + resp.statusCode + ")"))
+                        .build();
+            }
+
+            // Parse unpublishedActionCollections.data[*].name
+            com.fasterxml.jackson.databind.JsonNode root = new com.fasterxml.jackson.databind.ObjectMapper().readTree(resp.body);
+            com.fasterxml.jackson.databind.JsonNode collections = root.path("data").path("unpublishedActionCollections").path("data");
+
+            List<Map<String, Object>> children = new ArrayList<>();
+            if (collections.isArray()) {
+                for (com.fasterxml.jackson.databind.JsonNode item : collections) {
+                    String name = item.path("name").asText(null);
+                    if (name != null && !name.isBlank()) {
+                        children.add(new LinkedHashMap<>(Map.of(
+                                "name", name + ".js",
+                                "path", "jsObjects/" + name + ".js",
+                                "type", "file"
+                        )));
+                    }
+                }
+            }
+            // Sort by file name
+            children.sort((a, b) -> String.valueOf(a.get("name")).compareToIgnoreCase(String.valueOf(b.get("name"))));
+
+            // Build tree: jsObjects directory with children + deps directory placeholder
+            List<Map<String, Object>> tree = new ArrayList<>();
+            tree.add(Map.of(
+                    "name", "jsObjects",
+                    "path", "jsObjects",
+                    "type", "directory",
+                    "children", children
+            ));
+
+            // Also include deps directory from container (if available)
+            try {
+                Checkout checkout = Checkout.findActiveByPageId(page.id.toString());
+                if (checkout != null && checkout.containerId != null) {
+                    Response containerResp = proxyToContainer(page.id.toString(), "GET", "/files", null, MediaType.APPLICATION_JSON);
+                    if (containerResp.getStatus() == 200) {
+                        Object entity = containerResp.getEntity();
+                        if (entity instanceof java.io.InputStream is) {
+                            String json = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                            com.fasterxml.jackson.databind.JsonNode containerTree = new com.fasterxml.jackson.databind.ObjectMapper().readTree(json);
+                            if (containerTree.isArray()) {
+                                for (com.fasterxml.jackson.databind.JsonNode node : containerTree) {
+                                    if ("deps".equals(node.path("name").asText())) {
+                                        tree.add(new com.fasterxml.jackson.databind.ObjectMapper().convertValue(node,
+                                                new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {}));
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                LOG.debugf("Could not fetch deps from container for appsmith tree: %s", e.getMessage());
+            }
+
+            return Response.ok(tree).build();
+        } catch (Exception e) {
+            LOG.errorf(e, "Failed to build appsmith file tree for page %s", page.name);
+            return Response.status(Response.Status.BAD_GATEWAY)
+                    .entity(Map.of("error", "AppsmithApiError", "message", "获取文件列表失败: " + e.getMessage()))
+                    .build();
+        }
     }
 
     // --- Private helpers ---
 
     /**
-     * Collect content of changed jsObject files from the container.
-     * Only returns files that have been Modified (M) or Added (A) in the jsObjects/ directory.
-     * Rename-only changes are excluded (handled by pending operations).
+     * Read ALL jsObject files from the container's jsObjects/ directory.
+     * Returns every file's content so that redux-node-service can do its own
+     * body comparison (biz/update/js-action returns edit=false for unchanged files).
+     *
+     * This approach avoids relying on git diff status parsing, which fails
+     * for combined rename+modify operations (git status 'R' is neither 'M' nor 'A').
      *
      * @return Map of collection name (without .js extension) → file content
      */
-    private Map<String, String> collectChangedJsObjectContents(String containerId) {
+    private Map<String, String> collectAllJsObjectContents(String containerId) {
         Map<String, String> result = new LinkedHashMap<>();
         try {
-            // Get list of changed files in jsObjects/ directory
             String script =
-                    "cd /workspace && " +
-                    "git -c core.quotepath=false diff HEAD~1 --name-status -- jsObjects/ | " +
-                    "while read -r status filepath; do " +
-                    "  if [ \"$status\" = \"M\" ] || [ \"$status\" = \"A\" ]; then " +
-                    "    echo '===JS_FILE_BEGIN==='; " +
-                    "    echo \"PATH:$filepath\"; " +
-                    "    echo 'CONTENT_BEGIN'; " +
-                    "    cat \"$filepath\"; " +
-                    "    echo; echo 'CONTENT_END'; " +
-                    "  fi; " +
+                    "for f in /workspace/jsObjects/*.js; do " +
+                    "  [ -f \"$f\" ] || continue; " +
+                    "  echo '===JS_FILE_BEGIN==='; " +
+                    "  echo \"NAME:$(basename \"$f\" .js)\"; " +
+                    "  echo 'CONTENT_BEGIN'; " +
+                    "  cat \"$f\"; " +
+                    "  echo; echo 'CONTENT_END'; " +
                     "done";
 
             DockerService.ExecResult execResult = dockerService.execInContainerFull(containerId,
@@ -1304,13 +1542,13 @@ public class PageResource {
                 for (String block : blocks) {
                     if (block.isBlank()) continue;
                     String[] lines = block.split("\n");
-                    String filePath = "";
+                    String collectionName = "";
                     StringBuilder content = new StringBuilder();
                     boolean inContent = false;
 
                     for (String line : lines) {
-                        if (line.startsWith("PATH:")) {
-                            filePath = line.substring(5).trim();
+                        if (line.startsWith("NAME:")) {
+                            collectionName = line.substring(5).trim();
                         } else if (line.equals("CONTENT_BEGIN")) {
                             inContent = true;
                         } else if (line.equals("CONTENT_END")) {
@@ -1321,16 +1559,13 @@ public class PageResource {
                         }
                     }
 
-                    if (!filePath.isEmpty() && filePath.startsWith("jsObjects/") && filePath.endsWith(".js")) {
-                        // Extract collection name: jsObjects/XXX.js → XXX
-                        String collectionName = filePath.substring("jsObjects/".length(),
-                                filePath.length() - ".js".length());
+                    if (!collectionName.isEmpty()) {
                         result.put(collectionName, content.toString());
                     }
                 }
             }
         } catch (Exception e) {
-            LOG.warnf("Checkin: failed to collect changed jsObject contents: %s", e.getMessage());
+            LOG.warnf("Checkin: failed to read jsObject contents: %s", e.getMessage());
         }
         return result;
     }

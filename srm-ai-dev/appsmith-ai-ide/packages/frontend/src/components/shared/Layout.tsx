@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/authStore';
 import { StatusBar } from './StatusBar';
 
@@ -15,7 +16,7 @@ interface NavEntry {
 }
 
 const NAV_ITEMS: NavEntry[] = [
-  { icon: '\u{1F4CB}', tip: 'Page \u7B7E\u51FA', path: '/pages' },
+  { icon: '\u{1F4CB}', tip: '\u7A0B\u5E8F\u5217\u8868', path: '/pages' },
   { icon: '\u2328', tip: 'IDE \u5DE5\u4F5C\u533A', path: '/ide' },
   { icon: '\u{1F4E6}', tip: '\u4F9D\u8D56\u5E93\u7BA1\u7406', path: '/deps', adminOnly: true },
   { icon: '\u26A1', tip: 'Skill \u7BA1\u7406', path: '/skills', adminOnly: true },
@@ -29,6 +30,7 @@ const ADMIN_EXTRA: NavEntry[] = [
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { userInfo, activeCheckout, logout } = useAuthStore();
   const isAdmin = userInfo?.role === 'admin';
 
@@ -44,6 +46,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       } else {
         navigate('/pages');
       }
+    } else if (entry.path === '/pages') {
+      queryClient.invalidateQueries({ queryKey: ['pages'] });
+      navigate('/pages');
     } else {
       navigate(entry.path);
     }

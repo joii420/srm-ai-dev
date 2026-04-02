@@ -127,6 +127,28 @@ public class HttpClientUtil implements IHttpService {
         return new Response(response.statusCode(), response.body());
     }
 
+    @Override
+    public Response postJsonWithStatus(String url, String json, Map<String, String> extraHeaders, int readTimeoutMs) throws IOException {
+        Map<String, String> headers = new LinkedHashMap<>();
+        headers.put("Content-Type", "application/json;charset=UTF-8");
+        headers.put("Accept", "application/json");
+        if (extraHeaders != null) headers.putAll(extraHeaders);
+
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(Duration.ofMillis(readTimeoutMs));
+        applyHeaders(builder, headers);
+
+        if (json != null && !json.isEmpty()) {
+            builder.POST(HttpRequest.BodyPublishers.ofString(json));
+        } else {
+            builder.POST(HttpRequest.BodyPublishers.noBody());
+        }
+
+        HttpResponse<String> response = send(builder.build());
+        return new Response(response.statusCode(), response.body());
+    }
+
     // ------------------------------------------------------------------ PUT
 
     @Override
@@ -147,6 +169,26 @@ public class HttpClientUtil implements IHttpService {
         return response.body();
     }
 
+    // ------------------------------------------------------------------ PUT with status
+
+    @Override
+    public Response putWithStatus(String url, String body, Map<String, String> headers) throws IOException {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(Duration.ofSeconds(READ_TIMEOUT))
+                .header("Content-Type", "application/json;charset=UTF-8");
+        applyHeaders(builder, headers);
+
+        if (body != null && !body.isEmpty()) {
+            builder.PUT(HttpRequest.BodyPublishers.ofString(body));
+        } else {
+            builder.PUT(HttpRequest.BodyPublishers.noBody());
+        }
+
+        HttpResponse<String> response = send(builder.build());
+        return new Response(response.statusCode(), response.body());
+    }
+
     // ------------------------------------------------------------------ DELETE
 
     @Override
@@ -160,6 +202,19 @@ public class HttpClientUtil implements IHttpService {
 
         HttpResponse<String> response = send(builder.build());
         return response.body();
+    }
+
+    @Override
+    public Response deleteWithStatus(String url, Map<String, String> headers) throws IOException {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(Duration.ofSeconds(READ_TIMEOUT))
+                .header("Content-Type", "application/json;charset=UTF-8")
+                .DELETE();
+        applyHeaders(builder, headers);
+
+        HttpResponse<String> response = send(builder.build());
+        return new Response(response.statusCode(), response.body());
     }
 
     // ------------------------------------------------------------------ Private helpers

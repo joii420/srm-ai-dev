@@ -43,7 +43,8 @@ public class DepsLoader {
                 String content = fetchDependencyContent(dep);
                 if (content != null) {
                     writeDependencyToContainer(containerIp, dep.namespace, content);
-                    LOG.debugf("Loaded dep %s into container %s", dep.namespace, containerId);
+                    LOG.infof("DepsLoader: wrote %s.js (%d chars) into container %s",
+                            dep.namespace, content.length(), containerId);
                 }
             } catch (Exception e) {
                 LOG.warnf("Failed to load dependency %s into container %s: %s",
@@ -79,12 +80,12 @@ public class DepsLoader {
         List<Checkout> activeCheckouts = Checkout.list("status", "active");
         for (Checkout checkout : activeCheckouts) {
             try {
-                String containerIp = dockerService.getContainerIp(checkout.containerId);
-                writeDependencyToContainer(containerIp, dep.namespace, content);
-                notifyContainerRefresh(containerIp);
-                LOG.debugf("Refreshed dep %s in container %s", dep.namespace, checkout.containerId);
+                DockerService.ContainerEndpoints endpoints = dockerService.getContainerEndpoints(checkout.containerId);
+                writeDependencyToContainer(endpoints.fileManager(), dep.namespace, content);
+                notifyContainerRefresh(endpoints.aiProxy());
+                LOG.infof("DepsLoader: refreshed dep %s in container %s", dep.namespace, checkout.containerId);
             } catch (Exception e) {
-                LOG.warnf("Failed to refresh dep %s in container %s: %s",
+                LOG.warnf("DepsLoader: failed to refresh dep %s in container %s: %s",
                         dep.namespace, checkout.containerId, e.getMessage());
             }
         }
@@ -106,20 +107,26 @@ public class DepsLoader {
      */
     private String fetchDependencyContent(Dependency dep) {
         if (dep.url == null || dep.url.isBlank()) {
-            LOG.debugf("No URL configured for dependency: %s", dep.namespace);
+            LOG.infof("DepsLoader: no URL configured for dependency: %s, skipping", dep.namespace);
             return null;
         }
 
+        LOG.infof("DepsLoader: >>> GET %s (namespace=%s)", dep.url, dep.namespace);
         try {
             IHttpService.Response response = httpService.getWithStatus(dep.url);
             if (response.statusCode == 200) {
+                int len = response.body != null ? response.body.length() : 0;
+                LOG.infof("DepsLoader: <<< GET %s HTTP %d, content length=%d",
+                        dep.url, response.statusCode, len);
                 return response.body;
             }
-            LOG.warnf("Non-200 response (%d) fetching dependency %s from %s",
-                    response.statusCode, dep.namespace, dep.url);
+            LOG.warnf("DepsLoader: <<< GET %s HTTP %d, response: %s",
+                    dep.url, response.statusCode,
+                    response.body != null && response.body.length() > 200
+                            ? response.body.substring(0, 200) + "...[truncated]" : response.body);
             return null;
         } catch (Exception e) {
-            LOG.warnf("Error fetching dependency %s from %s: %s", dep.namespace, dep.url, e.getMessage());
+            LOG.errorf("DepsLoader: <<< GET %s failed: %s", dep.url, e.getMessage());
             return null;
         }
     }
@@ -127,16 +134,20 @@ public class DepsLoader {
     /**
      * Writes dependency content to a container via the File Manager API.
      */
-    private void writeDependencyToContainer(String containerIp, String namespace, String content) {
+    private void writeDependencyToContainer(String fileManagerAddr, String namespace, String content) {
         try {
-            String fileManagerUrl = "http://" + containerIp + "/api/files/write";
-            String jsonBody = String.format(
-                    "{\"path\":\"/deps/%s.js\",\"content\":%s}",
-                    namespace, escapeJson(content));
+            // File Manager API: POST /files/{path} with body {"content": "..."}
+            String filePath = "deps/" + namespace + ".js";
+            String fileManagerUrl = "http://" + fileManagerAddr + "/files/" + filePath;
+            String jsonBody = String.format("{\"content\":%s}", escapeJson(content));
 
+            LOG.infof("DepsLoader: >>> POST %s", fileManagerUrl);
             IHttpService.Response response = httpService.postJsonWithStatus(fileManagerUrl, jsonBody);
-            if (response.statusCode != 200) {
-                LOG.warnf("File write failed for %s.js: HTTP %d", namespace, response.statusCode);
+            if (response.statusCode != 200 && response.statusCode != 201) {
+                LOG.warnf("DepsLoader: <<< POST %s HTTP %d, write failed: %s",
+                        fileManagerUrl, response.statusCode, response.body);
+            } else {
+                LOG.infof("DepsLoader: <<< POST %s HTTP %d, write ok", fileManagerUrl, response.statusCode);
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to write dependency to container: " + e.getMessage(), e);

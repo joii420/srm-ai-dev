@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { apiClient } from '../services/api';
 import { useAuthStore, UserInfo, ActiveCheckout } from '../stores/authStore';
 
@@ -30,13 +30,20 @@ interface SessionRecoveryState {
  */
 export function useSessionRecovery(): SessionRecoveryState {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, setUser, setActiveCheckout, logout } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Only redirect on first mount (app load / page refresh), not on subsequent navigations
+  const hasRecovered = useRef(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
       setLoading(false);
+      return;
+    }
+
+    if (hasRecovered.current) {
       return;
     }
 
@@ -62,7 +69,11 @@ export function useSessionRecovery(): SessionRecoveryState {
 
             if (cancelled) return;
             setActiveCheckout(activeCheckout);
-            navigate(`/ide/${activeCheckout.pageId}`, { replace: true });
+            // Only redirect if user is NOT already on an IDE page or a specific page
+            // (i.e., only redirect from root "/" or "/login" on first load)
+            if (!location.pathname.startsWith('/ide/') && !location.pathname.startsWith('/pages')) {
+              navigate(`/ide/${activeCheckout.pageId}`, { replace: true });
+            }
           } catch {
             if (cancelled) return;
             // Container unhealthy - clear checkout
@@ -76,6 +87,7 @@ export function useSessionRecovery(): SessionRecoveryState {
         // 401 interceptor will handle logout+redirect
       } finally {
         if (!cancelled) {
+          hasRecovered.current = true;
           setLoading(false);
         }
       }
@@ -86,7 +98,8 @@ export function useSessionRecovery(): SessionRecoveryState {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, setUser, setActiveCheckout, navigate, logout]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   return { loading, error };
 }

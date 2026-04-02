@@ -144,36 +144,29 @@ public class AppsmithSyncService {
      * @return raw JSON string or null on failure
      */
     private String fetchEditResponseRaw(String editUrl) {
-        String session = appConfig.getAppsmithSession();
-        String xsrfToken = appConfig.getAppsmithXsrfToken();
+        Map<String, String> headers = jsObjectTracker.buildAppsmithHeaders();
 
-        if (session.isBlank()) {
-            LOG.warn("AppsmithSync: APPSMITH_SESSION not configured, cannot call Appsmith API");
-            return null;
-        }
+        LOG.infof("AppsmithSync: >>> GET %s", editUrl);
 
         try {
-            Map<String, String> headers = new LinkedHashMap<>();
-            headers.put("Accept", "application/json");
-            headers.put("Content-Type", "application/json");
-            headers.put("Cookie", "SESSION=" + session
-                    + (xsrfToken.isBlank() ? "" : "; XSRF-TOKEN=" + xsrfToken));
-            if (!xsrfToken.isBlank()) {
-                headers.put("X-Xsrf-Token", xsrfToken);
-            }
-
             IHttpService.Response response = httpService.getWithStatus(editUrl, headers);
 
-            if (response.statusCode != 200) {
-                LOG.errorf("AppsmithSync: API returned %d: %s",
-                        response.statusCode, response.body.substring(0, Math.min(500, response.body.length())));
-                return null;
+            if (response.statusCode == 401) {
+                throw new RuntimeException("Appsmith API 认证失败 (HTTP 401)，请检查系统配置中的 APPSMITH会话 是否有效");
             }
 
+            if (response.statusCode != 200) {
+                throw new RuntimeException(String.format("Appsmith API 请求失败 (HTTP %d): %s",
+                        response.statusCode,
+                        response.body != null ? response.body.substring(0, Math.min(200, response.body.length())) : ""));
+            }
+
+            LOG.infof("AppsmithSync: <<< GET %s HTTP 200, length=%d", editUrl, response.body.length());
             return response.body;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            LOG.errorf(e, "AppsmithSync: failed to fetch from Appsmith");
-            return null;
+            throw new RuntimeException("Appsmith API 请求异常: " + e.getMessage(), e);
         }
     }
 

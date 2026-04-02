@@ -326,20 +326,16 @@ public class ContainerLifecycle {
             // Step 3.5: Appsmith sync — sync JS objects from Appsmith API to workspace
             if ("appsmith".equals(pageType) && appsmithEditUrl != null && !appsmithEditUrl.isBlank()) {
                 emitStep(onStep, "sync_appsmith", "in_progress");
-                try {
-                    // Extract appsmithPageId from the edit URL query parameter
-                    String appsmithPageId = extractAppsmithPageId(appsmithEditUrl);
-                    boolean changed = appsmithSyncService.syncToContainer(containerId, appsmithEditUrl, branch, appsmithPageId);
-                    LOG.infof("Appsmith sync completed, changes=%s", changed);
-                } catch (Exception e) {
-                    LOG.warnf("Appsmith sync failed (non-fatal): %s", e.getMessage());
-                }
+                // Extract appsmithPageId from the edit URL query parameter
+                String appsmithPageId = extractAppsmithPageId(appsmithEditUrl);
+                boolean changed = appsmithSyncService.syncToContainer(containerId, appsmithEditUrl, branch, appsmithPageId);
+                LOG.infof("Appsmith sync completed, changes=%s", changed);
                 emitStep(onStep, "sync_appsmith", "completed");
             }
 
             // Step 4: Load dependencies
             emitStep(onStep, "load_deps", "in_progress");
-            depsLoader.loadDepsIntoContainer(containerId, endpoints.aiProxy());
+            depsLoader.loadDepsIntoContainer(containerId, endpoints.fileManager());
             emitStep(onStep, "load_deps", "completed");
 
             // Step 5: Inject skills

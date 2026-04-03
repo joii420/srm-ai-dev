@@ -1,0 +1,27 @@
+{
+  "name": "appsmith-ai-ide",
+  "version": "unknown",
+  "description": "基于容器化的 Web IDE 平台，为 Appsmith 应用提供多用户开发环境，支持 AI 辅助编码、签入签出工作流和 Git 集成",
+  "stack": {
+    "language": "Java 17 + TypeScript 5.4",
+    "framework": "Quarkus 3.23.3 + React 18.3",
+    "database": "PostgreSQL 16",
+    "cache": null,
+    "deploy": "Docker Compose + Nginx"
+  },
+  "package_manager": "maven + pnpm",
+  "commands": {
+    "dev": "mvn quarkus:dev (backend) / pnpm dev (frontend)",
+    "test": "pnpm test (frontend) / mvn test (backend)",
+    "build": "mvn clean install (backend) / pnpm build (frontend)"
+  },
+  "ai_context": {
+    "entry": "CLAUDE.md",
+    "architecture": "docs/generated/struct/ARCHITECTURE.md",
+    "conventions": "docs/generated/struct/CONVENTIONS.md",
+    "api": "docs/generated/struct/API.md",
+    "schema": "docs/generated/struct/SCHEMA.md",
+    "glossary": "docs/generated/struct/GLOSSARY.md",
+    "boundaries": "docs/generated/struct/BOUNDARIES.md"
+  }
+}

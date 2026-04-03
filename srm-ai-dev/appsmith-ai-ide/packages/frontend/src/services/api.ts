@@ -3,7 +3,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/authStore';
 
 export const apiClient = axios.create({
-  baseURL: '/api',
+  baseURL: '/api/ide',
   timeout: 30_000,
   headers: {
     'Content-Type': 'application/json',

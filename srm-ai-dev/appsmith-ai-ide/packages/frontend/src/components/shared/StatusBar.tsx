@@ -36,7 +36,7 @@ function languageFromExtension(fileName: string): string {
 
 export const StatusBar: React.FC = () => {
   const location = useLocation();
-  const { userInfo, activeCheckout } = useAuthStore();
+  const { userInfo } = useAuthStore();
   const { openTabs, activeTabId, unsavedFiles, cursorPosition } = useEditorStore();
 
   const isIDEPage = location.pathname.startsWith('/ide/');

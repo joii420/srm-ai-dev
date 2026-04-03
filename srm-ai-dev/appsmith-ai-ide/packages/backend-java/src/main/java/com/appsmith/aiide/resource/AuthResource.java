@@ -21,7 +21,7 @@ import com.appsmith.aiide.http.IHttpService;
 import java.util.Map;
 import java.util.UUID;
 
-@Path("/api/auth")
+@Path("/api/ide/auth")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class AuthResource {

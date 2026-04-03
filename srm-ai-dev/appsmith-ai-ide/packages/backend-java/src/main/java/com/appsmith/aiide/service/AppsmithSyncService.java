@@ -171,17 +171,6 @@ public class AppsmithSyncService {
     }
 
     /**
-     * Call Appsmith edit URL and extract JS objects (name → body).
-     */
-    private Map<String, String> fetchJsObjects(String editUrl) {
-        String rawJson = fetchEditResponseRaw(editUrl);
-        if (rawJson == null) {
-            return Map.of();
-        }
-        return parseJsObjects(rawJson);
-    }
-
-    /**
      * Parse the Appsmith edit API response to extract JS object name→body pairs.
      * Path: data.unpublishedActionCollections.data[*] → { name, body }
      */

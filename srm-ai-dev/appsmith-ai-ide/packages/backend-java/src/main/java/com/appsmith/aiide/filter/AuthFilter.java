@@ -33,8 +33,8 @@ public class AuthFilter implements ContainerRequestFilter {
      * Paths that do not require authentication.
      */
     private static final Set<String> SKIP_PATHS = Set.of(
-            "/api/auth/login",
-            "/api/health",
+            "/api/ide/auth/login",
+            "/api/ide/health",
             "/q/health",
             "/q/health/ready",
             "/q/health/live"

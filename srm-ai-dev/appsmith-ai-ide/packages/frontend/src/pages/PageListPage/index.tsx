@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../services/api';
-import { useAuthStore } from '../../stores/authStore';
+
 
 interface PageItem {
   id: string;
@@ -34,7 +34,6 @@ type StatusFilter = 'all' | 'free' | 'mine';
 const PageListPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { userInfo } = useAuthStore();
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -66,7 +65,7 @@ const PageListPage: React.FC = () => {
       }
       return true;
     });
-  }, [pages, search, statusFilter, userInfo?.id]);
+  }, [pages, search, statusFilter]);
 
   const isCheckedOutByOther = (page: PageItem): boolean => {
     return page.status === 'checkedout';

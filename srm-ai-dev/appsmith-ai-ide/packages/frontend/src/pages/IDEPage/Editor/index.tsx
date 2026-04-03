@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useImperativeHandle } from 'react';
 import MonacoEditor, { OnMount } from '@monaco-editor/react';
-import type * as monacoTypes from 'monaco-editor';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type MonacoEditor = any;
 import { useEditorStore } from '../../../stores/editorStore';
 import { apiClient } from '../../../services/api';
 import type { IDEMode } from '../StatusButton';
@@ -29,8 +30,6 @@ const Editor = React.forwardRef<EditorHandle, EditorProps>(({
     openTabs,
     activeTabId,
     unsavedFiles,
-    setActiveTab,
-    closeTab,
     markUnsaved,
     clearAllUnsaved,
     hasUnsavedFiles,
@@ -40,10 +39,10 @@ const Editor = React.forwardRef<EditorHandle, EditorProps>(({
   // Store file contents keyed by tab id (file path)
   const [fileContents, setFileContents] = useState<Record<string, string>>({});
   const [loadingFile, setLoadingFile] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [, setSaving] = useState(false);
   const originalContents = useRef<Record<string, string>>({});
   const loadedFiles = useRef<Set<string>>(new Set());
-  const editorRef = useRef<monacoTypes.editor.IStandaloneCodeEditor | null>(null);
+  const editorRef = useRef<MonacoEditor | null>(null);
 
   const activeTab = openTabs.find((t) => t.id === activeTabId);
   const isReadOnly = mode !== 'editable' || (activeTab?.readOnly === true);
@@ -182,18 +181,6 @@ const Editor = React.forwardRef<EditorHandle, EditorProps>(({
 
   useImperativeHandle(ref, () => ({ saveAll: handleSaveAll }), [handleSaveAll]);
 
-  const handleCloseTab = (e: React.MouseEvent, tabId: string) => {
-    e.stopPropagation();
-    closeTab(tabId);
-    // Clean up file content and loaded ref
-    setFileContents((prev) => {
-      const next = { ...prev };
-      delete next[tabId];
-      return next;
-    });
-    delete originalContents.current[tabId];
-    loadedFiles.current.delete(tabId);
-  };
 
   // DiffBanner: apply a code suggestion into the editor buffer
   const handleApplySuggestion = useCallback(

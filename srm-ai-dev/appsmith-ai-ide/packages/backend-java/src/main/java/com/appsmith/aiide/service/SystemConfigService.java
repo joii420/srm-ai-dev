@@ -42,12 +42,7 @@ public class SystemConfigService {
             SystemConfig config = SystemConfig.findByKey(key);
             if (config != null && config.value != null) {
                 String raw = config.value instanceof String s ? s : config.value.toString();
-                // Strip ALL layers of surrounding quotes from JSONB string
-                // Hibernate may return "xxx" or even ""xxx"" depending on JSONB mapping
-                String val = raw;
-                while (val.length() >= 2 && val.startsWith("\"") && val.endsWith("\"")) {
-                    val = val.substring(1, val.length() - 1);
-                }
+                String val = com.appsmith.aiide.util.JsonUtil.unwrapJsonString(raw);
                 LOG.infof("SystemConfigService: key='%s', raw='%.30s', resolved='%.30s'",
                         key, raw, val);
                 cache.put(key, val.isEmpty() ? EMPTY_SENTINEL : val);

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiClient } from '../services/api';
-import { useAuthStore, UserInfo, ActiveCheckout } from '../stores/authStore';
+import { useAuthStore, ActiveCheckout } from '../stores/authStore';
 
 interface MeResponse {
   id: string;
@@ -31,7 +31,7 @@ interface SessionRecoveryState {
 export function useSessionRecovery(): SessionRecoveryState {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, setUser, setActiveCheckout, logout } = useAuthStore();
+  const { isAuthenticated, setUser, setActiveCheckout } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Only redirect on first mount (app load / page refresh), not on subsequent navigations

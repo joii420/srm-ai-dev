@@ -50,7 +50,7 @@ public class SystemConfigSeeder {
         seedIfMissing(SystemConfigService.GIT_TOKEN, "GIT仓库token",
                 defaultGitToken, "GitLab/GitHub API Token", "input");
 
-        // Warm up cache
+        // Clear cache so values are loaded fresh on first access
         systemConfigService.refreshCache();
 
         LOG.info("SystemConfigSeeder: done");

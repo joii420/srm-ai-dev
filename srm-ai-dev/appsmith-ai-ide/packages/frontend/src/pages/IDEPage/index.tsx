@@ -46,11 +46,7 @@ const IDEPage: React.FC = () => {
     setError(null);
     try {
       const res = await apiClient.get<PageStatus>(`/pages/${pageId}`);
-      const found = res.data;
-      if ((found.status as string) === 'available') {
-        found.status = 'free';
-      }
-      setPageStatus(found);
+      setPageStatus(res.data);
     } catch {
       setError('加载页面状态失败');
     } finally {

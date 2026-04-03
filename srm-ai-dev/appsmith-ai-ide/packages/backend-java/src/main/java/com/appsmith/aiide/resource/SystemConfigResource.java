@@ -23,7 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Path("/api/system-config")
+@Path("/api/ide/system-config")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 @AdminOnly
@@ -183,30 +183,19 @@ public class SystemConfigResource {
         return dto;
     }
 
-    /** Strip surrounding quotes from JSONB string values: "xxx" → xxx */
     private Object unwrapJsonString(Object val) {
-        if (val == null) return "";
-        if (val instanceof String s) {
-            if (s.length() >= 2 && s.startsWith("\"") && s.endsWith("\"")) {
-                return s.substring(1, s.length() - 1);
-            }
-            return s;
-        }
-        return val;
+        return com.appsmith.aiide.util.JsonUtil.unwrapJsonString(val);
     }
 
     /** Wrap plain string as JSON string for JSONB column: xxx → "xxx" */
     private Object wrapAsJsonString(Object val) {
         if (val == null) return "\"\"";
         if (val instanceof String s) {
-            // Already valid JSON (starts with " or { or [) — keep as-is
             if (s.startsWith("\"") || s.startsWith("{") || s.startsWith("[")) {
                 return s;
             }
-            // Wrap plain string: xxx → "xxx"
-            return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+            return com.appsmith.aiide.util.JsonUtil.wrapJsonString(s);
         }
-        // Non-string (Map, List etc.) — already valid JSON object
         return val;
     }
 

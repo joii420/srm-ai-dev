@@ -683,9 +683,8 @@ public class AppsmithJsObjectTracker {
         Map<String, String> headers = new LinkedHashMap<>();
         headers.put("Content-Type", "application/json");
         String clientIp = RequestIpUtils.getClientIp(ctx);
-        if (clientIp.equals("127.0.0.1")) {
-            clientIp = "10.177.157.9";
-        }
+        //LOG.info(String.format("获取IP: buildAppsmithHeaders |　%s　", clientIp));
+
         headers.put("X-CheckOut-Auth", clientIp + "#" + ctx.get("user"));
 //        headers.put("Accept", "application/json");
         if (!session.isBlank()) {
@@ -760,7 +759,6 @@ public class AppsmithJsObjectTracker {
     }
 
     private static String escapeJson(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
+        return com.appsmith.aiide.util.JsonUtil.escapeJson(s);
     }
 }

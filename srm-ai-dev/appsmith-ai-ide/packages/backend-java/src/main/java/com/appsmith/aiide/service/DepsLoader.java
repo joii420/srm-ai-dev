@@ -166,28 +166,10 @@ public class DepsLoader {
     }
 
     /**
-     * Escapes a string for use as a JSON string value.
+     * Escapes and wraps a string as a JSON string value: xxx → "xxx"
      */
     private String escapeJson(String value) {
         if (value == null) return "null";
-        StringBuilder sb = new StringBuilder("\"");
-        for (char c : value.toCharArray()) {
-            switch (c) {
-                case '"' -> sb.append("\\\"");
-                case '\\' -> sb.append("\\\\");
-                case '\n' -> sb.append("\\n");
-                case '\r' -> sb.append("\\r");
-                case '\t' -> sb.append("\\t");
-                default -> {
-                    if (c < 0x20) {
-                        sb.append(String.format("\\u%04x", (int) c));
-                    } else {
-                        sb.append(c);
-                    }
-                }
-            }
-        }
-        sb.append("\"");
-        return sb.toString();
+        return com.appsmith.aiide.util.JsonUtil.wrapJsonString(value);
     }
 }

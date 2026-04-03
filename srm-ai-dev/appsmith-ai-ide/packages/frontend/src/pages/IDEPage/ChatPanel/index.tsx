@@ -146,7 +146,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ pageId, enabled, onCodeSuggestion
     abortControllerRef.current = controller;
 
     try {
-      const response = await fetch(`/api/pages/${pageId}/chat`, {
+      const response = await fetch(`/api/ide/pages/${pageId}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

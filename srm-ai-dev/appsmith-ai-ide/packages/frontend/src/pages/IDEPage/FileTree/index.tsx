@@ -434,32 +434,13 @@ const TreeNodeRow: React.FC<TreeNodeRowProps> = ({ node, depth, pageId, mode, pa
 /*  DepsPanel — shows dependency files from /deps/ directory            */
 /* ------------------------------------------------------------------ */
 
-const DepsPanel: React.FC<{ pageId: string }> = ({ pageId }) => {
-  const [depsFiles, setDepsFiles] = useState<TreeNode[]>([]);
-  const [loading, setLoading] = useState(true);
+const DepsPanel: React.FC<{ tree: TreeNode[] }> = ({ tree }) => {
   const { openFile } = useEditorStore();
 
-  const fetchDeps = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await apiClient.get<TreeNode[] | { tree: TreeNode[] }>(
-        `/pages/${pageId}/container/tree`,
-      );
-      const data = res.data;
-      const tree: TreeNode[] = Array.isArray(data) ? data : data.tree;
-      // Find the deps directory and show its children
-      const depsNode = tree.find((n) => n.name === 'deps' && n.type === 'directory');
-      setDepsFiles(depsNode?.children ?? []);
-    } catch {
-      setDepsFiles([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [pageId]);
-
-  useEffect(() => {
-    fetchDeps();
-  }, [fetchDeps]);
+  const depsFiles = useMemo(() => {
+    const depsNode = tree.find((n) => n.name === 'deps' && n.type === 'directory');
+    return depsNode?.children ?? [];
+  }, [tree]);
 
   const handleClick = (node: TreeNode) => {
     if (node.type === 'file') {
@@ -472,14 +453,6 @@ const DepsPanel: React.FC<{ pageId: string }> = ({ pageId }) => {
       });
     }
   };
-
-  if (loading) {
-    return (
-      <div className="center-col" style={{ padding: 20 }}>
-        <span style={{ color: 'var(--t2)', fontSize: 13 }}>加载中...</span>
-      </div>
-    );
-  }
 
   if (depsFiles.length === 0) {
     return (
@@ -676,7 +649,7 @@ const FileTree: React.FC<FileTreeProps> = ({ pageId, mode, pageType }) => {
       )}
 
       {/* Tab content */}
-      {activeTab === 'files' || !isEditable ? renderFilesTab() : <DepsPanel pageId={pageId} />}
+      {activeTab === 'files' || !isEditable ? renderFilesTab() : <DepsPanel tree={tree} />}
 
       {/* Root-level dialogs */}
       {rootDialog === 'newFile' && (

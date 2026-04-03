@@ -1,32 +1,38 @@
 package com.appsmith.aiide.http;
 
 import io.vertx.ext.web.RoutingContext;
+import lombok.extern.slf4j.Slf4j;
+import org.jboss.logging.Logger;
+
 
 /**
  * 请求IP工具类
  */
+@Slf4j
 public class RequestIpUtils {
+    private static final Logger LOG = Logger.getLogger(RequestIpUtils.class);
 
     private static final String[] IP_HEADERS = {
-        "X-Forwarded-For",
-        "X-Real-IP",
-        "Proxy-Client-IP",
-        "WL-Proxy-Client-IP",
-        "HTTP_X_FORWARDED_FOR",
-        "HTTP_X_FORWARDED",
-        "HTTP_X_CLUSTER_CLIENT_IP",
-        "HTTP_CLIENT_IP",
-        "HTTP_FORWARDED_FOR",
-        "HTTP_FORWARDED",
-        "HTTP_VIA",
-        "REMOTE_ADDR"
+            "X-Forwarded-For",
+            "X-Real-IP",
+            "Proxy-Client-IP",
+            "WL-Proxy-Client-IP",
+            "HTTP_X_FORWARDED_FOR",
+            "HTTP_X_FORWARDED",
+            "HTTP_X_CLUSTER_CLIENT_IP",
+            "HTTP_CLIENT_IP",
+            "HTTP_FORWARDED_FOR",
+            "HTTP_FORWARDED",
+            "HTTP_VIA",
+            "REMOTE_ADDR"
     };
 
     private static final String UNKNOWN = "unknown";
     private static final String LOCALHOST_IPV4 = "127.0.0.1";
     private static final String LOCALHOST_IPV6 = "0:0:0:0:0:0:0:1";
 
-    private RequestIpUtils() {}
+    private RequestIpUtils() {
+    }
 
     /**
      * 获取客户端真实IP
@@ -35,6 +41,7 @@ public class RequestIpUtils {
         // 优先从请求头获取（处理反向代理场景）
         for (String header : IP_HEADERS) {
             String ip = context.request().getHeader(header);
+            //LOG.info(String.format("获取IP: %s |　%s　", header, ip));
             if (isValidIp(ip)) {
                 // X-Forwarded-For 可能包含多个IP，取第一个
                 return extractFirstIp(ip);
@@ -43,8 +50,8 @@ public class RequestIpUtils {
 
         // 回退到远程地址
         String remoteIp = context.request().remoteAddress() != null
-            ? context.request().remoteAddress().hostAddress()
-            : null;
+                ? context.request().remoteAddress().hostAddress()
+                : null;
 
         if (LOCALHOST_IPV6.equals(remoteIp)) {
             return LOCALHOST_IPV4;

@@ -85,7 +85,7 @@ const StatusButton: React.FC<StatusButtonProps> = ({
     setError(null);
     setDialogPhase('idle');
 
-    fetch(`/api/pages/${pageId}/checkout`, {
+    fetch(`/api/ide/pages/${pageId}/checkout`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -206,7 +206,7 @@ const StatusButton: React.FC<StatusButtonProps> = ({
     setDialogError(null);
 
     try {
-      const response = await fetch(`/api/pages/${pageId}/checkin`, {
+      const response = await fetch(`/api/ide/pages/${pageId}/checkin`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -283,7 +283,7 @@ const StatusButton: React.FC<StatusButtonProps> = ({
     setDialogError(null);
 
     try {
-      const response = await fetch(`/api/pages/${pageId}/abandon`, {
+      const response = await fetch(`/api/ide/pages/${pageId}/abandon`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -313,7 +313,7 @@ const StatusButton: React.FC<StatusButtonProps> = ({
     setDialogError(null);
 
     try {
-      const response = await fetch(`/api/pages/${pageId}/release`, {
+      const response = await fetch(`/api/ide/pages/${pageId}/release`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

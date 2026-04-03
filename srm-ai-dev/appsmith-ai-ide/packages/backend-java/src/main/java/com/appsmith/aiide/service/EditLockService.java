@@ -2,12 +2,15 @@ package com.appsmith.aiide.service;
 
 import com.appsmith.aiide.config.AppConfig;
 import com.appsmith.aiide.http.IHttpService;
+import com.appsmith.aiide.http.RequestIpUtils;
+import io.vertx.ext.web.RoutingContext;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -28,6 +31,8 @@ public class EditLockService {
 
     @Inject
     IHttpService httpService;
+    @Inject
+    RoutingContext ctx;
 
     /**
      * Whether the external edit-lock API is configured.
@@ -86,11 +91,13 @@ public class EditLockService {
         String baseUrl = appConfig.getEditLockApiUrl().replaceAll("/+$", "");
         String url = baseUrl + "/editLock/checkOut";
         String body = String.format("{\"code\":\"%s\",\"acct\":\"%s\"}", escapeJson(code), escapeJson(acct));
-
         try {
             LOG.infof("[EditLock] >>> POST %s body=%s", url, body);
-
-            IHttpService.Response response = httpService.postJsonWithStatus(url, body);
+            Map<String, String> headers = new LinkedHashMap<>();
+            headers.put("Content-Type", "application/json;charset=UTF-8");
+            String clientIp = RequestIpUtils.getClientIp(ctx);
+            headers.put("X-CheckOut-Auth", clientIp + "#" + ctx.get("user"));
+            IHttpService.Response response = httpService.postJsonWithStatus(url, body, headers);
             LOG.infof("[EditLock] <<< checkOut status=%d response=%s", response.statusCode, response.body);
 
             if (response.statusCode == 200) {
@@ -128,8 +135,11 @@ public class EditLockService {
 
         try {
             LOG.infof("[EditLock] >>> POST %s body=%s", url, body);
-
-            IHttpService.Response response = httpService.postJsonWithStatus(url, body);
+            Map<String, String> headers = new LinkedHashMap<>();
+            headers.put("Content-Type", "application/json;charset=UTF-8");
+            String clientIp = RequestIpUtils.getClientIp(ctx);
+            headers.put("X-CheckOut-Auth", clientIp + "#" + ctx.get("user"));
+            IHttpService.Response response = httpService.postJsonWithStatus(url, body, headers);
             LOG.infof("[EditLock] <<< checkIn status=%d response=%s", response.statusCode, response.body);
         } catch (Exception e) {
             LOG.errorf(e, "[EditLock] checkIn failed: POST %s body=%s", url, body);
@@ -139,8 +149,7 @@ public class EditLockService {
     // --- Private helpers ---
 
     private static String escapeJson(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
+        return com.appsmith.aiide.util.JsonUtil.escapeJson(s);
     }
 
     /**

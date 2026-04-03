@@ -56,7 +56,13 @@
       "Bash(PGPASSWORD=aiide_dev psql -h localhost -U aiide -d aiide -c \"\\\\d system_configs\" 2>&1)",
       "Bash(where psql:*)",
       "Read(//c/Program Files/**)",
-      "Read(//c/Program Files \\(x86\\)/**)"
+      "Read(//c/Program Files \\(x86\\)/**)",
+      "Bash(mkdir:*)",
+      "Bash(cp scaffold/docs/prompts/AI_SCAN_PROMPT.md docs/prompts/)",
+      "Bash(cp scaffold/docs/prompts/AI_BEHAVIOR_SCAN_PROMPT.md docs/prompts/)",
+      "Bash(cp scaffold/docs/prompts/AI_PRODUCT_DOC_PROMPT.md docs/prompts/)",
+      "Bash(cp scaffold/docs/USAGE_GUIDE.md docs/)",
+      "Bash(cp scaffold/docs/CHANGELOG.md docs/)"
     ]
   }
 }

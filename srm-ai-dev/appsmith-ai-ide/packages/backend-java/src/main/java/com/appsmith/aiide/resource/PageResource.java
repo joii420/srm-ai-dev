@@ -40,12 +40,13 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.*;
 
-@Path("/api/pages")
+@Path("/api/ide/pages")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class PageResource {
 
     private static final Logger LOG = Logger.getLogger(PageResource.class);
+    private static final com.fasterxml.jackson.databind.ObjectMapper OBJECT_MAPPER = new com.fasterxml.jackson.databind.ObjectMapper();
 
     @Inject
     AppConfig appConfig;
@@ -520,8 +521,7 @@ public class PageResource {
     }
 
     private static String escapeJson(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
+        return com.appsmith.aiide.util.JsonUtil.escapeJson(s);
     }
 
     /**
@@ -1067,7 +1067,7 @@ public class PageResource {
             IHttpService.Response resp = httpService.getWithStatus(editUrl, headers);
             if (!resp.isSuccess()) return null;
 
-            com.fasterxml.jackson.databind.JsonNode root = new com.fasterxml.jackson.databind.ObjectMapper().readTree(resp.body);
+            com.fasterxml.jackson.databind.JsonNode root = OBJECT_MAPPER.readTree(resp.body);
             com.fasterxml.jackson.databind.JsonNode collections = root.path("data").path("unpublishedActionCollections").path("data");
 
             if (collections.isArray()) {
@@ -1114,7 +1114,7 @@ public class PageResource {
         }
 
         try {
-            com.fasterxml.jackson.databind.JsonNode reqNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(body);
+            com.fasterxml.jackson.databind.JsonNode reqNode = OBJECT_MAPPER.readTree(body);
             String oldName = reqNode.path("oldName").asText(null);
             String newName = reqNode.path("newName").asText(null);
 
@@ -1177,7 +1177,7 @@ public class PageResource {
         }
 
         try {
-            com.fasterxml.jackson.databind.JsonNode reqNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(body);
+            com.fasterxml.jackson.databind.JsonNode reqNode = OBJECT_MAPPER.readTree(body);
             String name = reqNode.path("name").asText(null);
 
             if (name == null || name.isBlank()) {
@@ -1446,7 +1446,7 @@ public class PageResource {
             }
 
             // Parse unpublishedActionCollections.data[*].name
-            com.fasterxml.jackson.databind.JsonNode root = new com.fasterxml.jackson.databind.ObjectMapper().readTree(resp.body);
+            com.fasterxml.jackson.databind.JsonNode root = OBJECT_MAPPER.readTree(resp.body);
             com.fasterxml.jackson.databind.JsonNode collections = root.path("data").path("unpublishedActionCollections").path("data");
 
             List<Map<String, Object>> children = new ArrayList<>();
@@ -1483,11 +1483,11 @@ public class PageResource {
                         Object entity = containerResp.getEntity();
                         if (entity instanceof java.io.InputStream is) {
                             String json = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-                            com.fasterxml.jackson.databind.JsonNode containerTree = new com.fasterxml.jackson.databind.ObjectMapper().readTree(json);
+                            com.fasterxml.jackson.databind.JsonNode containerTree = OBJECT_MAPPER.readTree(json);
                             if (containerTree.isArray()) {
                                 for (com.fasterxml.jackson.databind.JsonNode node : containerTree) {
                                     if ("deps".equals(node.path("name").asText())) {
-                                        tree.add(new com.fasterxml.jackson.databind.ObjectMapper().convertValue(node,
+                                        tree.add(OBJECT_MAPPER.convertValue(node,
                                                 new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {}));
                                         break;
                                     }

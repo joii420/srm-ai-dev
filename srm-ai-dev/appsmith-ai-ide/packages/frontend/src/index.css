@@ -266,9 +266,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);displ
 .msgs-col::-webkit-scrollbar{width:6px}
 .msgs-col::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
 .msgs-col::-webkit-scrollbar-thumb:hover{background:var(--b3)}
+.msgs-loading{text-align:center;padding:6px;font-size:11px;color:var(--t3)}
 .msg{display:flex;flex-direction:column;gap:2px}
 .msg.a{align-items:flex-start}
 .msg.u{align-items:flex-end}
+.msg-meta{display:flex;gap:6px;font-size:10px;color:var(--t3);padding:0 2px}
+.msg.u .msg-meta{justify-content:flex-end}
+.msg-sender{font-weight:600;color:var(--t2)}
+.msg-time{color:var(--t4)}
+.ch-clear-btn{background:none;border:1px solid var(--b1);border-radius:4px;color:var(--t3);font-size:10px;padding:2px 8px;cursor:pointer}
+.ch-clear-btn:hover{color:var(--red);border-color:var(--red)}
 .bbl{max-width:80%;padding:7px 9px;border-radius:8px;font-size:11.5px;line-height:1.6}
 .msg.a .bbl{background:var(--s2);color:var(--t1);border:1px solid var(--b1);border-bottom-left-radius:2px}
 .msg.u .bbl{background:var(--acc);color:#fff;border-bottom-right-radius:2px}

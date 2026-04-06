@@ -55,6 +55,10 @@ public class SystemConfigSeeder {
                 "claude-sonnet-4-20250514", "Claude 模型名称", "input");
         seedIfMissing(SystemConfigService.CLAUDE_BASE_URL, "Claude API 地址",
                 "https://api.anthropic.com", "Claude API 基础地址（支持代理）", "input");
+        seedIfMissing(SystemConfigService.CHAT_CONTEXT_MAX_CHARS, "AI上下文历史长度",
+                "30000", "注入 Claude 的历史消息最大字符数", "input");
+        seedIfMissing(SystemConfigService.CHAT_HISTORY_PAGE_SIZE, "聊天历史每页条数",
+                "10", "前端每次滚动加载的消息条数", "input");
 
         // Clear cache so values are loaded fresh on first access
         systemConfigService.refreshCache();

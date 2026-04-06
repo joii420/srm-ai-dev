@@ -48,7 +48,9 @@ public class SystemConfigResource {
             SystemConfigService.GIT_TOKEN,
             SystemConfigService.CLAUDE_API_KEY,
             SystemConfigService.CLAUDE_MODEL,
-            SystemConfigService.CLAUDE_BASE_URL
+            SystemConfigService.CLAUDE_BASE_URL,
+            SystemConfigService.CHAT_CONTEXT_MAX_CHARS,
+            SystemConfigService.CHAT_HISTORY_PAGE_SIZE
     );
 
     /**

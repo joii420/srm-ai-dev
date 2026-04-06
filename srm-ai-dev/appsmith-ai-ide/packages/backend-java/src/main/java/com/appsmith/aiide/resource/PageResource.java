@@ -69,6 +69,9 @@ public class PageResource {
     @Inject
     AppsmithJsObjectTracker jsObjectTracker;
 
+    @Inject
+    com.appsmith.aiide.service.SystemConfigService systemConfigService;
+
     /**
      * Trust-all HttpClient — kept only for streaming proxy (HttpResponse<InputStream>)
      * which IHttpService does not support.
@@ -1266,6 +1269,9 @@ public class PageResource {
     @Path("/{pageId}/chat")
     @Produces(MediaType.SERVER_SENT_EVENTS)
     public Response proxyChat(@PathParam("pageId") String pageId, String body) {
+        // Inject chat history into request body for AI context
+        body = injectChatHistory(pageId, body);
+
         // Try container first
         Response containerResponse = proxyToContainer(pageId, "POST", "/api/chat", body, MediaType.SERVER_SENT_EVENTS);
         if (containerResponse.getStatus() < 400) {
@@ -1506,6 +1512,77 @@ public class PageResource {
             return Response.status(Response.Status.BAD_GATEWAY)
                     .entity(Map.of("error", "AppsmithApiError", "message", "获取文件列表失败: " + e.getMessage()))
                     .build();
+        }
+    }
+
+    /**
+     * Inject chat history into the request body for AI context.
+     * Queries recent messages from DB, truncates by character budget,
+     * and adds as "history" field to the JSON body.
+     */
+    private String injectChatHistory(String pageId, String body) {
+        try {
+            String userId = requestContext.getUserId();
+            if (userId == null) return body;
+
+            UUID pageUuid = UUID.fromString(pageId);
+            UUID userUuid = UUID.fromString(userId);
+
+            // Get clear point
+            java.time.OffsetDateTime clearedAt = com.appsmith.aiide.entity.ChatClearRecord.getLastClearedAt(pageUuid, userUuid);
+            java.time.OffsetDateTime after = clearedAt != null ? clearedAt : java.time.OffsetDateTime.MIN;
+
+            // Query recent messages (up to 50 for truncation)
+            List<com.appsmith.aiide.entity.ChatMessage> recent =
+                    com.appsmith.aiide.entity.ChatMessage.findRecentForContext(pageUuid, userUuid, after, 50);
+
+            if (recent.isEmpty()) return body;
+
+            // Reverse to chronological order (queried DESC)
+            java.util.Collections.reverse(recent);
+
+            // Truncate by character budget
+            int maxChars;
+            try {
+                String cfg = systemConfigService.getValue(com.appsmith.aiide.service.SystemConfigService.CHAT_CONTEXT_MAX_CHARS);
+                maxChars = Integer.parseInt(cfg.isBlank() ? "30000" : cfg);
+            } catch (Exception e) {
+                maxChars = 30000;
+            }
+
+            // Walk from newest to oldest, accumulate chars
+            List<com.appsmith.aiide.entity.ChatMessage> selected = new ArrayList<>();
+            int totalChars = 0;
+            for (int i = recent.size() - 1; i >= 0; i--) {
+                com.appsmith.aiide.entity.ChatMessage msg = recent.get(i);
+                int msgLen = msg.content != null ? msg.content.length() : 0;
+                if (totalChars + msgLen > maxChars) break;
+                selected.add(0, msg);
+                totalChars += msgLen;
+            }
+
+            if (selected.isEmpty()) return body;
+
+            // Build history array
+            List<Map<String, String>> history = new ArrayList<>();
+            for (com.appsmith.aiide.entity.ChatMessage msg : selected) {
+                history.add(Map.of("role", msg.role, "content", msg.content));
+            }
+
+            // Parse original body and inject history
+            com.fasterxml.jackson.databind.JsonNode bodyNode = OBJECT_MAPPER.readTree(body != null ? body : "{}");
+            com.fasterxml.jackson.databind.node.ObjectNode bodyObj = bodyNode.isObject()
+                    ? (com.fasterxml.jackson.databind.node.ObjectNode) bodyNode
+                    : OBJECT_MAPPER.createObjectNode();
+            bodyObj.set("history", OBJECT_MAPPER.valueToTree(history));
+
+            LOG.infof("Injected %d history messages (%d chars) into chat request for page %s",
+                    selected.size(), totalChars, pageId);
+
+            return OBJECT_MAPPER.writeValueAsString(bodyObj);
+        } catch (Exception e) {
+            LOG.warnf("Failed to inject chat history: %s", e.getMessage());
+            return body;
         }
     }
 

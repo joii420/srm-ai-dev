@@ -16,6 +16,11 @@ const WORKSPACE_DIR = process.env["WORKSPACE_DIR"] ?? "/workspace";
 const ChatRequestBody = z.object({
   message: z.string().min(1),
   activatedSkillIds: z.array(z.string()).default([]),
+  /** Chat history injected by backend for AI context recovery */
+  history: z.array(z.object({
+    role: z.enum(["user", "assistant"]),
+    content: z.string(),
+  })).default([]),
 });
 
 interface SessionState {
@@ -331,7 +336,7 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(400).send({ error: message });
     }
 
-    const { message, activatedSkillIds } = parseResult.data;
+    const { message, activatedSkillIds, history } = parseResult.data;
 
     // Build context (reads workspace code, deps, skills)
     let contextResult: Awaited<ReturnType<typeof buildContext>>;
@@ -348,8 +353,11 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
     // Build system prompt
     const systemPrompt = buildAgentSystemPrompt(contextResult.systemPrompt);
 
-    // Add user message to conversation history
-    session.messages.push({ role: "user", content: message });
+    // Build conversation messages: DB history (injected by backend) + current message
+    const conversationMessages: Array<{ role: "user" | "assistant"; content: string }> = [
+      ...history,
+      { role: "user" as const, content: message },
+    ];
 
     // Set up SSE headers
     reply.raw.writeHead(200, {
@@ -380,20 +388,12 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
     }
 
     try {
-      // Call Claude with conversation history
+      // Call Claude with conversation history (from DB) + current message
       const fullResponse = await callClaudeChat(
         systemPrompt,
-        session.messages,
+        conversationMessages,
         sendEvent,
       );
-
-      // Add assistant response to conversation history
-      session.messages.push({ role: "assistant", content: fullResponse });
-
-      // Keep conversation history manageable (last 20 messages)
-      if (session.messages.length > 20) {
-        session.messages = session.messages.slice(-20);
-      }
 
       // Extract file modifications — send old + new content for diff preview
       const suggestions = extractFileSuggestions(fullResponse);

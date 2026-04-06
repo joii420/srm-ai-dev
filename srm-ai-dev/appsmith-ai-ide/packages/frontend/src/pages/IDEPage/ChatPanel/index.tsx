@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useChatStore, type ChatMessage } from '../../../stores/chatStore';
+import { useChatStore, loadChatHistory, saveChatMessages, clearChatHistory, type ChatMessage } from '../../../stores/chatStore';
 import { useSkillStore, type SkillInfo } from '../../../stores/skillStore';
 import { useAuthStore } from '../../../stores/authStore';
 import { apiClient } from '../../../services/api';
@@ -72,12 +72,18 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ pageId, enabled, onCodeSuggestion
   const {
     messages,
     isStreaming,
+    hasMore,
+    loadingHistory,
     addMessage,
     addStreamChunk,
+    prependMessages,
+    clearMessages,
     setStreaming,
+    setHasMore,
+    setLoadingHistory,
   } = useChatStore();
   const { activatedSkillIds, skills } = useSkillStore();
-  const { token } = useAuthStore();
+  const { token, userInfo } = useAuthStore();
 
   const [input, setInput] = useState('');
   const [skillDrawerOpen, setSkillDrawerOpen] = useState(false);
@@ -89,12 +95,82 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ pageId, enabled, onCodeSuggestion
     Record<string, Array<{ filePath: string; oldContent: string; newContent: string }>>
   >({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const msgsColRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const historyLoadedRef = useRef(false);
 
   // Intent detection hook
   const { matchedSkill, dismiss: dismissIntent } = useIntentDetection(input, skills);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Load chat history on mount
+  useEffect(() => {
+    if (!pageId || historyLoadedRef.current) return;
+    historyLoadedRef.current = true;
+
+    const load = async () => {
+      setLoadingHistory(true);
+      try {
+
+        clearMessages();
+        const result = await loadChatHistory(pageId);
+        if (result.messages.length > 0) {
+          prependMessages(result.messages);
+        }
+        setHasMore(result.hasMore);
+      } catch (err) {
+        console.error('Failed to load chat history', err);
+      } finally {
+        setLoadingHistory(false);
+      }
+    };
+    void load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageId]);
+
+  // Scroll-up to load more history
+  const handleScroll = useCallback(async () => {
+    const el = msgsColRef.current;
+    if (!el || !hasMore || loadingHistory || isStreaming) return;
+    if (el.scrollTop > 50) return; // Only trigger near top
+
+    const oldScrollHeight = el.scrollHeight;
+    setLoadingHistory(true);
+    try {
+      const oldest = messages[0];
+      const before = oldest?.createdAt ?? oldest?.timestamp
+        ? new Date(oldest.createdAt ?? oldest.timestamp).toISOString()
+        : undefined;
+
+
+      const result = await loadChatHistory(pageId, before);
+      if (result.messages.length > 0) {
+        prependMessages(result.messages);
+        // Maintain scroll position after prepend
+        requestAnimationFrame(() => {
+          if (el) el.scrollTop = el.scrollHeight - oldScrollHeight;
+        });
+      }
+      setHasMore(result.hasMore);
+    } catch (err) {
+      console.error('Failed to load more history', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, [hasMore, loadingHistory, isStreaming, messages, pageId, prependMessages, setHasMore, setLoadingHistory]);
+
+  // Clear history handler
+  const handleClearHistory = useCallback(async () => {
+    try {
+
+      await clearChatHistory(pageId);
+      clearMessages();
+      setDiffSuggestions({});
+    } catch (err) {
+      console.error('Failed to clear history', err);
+    }
+  }, [pageId, clearMessages]);
 
   // Auto-scroll to bottom on new messages, streaming, and diff cards
   const lastMsgContent = messages.length > 0 ? messages[messages.length - 1]!.content : '';
@@ -137,12 +213,16 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ pageId, enabled, onCodeSuggestion
 
     setInput('');
 
-    // Add user message
+    // Add user message with user info
+    const now = Date.now();
     const userMsg: ChatMessage = {
       id: generateId(),
       role: 'user',
       content: text,
-      timestamp: Date.now(),
+      timestamp: now,
+      username: userInfo?.username,
+      displayName: userInfo?.displayName,
+      createdAt: new Date(now).toISOString(),
     };
     addMessage(userMsg);
 
@@ -153,6 +233,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ pageId, enabled, onCodeSuggestion
       role: 'assistant',
       content: '',
       timestamp: Date.now(),
+      username: 'AI',
+      displayName: 'AI',
     };
     addMessage(assistantMsg);
     setStreaming(true);
@@ -254,6 +336,21 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ pageId, enabled, onCodeSuggestion
     } finally {
       setStreaming(false);
       abortControllerRef.current = null;
+
+      // Save messages to DB (user message + AI response)
+      try {
+
+        const finalMessages = useChatStore.getState().messages;
+        const aiMsg = finalMessages.find((m) => m.id === assistantMsgId);
+        if (aiMsg && aiMsg.content) {
+          await saveChatMessages(pageId, [
+            { role: 'user', content: text },
+            { role: 'assistant', content: aiMsg.content },
+          ]);
+        }
+      } catch (err) {
+        console.warn('Failed to save chat messages', err);
+      }
     }
   }, [
     input,
@@ -338,6 +435,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ pageId, enabled, onCodeSuggestion
           Skills{activatedSkillIds.length > 0 && ` (${activatedSkillIds.length})`}
         </button>
         <button
+          className="ch-clear-btn"
+          onClick={handleClearHistory}
+          title="清空对话"
+        >
+          清空
+        </button>
+        <button
           className="minimize-btn"
           onClick={() => setMinimized(!minimized)}
           title={minimized ? '展开' : '最小化'}
@@ -347,8 +451,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ pageId, enabled, onCodeSuggestion
       </div>
 
       {/* Messages */}
-      <div className="msgs-col">
-        {messages.length === 0 && (
+      <div className="msgs-col" ref={msgsColRef} onScroll={handleScroll}>
+        {loadingHistory && (
+          <div className="msgs-loading">加载中...</div>
+        )}
+        {!loadingHistory && messages.length === 0 && (
           <div className="msgs-empty">
             在此与 AI 助手对话...
           </div>
@@ -436,14 +543,25 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ pageId, enabled, onCodeSuggestion
 /*  Message Bubble                                                     */
 /* ------------------------------------------------------------------ */
 
+function formatMsgTime(msg: ChatMessage): string {
+  const d = msg.createdAt ? new Date(msg.createdAt) : new Date(msg.timestamp);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 const MessageBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
 
-  // System notification bubble (distinct styling)
+  const sender = isUser
+    ? (message.username || message.displayName || '用户')
+    : 'AI';
+  const timeStr = formatMsgTime(message);
+
   if (isSystem) {
     return (
       <div className="msg sys">
+        <div className="msg-meta">{timeStr}</div>
         <div className="bbl">
           <span>{message.content}</span>
         </div>
@@ -453,6 +571,10 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
 
   return (
     <div className={`msg ${isUser ? 'u' : 'a'}`}>
+      <div className="msg-meta">
+        <span className="msg-sender">{sender}</span>
+        <span className="msg-time">{timeStr}</span>
+      </div>
       <div className="bbl">
         {isUser ? (
           <span className="bbl-text">{message.content}</span>

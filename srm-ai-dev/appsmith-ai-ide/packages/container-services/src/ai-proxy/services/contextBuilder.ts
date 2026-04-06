@@ -133,10 +133,12 @@ export async function buildContext(
     sections.push(`## Dependencies\n${depContents}`);
   }
 
-  // Active Skills section
+  // Active Skills section — placed prominently so AI follows these rules
   if (skillPrompts.length > 0) {
-    const skillContents = skillPrompts.join("\n\n---\n\n");
-    sections.push(`## Active Skills\n${skillContents}`);
+    const skillContents = skillPrompts
+      .map((p, i) => `### 规则 ${i + 1}\n${p}`)
+      .join("\n\n");
+    sections.push(`## Active Skills — 必须遵守的编码规则\n以下是用户配置的编码规范，编写和修改代码时必须严格遵守：\n\n${skillContents}`);
   }
 
   const systemPrompt =

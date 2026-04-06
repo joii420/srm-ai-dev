@@ -64,8 +64,8 @@ public class SkillResource {
         skill.icon = dto.icon;
         skill.category = dto.category;
         skill.prompt = dto.prompt;
-        skill.keywords = dto.keywords;
-        skill.tags = dto.tags;
+        skill.keywords = toJsonString(dto.keywords);
+        skill.tags = toJsonString(dto.tags);
         skill.enabled = dto.enabled != null ? dto.enabled : true;
         skill.version = dto.version != null ? dto.version : "v1.0";
         skill.callCount = 0;
@@ -115,8 +115,8 @@ public class SkillResource {
         if (dto.icon != null) skill.icon = dto.icon;
         if (dto.category != null) skill.category = dto.category;
         if (dto.prompt != null) skill.prompt = dto.prompt;
-        if (dto.keywords != null) skill.keywords = dto.keywords;
-        if (dto.tags != null) skill.tags = dto.tags;
+        if (dto.keywords != null) skill.keywords = toJsonString(dto.keywords);
+        if (dto.tags != null) skill.tags = toJsonString(dto.tags);
         if (dto.enabled != null) skill.enabled = dto.enabled;
         if (dto.version != null) skill.version = dto.version;
 
@@ -310,6 +310,27 @@ public class SkillResource {
 
     // --- Private helpers ---
 
+    /** Parse JSON string back to array for API response */
+    private static Object parseJsonArray(String json) {
+        if (json == null || json.isBlank()) return java.util.List.of();
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper().readValue(json, java.util.List.class);
+        } catch (Exception e) {
+            return java.util.List.of();
+        }
+    }
+
+    /** Convert Object (ArrayList from JSON) to JSON string for JSONB column */
+    private static String toJsonString(Object val) {
+        if (val == null) return null;
+        if (val instanceof String s) return s;
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(val);
+        } catch (Exception e) {
+            return val.toString();
+        }
+    }
+
     private SkillDto toDto(Skill skill) {
         var dto = new SkillDto();
         dto.id = skill.id.toString();
@@ -318,8 +339,8 @@ public class SkillResource {
         dto.icon = skill.icon;
         dto.category = skill.category;
         dto.prompt = skill.prompt;
-        dto.keywords = skill.keywords;
-        dto.tags = skill.tags;
+        dto.keywords = parseJsonArray(skill.keywords);
+        dto.tags = parseJsonArray(skill.tags);
         dto.callCount = skill.callCount;
         dto.enabled = skill.enabled;
         dto.version = skill.version;

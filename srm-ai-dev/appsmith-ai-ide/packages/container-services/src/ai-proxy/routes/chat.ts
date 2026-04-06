@@ -135,7 +135,10 @@ export default {
 
 已创建 Utils.js 文件。
 
-${contextPrompt}`;
+${contextPrompt}
+
+## 重要提醒
+以上 Active Skills 中的规则是用户配置的编码规范，你在编写和修改代码时必须严格遵守这些规则。如果 Active Skills 要求函数命名、注释风格等，你必须按照要求执行，不能忽略。`;
 }
 
 /**

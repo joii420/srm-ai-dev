@@ -343,7 +343,7 @@ public class ContainerLifecycle {
 
             // Step 5: Inject skills
             emitStep(onStep, "inject_skills", "in_progress");
-            injectSkills(endpoints.aiProxy());
+            injectSkills(containerId, endpoints);
             emitStep(onStep, "inject_skills", "completed");
 
             // Step 6: Health check — verify services + workspace
@@ -506,19 +506,46 @@ public class ContainerLifecycle {
         return null;
     }
 
-    private void injectSkills(String containerIp) {
+    private void injectSkills(String containerId, DockerService.ContainerEndpoints endpoints) {
         List<Skill> skills = Skill.list("enabled", true);
-        for (Skill skill : skills) {
-            try {
-                String payload = String.format(
-                        "{\"name\":\"%s\",\"prompt\":\"%s\"}",
-                        skill.name,
-                        skill.prompt != null ? skill.prompt.replace("\"", "\\\"").replace("\n", "\\n") : "");
+        if (skills.isEmpty()) {
+            LOG.info("No enabled skills to inject");
+            return;
+        }
 
-                httpService.postJson("http://" + containerIp + "/api/skills/register", payload);
-            } catch (Exception e) {
-                LOG.warnf("Failed to inject skill %s: %s", skill.name, e.getMessage());
+        // Build skills JSON array with id, name, prompt
+        var skillList = new java.util.ArrayList<java.util.Map<String, String>>();
+        for (Skill skill : skills) {
+            skillList.add(java.util.Map.of(
+                    "id", skill.id.toString(),
+                    "name", skill.name,
+                    "prompt", skill.prompt != null ? skill.prompt : ""
+            ));
+        }
+
+        try {
+            String json = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(skillList);
+
+            // Write to container via File Manager API: POST /files/skills/skills.json
+            String fileManagerUrl = "http://" + endpoints.fileManager() + "/files/skills/skills.json";
+            String body = String.format("{\"content\":%s}",
+                    com.appsmith.aiide.util.JsonUtil.wrapJsonString(json));
+
+            IHttpService.Response resp = httpService.postJsonWithStatus(fileManagerUrl, body);
+            if (resp.isSuccess()) {
+                LOG.infof("Injected %d skills into container %s", skills.size(), containerId);
+            } else {
+                // File may already exist from previous attempt — try PUT
+                resp = httpService.putWithStatus(fileManagerUrl, body, java.util.Map.of(
+                        "Content-Type", "application/json;charset=UTF-8"));
+                if (resp.isSuccess()) {
+                    LOG.infof("Updated %d skills in container %s", skills.size(), containerId);
+                } else {
+                    LOG.warnf("Failed to inject skills: HTTP %d %s", resp.statusCode, resp.body);
+                }
             }
+        } catch (Exception e) {
+            LOG.warnf("Failed to inject skills into container %s: %s", containerId, e.getMessage());
         }
     }
 

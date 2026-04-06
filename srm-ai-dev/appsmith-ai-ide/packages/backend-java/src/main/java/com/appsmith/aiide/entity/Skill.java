@@ -44,11 +44,11 @@ public class Skill extends PanacheEntityBase {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
-    public Object keywords;
+    public String keywords;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
-    public Object tags;
+    public String tags;
 
     public Boolean enabled = true;
 

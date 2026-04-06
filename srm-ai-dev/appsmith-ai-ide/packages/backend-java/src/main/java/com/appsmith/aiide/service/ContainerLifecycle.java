@@ -326,6 +326,9 @@ public class ContainerLifecycle {
             LOG.infof("Git clone result: %s", cloneOutput);
             emitStep(onStep, "git_clone", "completed");
 
+            // Step 3.1: Initialize project memory file if not exists
+            initProjectMemory(containerId, pageName, pageType);
+
             // Step 3.5: Appsmith sync — sync JS objects from Appsmith API to workspace
             if ("appsmith".equals(pageType) && appsmithEditUrl != null && !appsmithEditUrl.isBlank()) {
                 emitStep(onStep, "sync_appsmith", "in_progress");
@@ -504,6 +507,88 @@ public class ContainerLifecycle {
 
         LOG.warnf("SSH key not found in any of: %s", searchPaths);
         return null;
+    }
+
+    /**
+     * Initialize .agent/memory.json in the container workspace if it doesn't exist.
+     * The memory file is version-controlled in the git repo.
+     */
+    private void initProjectMemory(String containerId, String pageName, String pageType) {
+        try {
+            // Check if memory file already exists
+            DockerService.ExecResult check = dockerService.execInContainerFull(containerId,
+                    "test", "-f", "/workspace/.agent/memory.json");
+            if (check.exitCode() == 0) {
+                LOG.info("Project memory file already exists, skipping init");
+                return;
+            }
+
+            String techStack = "appsmith".equals(pageType)
+                    ? "[\"JavaScript\", \"Appsmith\"]"
+                    : "[\"JavaScript\"]";
+            String now = java.time.OffsetDateTime.now().toString();
+
+            String memoryJson = String.format("""
+                    {
+                      "meta": {
+                        "version": "1.0.0",
+                        "created_at": "%s",
+                        "last_updated": "%s",
+                        "agent_version": "1.0.0"
+                      },
+                      "project": {
+                        "name": "%s",
+                        "description": "",
+                        "root_path": "/workspace",
+                        "tech_stack": %s,
+                        "main_language": "JavaScript",
+                        "entry_point": "",
+                        "package_manager": ""
+                      },
+                      "architecture": {
+                        "summary": "%s",
+                        "patterns": [],
+                        "key_modules": []
+                      },
+                      "current_tasks": [],
+                      "completed_tasks": [],
+                      "decisions": [],
+                      "user_preferences": {
+                        "reply_language": "中文",
+                        "code_style": "",
+                        "comment_style": "",
+                        "custom": {}
+                      },
+                      "session_stats": {
+                        "total_sessions": 0,
+                        "total_file_changes": 0,
+                        "last_session_at": null
+                      }
+                    }
+                    """,
+                    now, now,
+                    com.appsmith.aiide.util.JsonUtil.escapeJson(pageName),
+                    techStack,
+                    "appsmith".equals(pageType) ? "Appsmith JS Object 项目" : ""
+            );
+
+            // Create directory and write file
+            dockerService.execInContainer(containerId, "mkdir", "-p", "/workspace/.agent");
+            String encoded = java.util.Base64.getEncoder().encodeToString(
+                    memoryJson.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            dockerService.execInContainer(containerId,
+                    "sh", "-c", "echo '" + encoded + "' | base64 -d > /workspace/.agent/memory.json");
+
+            // Git add and commit
+            dockerService.execInContainer(containerId,
+                    "git", "-C", "/workspace", "add", ".agent/memory.json");
+            dockerService.execInContainer(containerId,
+                    "git", "-C", "/workspace", "commit", "-m", "初始化项目记忆文件", "--allow-empty");
+
+            LOG.infof("Project memory initialized for %s", pageName);
+        } catch (Exception e) {
+            LOG.warnf("Failed to initialize project memory (non-fatal): %s", e.getMessage());
+        }
     }
 
     private void injectSkills(String containerId, DockerService.ContainerEndpoints endpoints) {

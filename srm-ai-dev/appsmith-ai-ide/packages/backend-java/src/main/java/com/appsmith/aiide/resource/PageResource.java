@@ -1269,8 +1269,8 @@ public class PageResource {
     @Path("/{pageId}/chat")
     @Produces(MediaType.SERVER_SENT_EVENTS)
     public Response proxyChat(@PathParam("pageId") String pageId, String body) {
-        // Inject chat history into request body for AI context
-        body = injectChatHistory(pageId, body);
+        // AI context is now provided by .agent/memory.json inside the container
+        // (no longer injecting DB chat history into request body)
 
         // Try container first
         Response containerResponse = proxyToContainer(pageId, "POST", "/api/chat", body, MediaType.SERVER_SENT_EVENTS);

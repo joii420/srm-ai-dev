@@ -8,6 +8,9 @@ import {
   detectUsedSkills,
   reportSkillUsage,
 } from "../services/skillUsageTracker.js";
+import { loadMemory } from "../services/memory/loader.js";
+import { buildMemorySection } from "../services/memory/injector.js";
+import { shouldUpdateMemory, updateMemory } from "../services/memory/updater.js";
 
 const logger = pino({ name: "ai-proxy-chat" });
 
@@ -70,7 +73,7 @@ export function markContextRefreshed(
  * Build system prompt for AI Agent.
  * Includes project context, skills, and instructions for file editing.
  */
-function buildAgentSystemPrompt(contextPrompt: string): string {
+function buildAgentSystemPrompt(contextPrompt: string, memorySection: string): string {
   return `你是一个 AI 编程助手，你可以直接读取和修改项目中的代码文件。
 
 ## 工作环境
@@ -137,8 +140,11 @@ export default {
 
 ${contextPrompt}
 
+${memorySection}
+
 ## 重要提醒
-以上 Active Skills 中的规则是用户配置的编码规范，你在编写和修改代码时必须严格遵守这些规则。如果 Active Skills 要求函数命名、注释风格等，你必须按照要求执行，不能忽略。`;
+1. 以上 Active Skills 中的规则是用户配置的编码规范，你在编写和修改代码时必须严格遵守。
+2. 项目记忆上下文帮助你了解项目背景，请基于记忆中的信息理解用户需求。`;
 }
 
 /**
@@ -353,8 +359,12 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
 
     session.messageCount++;
 
-    // Build system prompt
-    const systemPrompt = buildAgentSystemPrompt(contextResult.systemPrompt);
+    // Load project memory
+    const memory = await loadMemory();
+    const memorySection = memory ? buildMemorySection(memory) : "";
+
+    // Build system prompt with memory
+    const systemPrompt = buildAgentSystemPrompt(contextResult.systemPrompt, memorySection);
 
     // Build conversation messages: DB history (injected by backend) + current message
     const conversationMessages: Array<{ role: "user" | "assistant"; content: string }> = [
@@ -425,6 +435,19 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
         const errMsg = err instanceof Error ? err.message : String(err);
         logger.warn({ error: errMsg }, "Failed to report skill usage");
       });
+
+      // Trigger memory update (async, non-blocking, silent)
+      const fileChanges = suggestions.map((s) => s.filePath);
+      if (shouldUpdateMemory({
+        userMessage: message,
+        assistantReply: fullResponse,
+        fileChanges,
+        roundCount: session.messageCount,
+      })) {
+        updateMemory({ userMessage: message, assistantReply: fullResponse, fileChanges }).catch((err) => {
+          logger.warn({ error: err instanceof Error ? err.message : String(err) }, "Memory update failed");
+        });
+      }
 
       sendEvent("done", {
         sessionId: session.id,

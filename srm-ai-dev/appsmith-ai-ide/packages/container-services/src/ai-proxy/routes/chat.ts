@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import Anthropic from "@anthropic-ai/sdk";
+import fs from "node:fs/promises";
+import path from "node:path";
 import pino from "pino";
 import { buildContext } from "../services/contextBuilder.js";
 import {
@@ -10,21 +11,7 @@ import {
 
 const logger = pino({ name: "ai-proxy-chat" });
 
-/**
- * AI_AGENT_URL: when set, chat requests are forwarded to an external AI agent
- * instead of calling the Claude API directly.
- *
- * The external agent receives:
- *   POST { message, systemPrompt, activatedSkillIds }
- *
- * And must return SSE stream with:
- *   event: token   data: { "content": "text chunk" }
- *   event: done    data: {}
- *
- * Or return a JSON response:
- *   { "content": "full response text" }
- */
-const AI_AGENT_URL = process.env["AI_AGENT_URL"] ?? "";
+const WORKSPACE_DIR = process.env["WORKSPACE_DIR"] ?? "/workspace";
 
 const ChatRequestBody = z.object({
   message: z.string().min(1),
@@ -36,6 +23,8 @@ interface SessionState {
   messageCount: number;
   createdAt: Date;
   contextRefreshed: boolean;
+  /** Conversation history for multi-turn */
+  messages: Array<{ role: "user" | "assistant"; content: string }>;
   lastContext: {
     systemPrompt: string;
     filesLoaded: number;
@@ -44,7 +33,6 @@ interface SessionState {
   } | null;
 }
 
-// Module-level session state (one session per container)
 let session: SessionState = createSession();
 
 function createSession(): SessionState {
@@ -53,6 +41,7 @@ function createSession(): SessionState {
     messageCount: 0,
     createdAt: new Date(),
     contextRefreshed: false,
+    messages: [],
     lastContext: null,
   };
 }
@@ -72,173 +61,257 @@ export function markContextRefreshed(
   session.lastContext = ctx;
 }
 
-const CODE_BLOCK_REGEX =
-  /```(?:diff|patch)?\n([\s\S]*?)```/g;
+/**
+ * Build system prompt for AI Agent.
+ * Includes project context, skills, and instructions for file editing.
+ */
+function buildAgentSystemPrompt(contextPrompt: string): string {
+  return `你是一个 AI 编程助手，你可以直接读取和修改项目中的代码文件。
 
-const FILE_DIFF_REGEX =
-  /(?:^|\n)(?:---\s+a\/(.+?)\n\+\+\+\s+b\/(.+?)|\*{3}\s+(.+?))\n/g;
+## 工作环境
+- 工作目录: ${WORKSPACE_DIR}
+- jsObjects/ 目录存放 JS 代码文件（.js）
+- deps/ 目录存放项目依赖库（只读参考，不要修改）
 
-function extractCodeSuggestions(
+## 关键能力 —— 你可以修改文件
+你可以修改项目文件。你输出特定格式的代码块后，系统会生成一个变更预览，用户确认后代码才会写入文件。
+注意：你不是直接写入文件，而是提交修改建议，由用户决定是否应用。所以不要说"已写入"或"已保存"，应该说"已为您准备好修改，请确认应用"。
+
+## 输出格式 —— 必须严格遵守
+当需要创建或修改文件时，你必须使用以下格式（三个反引号后紧跟 file: 和完整文件路径）：
+
+\`\`\`file:jsObjects/文件名.js
+文件的完整内容写在这里
+\`\`\`
+
+**格式要求：**
+- 反引号后必须紧跟 file: 前缀（不能用 javascript、js 或其他语言标记）
+- file: 后面是相对于工作目录的完整路径
+- 代码块内必须是文件的完整内容（系统会用此内容覆盖整个文件）
+- 一个代码块对应一个文件
+
+## 工作规则
+1. 用户要求写代码、修改代码、创建函数等操作时，必须使用上述 \`\`\`file:路径\`\`\` 格式输出，系统会自动保存
+2. 不要使用 \`\`\`javascript 或 \`\`\`js 格式，那样系统无法识别要写入哪个文件
+3. 不要说"我无法修改文件"或"请手动复制" —— 你可以直接修改
+4. 修改后简要说明改动内容
+5. deps/ 目录下的文件只读，不要修改
+6. 使用中文回复
+
+## 示例1：修改现有文件
+用户说"在 JS341.js 中添加一个获取时间戳的函数"
+
+\`\`\`file:jsObjects/JS341.js
+export default {
+	myVar1: [],
+	myVar2: {},
+	myFun1 () {
+		//	write code here
+	},
+	getTimestamp () {
+		return Date.now();
+	}
+}
+\`\`\`
+
+已在 JS341.js 中添加了 getTimestamp 函数。
+
+## 示例2：创建新文件
+用户说"创建一个工具函数文件"
+
+\`\`\`file:jsObjects/Utils.js
+export default {
+	formatDate (timestamp) {
+		const d = new Date(timestamp);
+		return d.toISOString();
+	}
+}
+\`\`\`
+
+已创建 Utils.js 文件。
+
+${contextPrompt}`;
+}
+
+/**
+ * Extract file modification suggestions from AI response.
+ * Primary format: ```file:path/to/file.js
+ * Fallback: ```javascript or ```js blocks with a path comment on the first line
+ */
+function extractFileSuggestions(
   text: string
-): Array<{ file: string; diff: string }> {
-  const suggestions: Array<{ file: string; diff: string }> = [];
+): Array<{ filePath: string; content: string }> {
+  const suggestions: Array<{ filePath: string; content: string }> = [];
+
+  // Primary: ```file:path\n...\n```
+  const primaryRegex = /```file:([^\n]+)\n([\s\S]*?)```/g;
   let match: RegExpExecArray | null;
+  const matchedRanges: Array<[number, number]> = [];
 
-  CODE_BLOCK_REGEX.lastIndex = 0;
-  while ((match = CODE_BLOCK_REGEX.exec(text)) !== null) {
-    const blockContent = match[1] ?? "";
+  while ((match = primaryRegex.exec(text)) !== null) {
+    const filePath = match[1]!.trim();
+    const content = match[2] ?? "";
+    suggestions.push({ filePath, content });
+    matchedRanges.push([match.index, match.index + match[0].length]);
+  }
 
-    FILE_DIFF_REGEX.lastIndex = 0;
-    const fileMatch = FILE_DIFF_REGEX.exec(blockContent);
-    if (fileMatch) {
-      const file = fileMatch[2] ?? fileMatch[1] ?? fileMatch[3] ?? "unknown";
-      suggestions.push({ file, diff: blockContent });
+  // Fallback: ```javascript\n or ```js\n blocks where first line is // path/to/file.js
+  if (suggestions.length === 0) {
+    const fallbackRegex = /```(?:javascript|js)\n([\s\S]*?)```/g;
+    while ((match = fallbackRegex.exec(text)) !== null) {
+      const blockContent = match[1] ?? "";
+      // Check if first line is a path comment like: // jsObjects/MyFile.js
+      const firstLine = blockContent.split("\n")[0]?.trim() ?? "";
+      const pathMatch = firstLine.match(/^\/\/\s*(jsObjects\/\S+\.js)/);
+      if (pathMatch) {
+        const filePath = pathMatch[1]!;
+        // Remove the path comment line from content
+        const content = blockContent.split("\n").slice(1).join("\n");
+        suggestions.push({ filePath, content });
+      }
+    }
+  }
+
+  if (suggestions.length > 0) {
+    logger.info({ count: suggestions.length, files: suggestions.map(s => s.filePath) },
+      "Extracted file suggestions from AI response");
+  } else {
+    // Log for debugging: check if there were any code blocks at all
+    const anyCodeBlock = /```[\s\S]*?```/.test(text);
+    if (anyCodeBlock) {
+      logger.warn("AI response contains code blocks but none matched file: format. " +
+        "AI may not be following the required output format.");
     }
   }
 
   return suggestions;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Call Claude API directly                                           */
-/* ------------------------------------------------------------------ */
+/**
+ * Read current file contents for diff comparison.
+ * Returns old content for each file (empty string if file doesn't exist yet).
+ */
+async function readOldContents(
+  suggestions: Array<{ filePath: string; content: string }>,
+): Promise<Map<string, string>> {
+  const oldContents = new Map<string, string>();
 
-async function callClaudeAPI(
-  systemPrompt: string,
-  message: string,
-  sendEvent: (event: string, data: unknown) => void,
-): Promise<string> {
-  const anthropic = new Anthropic();
-
-  const stream = anthropic.messages.stream({
-    model: process.env["ANTHROPIC_MODEL"] ?? "claude-sonnet-4-20250514",
-    max_tokens: parseInt(process.env["ANTHROPIC_MAX_TOKENS"] ?? "4096"),
-    system: systemPrompt,
-    messages: [{ role: "user", content: message }],
-  });
-
-  let fullResponse = "";
-
-  stream.on("text", (text) => {
-    fullResponse += text;
-    sendEvent("token", { content: text });
-  });
-
-  stream.on("error", (err) => {
-    logger.error({ error: err.message }, "Claude stream error");
-    sendEvent("error", { message: err.message });
-  });
-
-  await stream.finalMessage();
-  return fullResponse;
-}
-
-/* ------------------------------------------------------------------ */
-/*  Call external AI Agent                                             */
-/* ------------------------------------------------------------------ */
-
-async function callExternalAgent(
-  systemPrompt: string,
-  message: string,
-  activatedSkillIds: string[],
-  sendEvent: (event: string, data: unknown) => void,
-): Promise<string> {
-  logger.info({ url: AI_AGENT_URL }, "Forwarding chat to external AI agent");
-
-  const response = await fetch(AI_AGENT_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "text/event-stream",
-    },
-    body: JSON.stringify({
-      message,
-      systemPrompt,
-      activatedSkillIds,
-    }),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text().catch(() => "Unknown error");
-    throw new Error(`AI agent returned HTTP ${response.status}: ${errText}`);
-  }
-
-  const contentType = response.headers.get("content-type") ?? "";
-
-  // --- Handle JSON response (non-streaming) ---
-  if (contentType.includes("application/json")) {
-    const body = (await response.json()) as { content?: string; message?: string };
-    const text = body.content ?? body.message ?? "";
-    sendEvent("token", { content: text });
-    return text;
-  }
-
-  // --- Handle SSE stream ---
-  if (!response.body) {
-    throw new Error("AI agent returned no response body");
-  }
-
-  let fullResponse = "";
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
-
-    let currentEvent = "";
-
-    for (const line of lines) {
-      if (line.startsWith("event: ")) {
-        currentEvent = line.slice(7).trim();
-        continue;
-      }
-
-      if (!line.startsWith("data: ")) continue;
-      const data = line.slice(6).trim();
-      if (data === "[DONE]") continue;
-
-      try {
-        const parsed = JSON.parse(data) as {
-          content?: string;
-          text?: string;
-          message?: string;
-          delta?: { content?: string };
-        };
-
-        // Extract text content from various possible formats
-        const chunk =
-          parsed.content ??
-          parsed.text ??
-          parsed.delta?.content ??
-          parsed.message ??
-          "";
-
-        if (chunk) {
-          fullResponse += chunk;
-
-          // Only forward token events, not done/error (we handle those ourselves)
-          if (!currentEvent || currentEvent === "token" || currentEvent === "message") {
-            sendEvent("token", { content: chunk });
-          }
-        }
-      } catch {
-        // Non-JSON data line, treat as raw text
-        if (data && data !== "[DONE]") {
-          fullResponse += data;
-          sendEvent("token", { content: data });
-        }
-      }
-
-      currentEvent = "";
+  for (const { filePath } of suggestions) {
+    try {
+      const fullPath = path.resolve(WORKSPACE_DIR, filePath);
+      const content = await fs.readFile(fullPath, "utf-8");
+      oldContents.set(filePath, content);
+    } catch {
+      // File doesn't exist yet — new file
+      oldContents.set(filePath, "");
     }
   }
 
+  return oldContents;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Call Claude API with conversation history                          */
+/* ------------------------------------------------------------------ */
+
+async function callClaudeChat(
+  systemPrompt: string,
+  conversationMessages: Array<{ role: "user" | "assistant"; content: string }>,
+  sendEvent: (event: string, data: unknown) => void,
+): Promise<string> {
+  // Dynamic import to support both @anthropic-ai/sdk and environment where it may not be installed
+  const Anthropic = (await import("@anthropic-ai/sdk")).default;
+  const anthropic = new Anthropic();
+
+  const stream = anthropic.messages.stream({
+    model: process.env["CLAUDE_MODEL"] ?? process.env["ANTHROPIC_MODEL"] ?? "claude-sonnet-4-20250514",
+    max_tokens: parseInt(process.env["ANTHROPIC_MAX_TOKENS"] ?? "8192"),
+    system: systemPrompt,
+    messages: conversationMessages,
+  });
+
+  let fullResponse = "";
+  // Track whether we're inside a ```file: block to suppress streaming it to chat
+  let insideFileBlock = false;
+  let pendingBuffer = "";
+  // Marker prefix: we need to hold back text that could be the start of ```file:
+  const FILE_MARKER = "```file:";
+
+  stream.on("text", (text) => {
+    fullResponse += text;
+    pendingBuffer += text;
+
+    // Process buffer line by line
+    while (true) {
+      const nlIdx = pendingBuffer.indexOf("\n");
+
+      if (nlIdx < 0) {
+        // No complete line yet
+        if (insideFileBlock) {
+          // Inside file block — hold everything, don't send
+          break;
+        }
+        // Check if buffer could be the start of ```file: (partial match)
+        // e.g. buffer is "```" or "```fi" — hold it, don't flush yet
+        if (FILE_MARKER.startsWith(pendingBuffer) || pendingBuffer.endsWith("`") || pendingBuffer.endsWith("``")) {
+          break; // Wait for more data
+        }
+        if (pendingBuffer.includes(FILE_MARKER)) {
+          // Full marker found without newline — enter file block mode
+          insideFileBlock = true;
+          pendingBuffer = "";
+          break;
+        }
+        // Safe to flush — not a potential file block start
+        if (pendingBuffer.length > 0) {
+          sendEvent("token", { content: pendingBuffer });
+          pendingBuffer = "";
+        }
+        break;
+      }
+
+      // We have a complete line
+      const line = pendingBuffer.slice(0, nlIdx + 1);
+      pendingBuffer = pendingBuffer.slice(nlIdx + 1);
+
+      if (!insideFileBlock && line.trimStart().startsWith(FILE_MARKER)) {
+        insideFileBlock = true;
+        continue; // Suppress this line
+      }
+
+      if (insideFileBlock) {
+        // Check for closing ``` (but not another ```file:)
+        const trimmed = line.trimStart();
+        if (trimmed.startsWith("```") && !trimmed.startsWith(FILE_MARKER)) {
+          insideFileBlock = false;
+        }
+        continue; // Suppress all lines inside file block
+      }
+
+      // Normal text — send to chat
+      sendEvent("token", { content: line });
+    }
+  });
+
+  stream.on("error", (err) => {
+    logger.error({ error: err.message }, "Stream error");
+  });
+
+  try {
+    await stream.finalMessage();
+    // Flush any remaining non-file-block buffer
+    if (pendingBuffer && !insideFileBlock) {
+      sendEvent("token", { content: pendingBuffer });
+      pendingBuffer = "";
+    }
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    if (!fullResponse) {
+      throw new Error(errMsg);
+    }
+    // Partial response received before error — return what we have
+    logger.warn({ error: errMsg }, "Stream ended with error after partial response");
+  }
   return fullResponse;
 }
 
@@ -248,12 +321,7 @@ async function callExternalAgent(
 
 export async function chatRoutes(app: FastifyInstance): Promise<void> {
 
-  if (AI_AGENT_URL) {
-    logger.info({ url: AI_AGENT_URL }, "AI Agent URL configured — chat will use external agent");
-  } else {
-    logger.info("No AI_AGENT_URL configured — chat will use Claude API directly");
-  }
-
+  // Chat endpoint
   app.post("/api/chat", async (request, reply) => {
     const parseResult = ChatRequestBody.safeParse(request.body);
     if (!parseResult.success) {
@@ -277,6 +345,12 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
 
     session.messageCount++;
 
+    // Build system prompt
+    const systemPrompt = buildAgentSystemPrompt(contextResult.systemPrompt);
+
+    // Add user message to conversation history
+    session.messages.push({ role: "user", content: message });
+
     // Set up SSE headers
     reply.raw.writeHead(200, {
       "Content-Type": "text/event-stream",
@@ -284,8 +358,14 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
       Connection: "keep-alive",
     });
 
+    let streamEnded = false;
     const sendEvent = (event: string, data: unknown): void => {
-      reply.raw.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      if (streamEnded) return;
+      try {
+        reply.raw.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      } catch {
+        // Stream already closed
+      }
     };
 
     // Send system_message if context was refreshed
@@ -300,24 +380,33 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
     }
 
     try {
-      // Call AI — either external agent or Claude API
-      const fullResponse = AI_AGENT_URL
-        ? await callExternalAgent(
-            contextResult.systemPrompt,
-            message,
-            activatedSkillIds,
-            sendEvent,
-          )
-        : await callClaudeAPI(
-            contextResult.systemPrompt,
-            message,
-            sendEvent,
-          );
+      // Call Claude with conversation history
+      const fullResponse = await callClaudeChat(
+        systemPrompt,
+        session.messages,
+        sendEvent,
+      );
 
-      // Extract code suggestions from the full response
-      const suggestions = extractCodeSuggestions(fullResponse);
-      for (const suggestion of suggestions) {
-        sendEvent("code_suggestion", suggestion);
+      // Add assistant response to conversation history
+      session.messages.push({ role: "assistant", content: fullResponse });
+
+      // Keep conversation history manageable (last 20 messages)
+      if (session.messages.length > 20) {
+        session.messages = session.messages.slice(-20);
+      }
+
+      // Extract file modifications — send old + new content for diff preview
+      const suggestions = extractFileSuggestions(fullResponse);
+      if (suggestions.length > 0) {
+        const oldContents = await readOldContents(suggestions);
+        for (const suggestion of suggestions) {
+          sendEvent("code_suggestion", {
+            type: "code_suggestion",
+            filePath: suggestion.filePath,
+            oldContent: oldContents.get(suggestion.filePath) ?? "",
+            newContent: suggestion.content,
+          });
+        }
       }
 
       // Detect which skills were actually used
@@ -337,13 +426,21 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
       sendEvent("done", {
         sessionId: session.id,
         skillsUsed: usedSkills,
+        fileChanges: suggestions.map((s) => s.filePath),
       });
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       logger.error({ error: errMsg }, "Chat stream failed");
       sendEvent("error", { message: errMsg });
     } finally {
+      streamEnded = true;
       reply.raw.end();
     }
+  });
+
+  // Reset session
+  app.post("/api/chat/reset", async (_request, reply) => {
+    resetSession();
+    return reply.send({ success: true, sessionId: session.id });
   });
 }

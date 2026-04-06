@@ -45,7 +45,10 @@ public class SystemConfigResource {
             SystemConfigService.APPSMITH_SESSION,
             SystemConfigService.GITLAB_API_BASE_URL,
             SystemConfigService.GITLAB_REPO_PREFIX,
-            SystemConfigService.GIT_TOKEN
+            SystemConfigService.GIT_TOKEN,
+            SystemConfigService.CLAUDE_API_KEY,
+            SystemConfigService.CLAUDE_MODEL,
+            SystemConfigService.CLAUDE_BASE_URL
     );
 
     /**

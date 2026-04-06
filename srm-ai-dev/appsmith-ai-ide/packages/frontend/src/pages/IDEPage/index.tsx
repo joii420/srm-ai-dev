@@ -119,6 +119,16 @@ const IDEPage: React.FC = () => {
     setPendingSuggestion(null);
   }, []);
 
+  /** AI auto-wrote a file — reload its content in editor */
+  const handleFileWritten = useCallback((filePath: string, content: string) => {
+    // If this file is already open in a tab, update its content directly
+    const tab = openTabs.find((t) => t.id === filePath);
+    if (tab && editorRef.current) {
+      // Force editor to reload this file's content
+      editorRef.current.reloadFile?.(filePath, content);
+    }
+  }, [openTabs]);
+
   const handleSaveAll = useCallback(async () => {
     if (!hasUnsavedFiles() || mode !== 'editable') return;
     setSaving(true);
@@ -343,6 +353,7 @@ const IDEPage: React.FC = () => {
             pageId={pageId}
             enabled={mode === 'editable'}
             onCodeSuggestion={handleCodeSuggestion}
+            onFileWritten={handleFileWritten}
           />
         )}
       </div>

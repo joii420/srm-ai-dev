@@ -1612,6 +1612,7 @@ public class PageResource {
         //   File Manager (3001): /files, /diff
         //   AI Proxy (3000): /api/health, /api/chat, /api/session, etc.
         boolean isFileManagerPath = path.startsWith("/files") || path.startsWith("/diff");
+        boolean isChatPath = path.startsWith("/api/chat");
         String host = isFileManagerPath ? endpoints.fileManager() : endpoints.aiProxy();
         String containerUrl = "http://" + host + path;
 
@@ -1619,7 +1620,7 @@ public class PageResource {
             var requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(containerUrl))
                     .header("Accept", acceptType)
-                    .timeout(Duration.ofSeconds(30));
+                    .timeout(Duration.ofSeconds(isChatPath ? 180 : 30));
 
             switch (method) {
                 case "POST" -> requestBuilder.POST(

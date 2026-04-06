@@ -60,6 +60,9 @@ public class ContainerLifecycle {
     IHttpService httpService;
 
     @Inject
+    SystemConfigService systemConfigService;
+
+    @Inject
     ManagedExecutor managedExecutor;
 
     /**
@@ -610,6 +613,19 @@ public class ContainerLifecycle {
         String aiAgentUrl = appConfig.getAiAgentUrl();
         if (aiAgentUrl != null && !aiAgentUrl.isBlank()) {
             env.add("AI_AGENT_URL=" + aiAgentUrl);
+        }
+        // Inject Claude API config for container AI service
+        String claudeApiKey = systemConfigService.getValue(SystemConfigService.CLAUDE_API_KEY);
+        if (!claudeApiKey.isBlank()) {
+            env.add("ANTHROPIC_API_KEY=" + claudeApiKey);
+        }
+        String claudeModel = systemConfigService.getValue(SystemConfigService.CLAUDE_MODEL);
+        if (!claudeModel.isBlank()) {
+            env.add("CLAUDE_MODEL=" + claudeModel);
+        }
+        String claudeBaseUrl = systemConfigService.getValue(SystemConfigService.CLAUDE_BASE_URL);
+        if (!claudeBaseUrl.isBlank()) {
+            env.add("ANTHROPIC_BASE_URL=" + claudeBaseUrl);
         }
         return env;
     }

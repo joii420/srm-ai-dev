@@ -2,15 +2,19 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useChatStore, type ChatMessage } from '../../../stores/chatStore';
 import { useSkillStore, type SkillInfo } from '../../../stores/skillStore';
 import { useAuthStore } from '../../../stores/authStore';
+import { apiClient } from '../../../services/api';
 import SkillDrawer from '../SkillDrawer';
 import SkillTemplateModal from '../SkillTemplateModal';
 import IntentBanner from './IntentBanner';
+import ChatDiffCard from './ChatDiffCard';
 import { useIntentDetection } from '../../../hooks/useIntentDetection';
 
 interface ChatPanelProps {
   pageId: string;
   enabled: boolean;
   onCodeSuggestion?: (suggestion: CodeSuggestion) => void;
+  /** Called when AI has auto-written a file to disk — editor should reload content */
+  onFileWritten?: (filePath: string, content: string) => void;
 }
 
 export interface CodeSuggestion {
@@ -64,7 +68,7 @@ function generateId(): string {
   return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-const ChatPanel: React.FC<ChatPanelProps> = ({ pageId, enabled, onCodeSuggestion }) => {
+const ChatPanel: React.FC<ChatPanelProps> = ({ pageId, enabled, onCodeSuggestion, onFileWritten }) => {
   const {
     messages,
     isStreaming,
@@ -79,6 +83,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ pageId, enabled, onCodeSuggestion
   const [skillDrawerOpen, setSkillDrawerOpen] = useState(false);
   const [templateModalSkill, setTemplateModalSkill] = useState<SkillInfo | null>(null);
   const [minimized, setMinimized] = useState(false);
+
+  // Diff suggestions keyed by message ID
+  const [diffSuggestions, setDiffSuggestions] = useState<
+    Record<string, Array<{ filePath: string; oldContent: string; newContent: string }>>
+  >({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -87,10 +96,16 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ pageId, enabled, onCodeSuggestion
   const { matchedSkill, dismiss: dismissIntent } = useIntentDetection(input, skills);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages, streaming, and diff cards
+  const lastMsgContent = messages.length > 0 ? messages[messages.length - 1]!.content : '';
+  const diffCount = Object.values(diffSuggestions).reduce((sum, arr) => sum + arr.length, 0);
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    // Small delay to ensure DOM has updated (especially for DiffCard rendering)
+    const timer = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [messages.length, lastMsgContent, isStreaming, diffCount]);
 
   // Activated skill objects for badge display
   const activatedSkills = (skills ?? []).filter((s) => activatedSkillIds.includes(s.id));
@@ -171,6 +186,53 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ pageId, enabled, onCodeSuggestion
       let buffer = '';
       let currentEvent = '';
 
+      const processLine = (line: string) => {
+        if (line.startsWith('event:')) {
+          currentEvent = line.startsWith('event: ') ? line.slice(7).trim() : line.slice(6).trim();
+          return;
+        }
+
+        const dataPrefix = line.startsWith('data: ') ? 6 : line.startsWith('data:') ? 5 : -1;
+        if (dataPrefix < 0) return;
+        const data = line.slice(dataPrefix).trim();
+        if (!data || data === '[DONE]') return;
+
+        try {
+          const parsed = JSON.parse(data) as Record<string, unknown>;
+          const type = currentEvent || (parsed.type as string) || '';
+
+          if (type === 'system_message') {
+            addMessage({
+              id: generateId(),
+              role: 'system',
+              content: (parsed.message ?? '依赖库已更新') as string,
+              timestamp: Date.now(),
+            });
+          } else if (type === 'error') {
+            addStreamChunk(assistantMsgId, `\n\n**错误：** ${(parsed.message ?? parsed.content ?? 'AI 服务异常') as string}`);
+          } else if (type === 'code_suggestion') {
+            const filePath = (parsed.filePath ?? parsed.file ?? '') as string;
+            const oldContent = (parsed.oldContent ?? '') as string;
+            const newContent = (parsed.newContent ?? parsed.content ?? '') as string;
+            if (filePath) {
+              setDiffSuggestions((prev) => ({
+                ...prev,
+                [assistantMsgId]: [
+                  ...(prev[assistantMsgId] ?? []),
+                  { filePath, oldContent, newContent },
+                ],
+              }));
+            }
+          } else if (parsed.content) {
+            addStreamChunk(assistantMsgId, parsed.content as string);
+          }
+        } catch {
+          if (data) addStreamChunk(assistantMsgId, data);
+        }
+
+        currentEvent = '';
+      };
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -178,60 +240,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ pageId, enabled, onCodeSuggestion
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop() ?? '';
+        for (const line of lines) processLine(line);
+      }
 
-        for (const line of lines) {
-          // Track SSE event type
-          if (line.startsWith('event: ')) {
-            currentEvent = line.slice(7).trim();
-            continue;
-          }
-
-          if (!line.startsWith('data: ')) continue;
-          const data = line.slice(6).trim();
-          if (data === '[DONE]') continue;
-
-          try {
-            const parsed = JSON.parse(data) as {
-              type?: string;
-              content?: string;
-              message?: string;
-              file?: string;
-              filePath?: string;
-              diff?: string;
-            };
-
-            // Handle system_message SSE event (deps refresh notification)
-            if (currentEvent === 'system_message') {
-              const systemMsg: ChatMessage = {
-                id: generateId(),
-                role: 'system',
-                content: parsed.message ?? '依赖库已更新，后续对话将使用最新接口',
-                timestamp: Date.now(),
-              };
-              addMessage(systemMsg);
-              currentEvent = '';
-              continue;
-            }
-
-            if ((currentEvent === 'code_suggestion' || parsed.type === 'code_suggestion') && onCodeSuggestion) {
-              onCodeSuggestion({
-                filePath: parsed.file ?? parsed.filePath ?? '',
-                content: parsed.content ?? '',
-                diff: parsed.diff,
-              });
-              currentEvent = '';
-            } else if (parsed.content) {
-              addStreamChunk(assistantMsgId, parsed.content);
-            }
-          } catch {
-            // Not JSON, treat as raw text chunk
-            if (data) {
-              addStreamChunk(assistantMsgId, data);
-            }
-          }
-
-          currentEvent = '';
-        }
+      // Process any remaining data in buffer after stream ends
+      if (buffer.trim()) {
+        for (const line of buffer.split('\n')) processLine(line);
       }
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
@@ -340,7 +354,26 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ pageId, enabled, onCodeSuggestion
           </div>
         )}
         {messages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg} />
+          <React.Fragment key={msg.id}>
+            <MessageBubble message={msg} />
+            {diffSuggestions[msg.id]?.map((s, i) => (
+              <ChatDiffCard
+                key={`${msg.id}-diff-${i}-${s.filePath}`}
+                suggestion={s}
+                onApply={async (sug) => {
+                  // Write file via container File Manager (PUT for existing, POST for new)
+                  const url = `/pages/${pageId}/container/files/${encodeURIComponent(sug.filePath)}`;
+                  if (sug.oldContent) {
+                    await apiClient.put(url, { content: sug.newContent });
+                  } else {
+                    await apiClient.post(url, { content: sug.newContent });
+                  }
+                  // Refresh editor
+                  onFileWritten?.(sug.filePath, sug.newContent);
+                }}
+              />
+            ))}
+          </React.Fragment>
         ))}
         <div ref={messagesEndRef} />
       </div>

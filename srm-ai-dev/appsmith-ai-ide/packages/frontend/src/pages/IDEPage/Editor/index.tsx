@@ -11,6 +11,8 @@ import { applyUnifiedDiff } from '../../../utils/applyDiff';
 
 export interface EditorHandle {
   saveAll: () => Promise<void>;
+  /** Reload a file's content in the editor (after AI auto-write) */
+  reloadFile?: (filePath: string, content: string) => void;
 }
 
 interface EditorProps {
@@ -179,7 +181,19 @@ const Editor = React.forwardRef<EditorHandle, EditorProps>(({
     }
   }, [hasUnsavedFiles, isReadOnly, unsavedFiles, fileContents, pageId, clearAllUnsaved]);
 
-  useImperativeHandle(ref, () => ({ saveAll: handleSaveAll }), [handleSaveAll]);
+  const reloadFile = useCallback((filePath: string, content: string) => {
+    // Update in-memory content
+    setFileContents((prev) => ({ ...prev, [filePath]: content }));
+    originalContents.current[filePath] = content;
+    loadedFiles.current.add(filePath);
+
+    // If this file is currently active in the editor, update the editor value
+    if (editorRef.current && activeTabId === filePath) {
+      editorRef.current.setValue(content);
+    }
+  }, [activeTabId]);
+
+  useImperativeHandle(ref, () => ({ saveAll: handleSaveAll, reloadFile }), [handleSaveAll, reloadFile]);
 
 
   // DiffBanner: apply a code suggestion into the editor buffer

@@ -20,6 +20,9 @@ public class SystemConfigService {
     public static final String GITLAB_API_BASE_URL = "gitlab.api.base.url";
     public static final String GITLAB_REPO_PREFIX = "gitlab.repo.prefix";
     public static final String GIT_TOKEN = "git.token";
+    public static final String CLAUDE_API_KEY = "claude.api.key";
+    public static final String CLAUDE_MODEL = "claude.model";
+    public static final String CLAUDE_BASE_URL = "claude.base.url";
 
     /** Sentinel value to cache "key exists but value is empty" */
     private static final String EMPTY_SENTINEL = "__EMPTY__";

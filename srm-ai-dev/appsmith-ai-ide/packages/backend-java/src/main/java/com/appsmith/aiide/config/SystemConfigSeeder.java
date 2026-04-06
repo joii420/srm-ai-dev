@@ -49,6 +49,12 @@ public class SystemConfigSeeder {
                 defaultGitlabRepoPrefix, "GitLab 仓库前缀（SSH/HTTPS）", "input");
         seedIfMissing(SystemConfigService.GIT_TOKEN, "GIT仓库token",
                 defaultGitToken, "GitLab/GitHub API Token", "input");
+        seedIfMissing(SystemConfigService.CLAUDE_API_KEY, "Claude API Key",
+                "", "Anthropic Claude API 密钥", "input");
+        seedIfMissing(SystemConfigService.CLAUDE_MODEL, "Claude 模型",
+                "claude-sonnet-4-20250514", "Claude 模型名称", "input");
+        seedIfMissing(SystemConfigService.CLAUDE_BASE_URL, "Claude API 地址",
+                "https://api.anthropic.com", "Claude API 基础地址（支持代理）", "input");
 
         // Clear cache so values are loaded fresh on first access
         systemConfigService.refreshCache();
@@ -63,7 +69,9 @@ public class SystemConfigSeeder {
             SystemConfig config = new SystemConfig();
             config.key = key;
             config.name = name;
-            config.value = defaultValue != null ? defaultValue : "";
+            // JSONB column requires valid JSON — wrap string value in quotes
+            String val = (defaultValue != null && !defaultValue.isEmpty()) ? defaultValue : "";
+            config.value = "\"" + val.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
             config.description = description;
             config.type = type;
             config.persist();

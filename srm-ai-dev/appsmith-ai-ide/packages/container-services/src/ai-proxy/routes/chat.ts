@@ -9,8 +9,12 @@ import {
   reportSkillUsage,
 } from "../services/skillUsageTracker.js";
 import { loadMemory } from "../services/memory/loader.js";
-import { buildMemorySection } from "../services/memory/injector.js";
-import { shouldUpdateMemory, updateMemory } from "../services/memory/updater.js";
+import { buildUserMemorySection, buildProjectMemorySection } from "../services/memory/injector.js";
+import {
+  shouldUpdateProjectMemory, updateProjectMemory,
+  shouldUpdateUserMemory, updateUserMemory,
+} from "../services/memory/updater.js";
+import type { UserMemory } from "../services/memory/types.js";
 
 const logger = pino({ name: "ai-proxy-chat" });
 
@@ -19,11 +23,13 @@ const WORKSPACE_DIR = process.env["WORKSPACE_DIR"] ?? "/workspace";
 const ChatRequestBody = z.object({
   message: z.string().min(1),
   activatedSkillIds: z.array(z.string()).default([]),
-  /** Chat history injected by backend for AI context recovery */
+  /** Chat history injected by backend for short-term conversation context */
   history: z.array(z.object({
     role: z.enum(["user", "assistant"]),
     content: z.string(),
   })).default([]),
+  /** User memory injected by backend for global user preferences */
+  userMemory: z.any().optional(),
 });
 
 interface SessionState {
@@ -73,7 +79,7 @@ export function markContextRefreshed(
  * Build system prompt for AI Agent.
  * Includes project context, skills, and instructions for file editing.
  */
-function buildAgentSystemPrompt(contextPrompt: string, memorySection: string): string {
+function buildAgentSystemPrompt(contextPrompt: string, userMemorySection: string, projectMemorySection: string): string {
   return `你是一个 AI 编程助手，你可以直接读取和修改项目中的代码文件。
 
 ## 工作环境
@@ -140,11 +146,22 @@ export default {
 
 ${contextPrompt}
 
-${memorySection}
+${userMemorySection}
+
+${projectMemorySection}
+
+---
+**优先级规则**：当用户偏好与项目要求冲突时，以项目记忆中的要求为准。
+
+## 对话历史规则 —— 极其重要
+对话消息列表中，只有**最后一条 user 消息**是当前用户的请求。之前的消息都是历史记录，仅供你理解上下文。
+**绝对不要**重复执行历史中已完成的操作。如果历史中你已经修改过某个文件，不要再次输出该文件的修改，除非用户在最新消息中明确要求。
+只针对最后一条 user 消息进行回复和操作。
 
 ## 重要提醒
-1. 以上 Active Skills 中的规则是用户配置的编码规范，你在编写和修改代码时必须严格遵守。
-2. 项目记忆上下文帮助你了解项目背景，请基于记忆中的信息理解用户需求。`;
+1. Active Skills 中的规则是用户配置的编码规范，编写代码时必须严格遵守。
+2. 用户偏好帮助你了解用户的个人习惯（跨项目通用）。
+3. 项目上下文帮助你了解当前项目的背景和状态。`;
 }
 
 /**
@@ -239,7 +256,7 @@ async function callClaudeChat(
 
   const stream = anthropic.messages.stream({
     model: process.env["CLAUDE_MODEL"] ?? process.env["ANTHROPIC_MODEL"] ?? "claude-sonnet-4-20250514",
-    max_tokens: parseInt(process.env["ANTHROPIC_MAX_TOKENS"] ?? "8192"),
+    max_tokens: parseInt(process.env["ANTHROPIC_MAX_TOKENS"] ?? "128000"),
     system: systemPrompt,
     messages: conversationMessages,
   });
@@ -308,7 +325,10 @@ async function callClaudeChat(
   });
 
   stream.on("error", (err) => {
-    logger.error({ error: err.message }, "Stream error");
+    const errObj = err as unknown as Record<string, unknown>;
+    const msg = err instanceof Error ? err.message : String(err);
+    const detail = errObj.status ? `HTTP ${errObj.status}: ${msg}` : msg;
+    logger.error({ error: detail, stack: err instanceof Error ? err.stack : undefined }, "Claude API stream error");
   });
 
   try {
@@ -319,9 +339,20 @@ async function callClaudeChat(
       pendingBuffer = "";
     }
   } catch (err) {
+    const errObj = err as Record<string, unknown>;
     const errMsg = err instanceof Error ? err.message : String(err);
+    const status = errObj.status ?? "";
+    const errorType = errObj.type ?? errObj.error ?? "";
+    logger.error({
+      error: errMsg,
+      status,
+      type: errorType,
+      systemPromptLength: systemPrompt.length,
+      messagesCount: conversationMessages.length,
+      totalInputChars: systemPrompt.length + conversationMessages.reduce((sum, m) => sum + m.content.length, 0),
+    }, "Claude API call failed");
     if (!fullResponse) {
-      throw new Error(errMsg);
+      throw new Error(`Claude API error (${status}): ${errMsg}`);
     }
     // Partial response received before error — return what we have
     logger.warn({ error: errMsg }, "Stream ended with error after partial response");
@@ -345,7 +376,10 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(400).send({ error: message });
     }
 
-    const { message, activatedSkillIds, history } = parseResult.data;
+    const { message, activatedSkillIds, history, userMemory: rawUserMemory } = parseResult.data;
+    const userMemoryObj = (rawUserMemory ?? null) as UserMemory | null;
+
+    logger.info({ activatedSkillIds }, "Received activatedSkillIds from frontend");
 
     // Build context (reads workspace code, deps, skills)
     let contextResult: Awaited<ReturnType<typeof buildContext>>;
@@ -357,18 +391,36 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(500).send({ error: "Failed to build context" });
     }
 
+    logger.info({
+      filesLoaded: contextResult.filesLoaded,
+      depsLoaded: contextResult.depsLoaded,
+      skillsInjected: contextResult.skillsInjected,
+    }, "Context build result");
+
     session.messageCount++;
 
-    // Load project memory
-    const memory = await loadMemory();
-    const memorySection = memory ? buildMemorySection(memory) : "";
+    // Load dual-layer memory
+    const projectMemory = await loadMemory();
+    const userMemorySection = buildUserMemorySection(userMemoryObj);
+    const projectMemorySection = buildProjectMemorySection(projectMemory);
 
-    // Build system prompt with memory
-    const systemPrompt = buildAgentSystemPrompt(contextResult.systemPrompt, memorySection);
+    // Build system prompt with dual-layer memory
+    const systemPrompt = buildAgentSystemPrompt(contextResult.systemPrompt, userMemorySection, projectMemorySection);
 
     // Build conversation messages: DB history (injected by backend) + current message
+    // Sanitize history: strip ```file:...``` blocks from assistant replies to prevent re-execution
+    const sanitizedHistory = history.map((msg) => {
+      if (msg.role === "assistant") {
+        return {
+          ...msg,
+          content: msg.content.replace(/```file:[^\n]+\n[\s\S]*?```/g, "[已应用的代码修改]"),
+        };
+      }
+      return msg;
+    });
+
     const conversationMessages: Array<{ role: "user" | "assistant"; content: string }> = [
-      ...history,
+      ...sanitizedHistory,
       { role: "user" as const, content: message },
     ];
 
@@ -399,6 +451,15 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
       });
       session.contextRefreshed = false;
     }
+
+    // Log prompts sent to AI
+    logger.info("========== SYSTEM PROMPT ==========");
+    logger.info(systemPrompt);
+    logger.info("========== CONVERSATION MESSAGES ==========");
+    for (const msg of conversationMessages) {
+      logger.info(`[${msg.role}] ${msg.content}`);
+    }
+    logger.info("========== END PROMPTS ==========");
 
     try {
       // Call Claude with conversation history (from DB) + current message
@@ -436,16 +497,31 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
         logger.warn({ error: errMsg }, "Failed to report skill usage");
       });
 
-      // Trigger memory update (async, non-blocking, silent)
+      // Trigger dual-layer memory updates (async, non-blocking, silent)
       const fileChanges = suggestions.map((s) => s.filePath);
-      if (shouldUpdateMemory({
+
+      // Project memory update
+      if (shouldUpdateProjectMemory({
         userMessage: message,
         assistantReply: fullResponse,
         fileChanges,
         roundCount: session.messageCount,
       })) {
-        updateMemory({ userMessage: message, assistantReply: fullResponse, fileChanges }).catch((err) => {
-          logger.warn({ error: err instanceof Error ? err.message : String(err) }, "Memory update failed");
+        updateProjectMemory({ userMessage: message, assistantReply: fullResponse, fileChanges }).catch((err) => {
+          logger.warn({ error: err instanceof Error ? err.message : String(err) }, "Project memory update failed");
+        });
+      }
+
+      // User memory update
+      if (shouldUpdateUserMemory({ userMessage: message })) {
+        const authHeader = (request.headers as Record<string, string>)["authorization"] ?? "";
+        updateUserMemory({
+          userMessage: message,
+          assistantReply: fullResponse,
+          currentUserMemory: userMemoryObj,
+          authToken: authHeader.replace(/^Bearer\s+/i, ""),
+        }).catch((err) => {
+          logger.warn({ error: err instanceof Error ? err.message : String(err) }, "User memory update failed");
         });
       }
 

@@ -13,7 +13,7 @@ POST http://test.srm.wzhf.com:9000/script-engine/editLock/checkIn
 Content-Type: application/json
 
 {
-  "code": "joiitest05",
+  "code": "pmst400",
   "acct": "admin"
 }
 

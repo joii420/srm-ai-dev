@@ -258,7 +258,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ pageId, enabled, onCodeSuggestion
       });
 
       if (!response.ok || !response.body) {
-        addStreamChunk(assistantMsgId, '[Error: failed to connect to AI service]');
+        let errDetail = `HTTP ${response.status}`;
+        try {
+          const errBody = await response.text();
+          const errJson = JSON.parse(errBody);
+          if (errJson.message) errDetail += `: ${errJson.message}`;
+          else if (errJson.error) errDetail += `: ${typeof errJson.error === 'string' ? errJson.error : JSON.stringify(errJson.error)}`;
+        } catch { /* ignore parse errors */ }
+        addStreamChunk(assistantMsgId, `[Error: AI 服务请求失败 (${errDetail})]`);
         setStreaming(false);
         return;
       }

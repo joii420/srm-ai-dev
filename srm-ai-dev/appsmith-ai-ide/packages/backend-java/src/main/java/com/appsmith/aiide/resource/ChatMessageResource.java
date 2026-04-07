@@ -73,7 +73,8 @@ public class ChatMessageResource {
         } else {
             // Normal user: only own messages after last clear
             OffsetDateTime clearedAt = ChatClearRecord.getLastClearedAt(pageUuid, userUuid);
-            OffsetDateTime after = clearedAt != null ? clearedAt : OffsetDateTime.MIN;
+            OffsetDateTime after = clearedAt != null ? clearedAt
+                    : OffsetDateTime.of(1970, 1, 1, 0, 0, 0, 0, java.time.ZoneOffset.UTC);
 
             messages = before != null
                     ? ChatMessage.findByPageAndUserBefore(pageUuid, userUuid, after, before, limit)

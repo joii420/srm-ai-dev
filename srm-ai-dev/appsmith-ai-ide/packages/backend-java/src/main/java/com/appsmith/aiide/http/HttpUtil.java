@@ -12,8 +12,8 @@ import java.util.Map;
  */
 public class HttpUtil implements IHttpService {
 
-    private static final int CONNECT_TIMEOUT = 10_000;
-    private static final int READ_TIMEOUT = 10_000;
+    private static final int CONNECT_TIMEOUT = 30_000;
+    private static final int READ_TIMEOUT = 120_000;
 
     // ------------------------------------------------------------------ GET
 
@@ -239,16 +239,9 @@ public class HttpUtil implements IHttpService {
 
         if (is == null) return "";
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-            StringBuilder sb = new StringBuilder();
-            String line;
-            boolean first = true;
-            while ((line = br.readLine()) != null) {
-                if (!first) sb.append('\n');
-                sb.append(line);
-                first = false;
-            }
-            return sb.toString();
+        try (is) {
+            byte[] bytes = is.readAllBytes();
+            return new String(bytes, StandardCharsets.UTF_8);
         }
     }
 }

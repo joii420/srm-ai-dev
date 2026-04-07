@@ -531,7 +531,7 @@ public class ContainerLifecycle {
             String memoryJson = String.format("""
                     {
                       "meta": {
-                        "version": "1.0.0",
+                        "version": "2.0.0",
                         "created_at": "%s",
                         "last_updated": "%s",
                         "agent_version": "1.0.0"
@@ -539,7 +539,7 @@ public class ContainerLifecycle {
                       "project": {
                         "name": "%s",
                         "description": "",
-                        "root_path": "/workspace",
+                        "root_path": ".",
                         "tech_stack": %s,
                         "main_language": "JavaScript",
                         "entry_point": "",
@@ -553,12 +553,6 @@ public class ContainerLifecycle {
                       "current_tasks": [],
                       "completed_tasks": [],
                       "decisions": [],
-                      "user_preferences": {
-                        "reply_language": "中文",
-                        "code_style": "",
-                        "comment_style": "",
-                        "custom": {}
-                      },
                       "session_stats": {
                         "total_sessions": 0,
                         "total_file_changes": 0,
@@ -579,7 +573,11 @@ public class ContainerLifecycle {
             dockerService.execInContainer(containerId,
                     "sh", "-c", "echo '" + encoded + "' | base64 -d > /workspace/.agent/memory.json");
 
-            // Git add and commit
+            // Git config + add + commit
+            dockerService.execInContainer(containerId,
+                    "git", "-C", "/workspace", "config", "user.email", "aiide@appsmith.local");
+            dockerService.execInContainer(containerId,
+                    "git", "-C", "/workspace", "config", "user.name", "AI-IDE");
             dockerService.execInContainer(containerId,
                     "git", "-C", "/workspace", "add", ".agent/memory.json");
             dockerService.execInContainer(containerId,
@@ -735,9 +733,17 @@ public class ContainerLifecycle {
         if (!claudeModel.isBlank()) {
             env.add("CLAUDE_MODEL=" + claudeModel);
         }
+        String claudeModelLight = systemConfigService.getValue(SystemConfigService.CLAUDE_MODEL_LIGHT);
+        if (!claudeModelLight.isBlank()) {
+            env.add("CLAUDE_MODEL_LIGHT=" + claudeModelLight);
+        }
         String claudeBaseUrl = systemConfigService.getValue(SystemConfigService.CLAUDE_BASE_URL);
         if (!claudeBaseUrl.isBlank()) {
             env.add("ANTHROPIC_BASE_URL=" + claudeBaseUrl);
+        }
+        String claudeMaxTokens = systemConfigService.getValue(SystemConfigService.CLAUDE_MAX_TOKENS);
+        if (!claudeMaxTokens.isBlank()) {
+            env.add("ANTHROPIC_MAX_TOKENS=" + claudeMaxTokens);
         }
         return env;
     }

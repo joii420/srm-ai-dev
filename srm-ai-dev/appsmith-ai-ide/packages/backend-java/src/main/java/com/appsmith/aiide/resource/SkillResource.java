@@ -80,7 +80,7 @@ public class SkillResource {
                 field.type = f.type;
                 field.required = f.required;
                 field.placeholder = f.placeholder;
-                field.options = f.options;
+                field.options = toJsonString(f.options);
                 field.token = f.token;
                 field.sortOrder = f.sortOrder;
                 return field;
@@ -131,7 +131,7 @@ public class SkillResource {
                 field.type = f.type;
                 field.required = f.required;
                 field.placeholder = f.placeholder;
-                field.options = f.options;
+                field.options = toJsonString(f.options);
                 field.token = f.token;
                 field.sortOrder = f.sortOrder;
                 skill.fields.add(field);
@@ -310,16 +310,6 @@ public class SkillResource {
 
     // --- Private helpers ---
 
-    /** Parse JSON string back to array for API response */
-    private static Object parseJsonArray(String json) {
-        if (json == null || json.isBlank()) return java.util.List.of();
-        try {
-            return new com.fasterxml.jackson.databind.ObjectMapper().readValue(json, java.util.List.class);
-        } catch (Exception e) {
-            return java.util.List.of();
-        }
-    }
-
     /** Convert Object (ArrayList from JSON) to JSON string for JSONB column */
     private static String toJsonString(Object val) {
         if (val == null) return null;
@@ -331,6 +321,20 @@ public class SkillResource {
         }
     }
 
+    /** Ensure value is a List. Handles: List (pass-through), JSON string (parse), null (empty list). */
+    private static Object ensureList(Object val) {
+        if (val instanceof java.util.List) return val;
+        if (val instanceof String s) {
+            String trimmed = s.trim();
+            if (trimmed.startsWith("[")) {
+                try {
+                    return new com.fasterxml.jackson.databind.ObjectMapper().readValue(trimmed, java.util.List.class);
+                } catch (Exception ignored) {}
+            }
+        }
+        return java.util.List.of();
+    }
+
     private SkillDto toDto(Skill skill) {
         var dto = new SkillDto();
         dto.id = skill.id.toString();
@@ -339,8 +343,8 @@ public class SkillResource {
         dto.icon = skill.icon;
         dto.category = skill.category;
         dto.prompt = skill.prompt;
-        dto.keywords = parseJsonArray(skill.keywords);
-        dto.tags = parseJsonArray(skill.tags);
+        dto.keywords = ensureList(skill.keywords);
+        dto.tags = ensureList(skill.tags);
         dto.callCount = skill.callCount;
         dto.enabled = skill.enabled;
         dto.version = skill.version;
@@ -356,7 +360,7 @@ public class SkillResource {
                 fieldDto.type = f.type;
                 fieldDto.required = f.required;
                 fieldDto.placeholder = f.placeholder;
-                fieldDto.options = f.options;
+                fieldDto.options = ensureList(f.options);
                 fieldDto.token = f.token;
                 fieldDto.sortOrder = f.sortOrder;
                 return fieldDto;

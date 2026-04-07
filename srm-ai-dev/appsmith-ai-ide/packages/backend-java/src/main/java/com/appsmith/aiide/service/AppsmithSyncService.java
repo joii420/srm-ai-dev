@@ -222,12 +222,29 @@ public class AppsmithSyncService {
 
     /**
      * Write content to a file inside the container.
+     * Uses chunked base64 to avoid "argument list too long" for large files.
      */
     private void writeFileToContainer(String containerId, String filePath, String content) {
-        // Use sh -c with heredoc to write file content safely
-        // Base64 encode to avoid shell escaping issues
         String encoded = Base64.getEncoder().encodeToString(content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        dockerService.execInContainer(containerId,
-                "sh", "-c", "echo '" + encoded + "' | base64 -d > " + filePath);
+
+        // Split into chunks of 50KB to avoid shell argument length limits
+        int chunkSize = 50_000;
+        if (encoded.length() <= chunkSize) {
+            dockerService.execInContainer(containerId,
+                    "sh", "-c", "echo '" + encoded + "' | base64 -d > " + filePath);
+        } else {
+            // Write first chunk (truncate file)
+            dockerService.execInContainer(containerId,
+                    "sh", "-c", "echo -n '' > " + filePath + ".b64");
+            // Append chunks
+            for (int i = 0; i < encoded.length(); i += chunkSize) {
+                String chunk = encoded.substring(i, Math.min(i + chunkSize, encoded.length()));
+                dockerService.execInContainer(containerId,
+                        "sh", "-c", "echo -n '" + chunk + "' >> " + filePath + ".b64");
+            }
+            // Decode the complete base64 file
+            dockerService.execInContainer(containerId,
+                    "sh", "-c", "base64 -d " + filePath + ".b64 > " + filePath + " && rm " + filePath + ".b64");
+        }
     }
 }

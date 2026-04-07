@@ -23,8 +23,10 @@ public class SystemConfigService {
     public static final String CLAUDE_API_KEY = "claude.api.key";
     public static final String CLAUDE_MODEL = "claude.model";
     public static final String CLAUDE_BASE_URL = "claude.base.url";
+    public static final String CLAUDE_MODEL_LIGHT = "claude.model.light";
     public static final String CHAT_CONTEXT_MAX_CHARS = "chat.context.max.chars";
     public static final String CHAT_HISTORY_PAGE_SIZE = "chat.history.page.size";
+    public static final String CLAUDE_MAX_TOKENS = "claude.max.tokens";
 
     /** Sentinel value to cache "key exists but value is empty" */
     private static final String EMPTY_SENTINEL = "__EMPTY__";

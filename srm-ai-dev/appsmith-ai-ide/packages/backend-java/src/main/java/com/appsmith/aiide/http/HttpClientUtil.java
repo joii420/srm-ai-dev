@@ -14,8 +14,8 @@ import java.util.Map;
  */
 public class HttpClientUtil implements IHttpService {
 
-    private static final int CONNECT_TIMEOUT = 10;
-    private static final int READ_TIMEOUT = 10;
+    private static final int CONNECT_TIMEOUT = 30;
+    private static final int READ_TIMEOUT = 120;
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(CONNECT_TIMEOUT))

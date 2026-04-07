@@ -1,3 +1,42 @@
+// ─── 用户记忆（存数据库，跨项目全局生效）──────────────────
+export interface UserMemory {
+  meta?: {
+    version?: string;
+  };
+  preferences?: {
+    reply_language?: string;
+    reply_detail_level?: string;
+    code_example_style?: string;
+    format_preference?: string;
+  };
+  code_style?: {
+    paradigm?: string;
+    naming_convention?: string;
+    comment_language?: string;
+    comment_density?: string;
+    test_style?: string;
+    custom?: Record<string, string>;
+  };
+  background?: {
+    role?: string;
+    experience_level?: string;
+    primary_languages?: string[];
+    domains?: string[];
+  };
+  interaction_habits?: {
+    prefers_step_by_step?: boolean;
+    prefers_alternatives?: boolean;
+    dislikes?: string[];
+    custom?: Record<string, string>;
+  };
+  toolchain?: {
+    package_manager?: string;
+    preferred_frameworks?: string[];
+    custom?: Record<string, string>;
+  };
+}
+
+// ─── 项目记忆（存 Git 仓库 .agent/memory.json，仅当前项目）──
 export interface ProjectMemory {
   meta: {
     version: string;
@@ -27,12 +66,6 @@ export interface ProjectMemory {
   current_tasks: Task[];
   completed_tasks: CompletedTask[];
   decisions: Decision[];
-  user_preferences: {
-    reply_language: string;
-    code_style: string;
-    comment_style: string;
-    custom: Record<string, string>;
-  };
   session_stats: {
     total_sessions: number;
     total_file_changes: number;

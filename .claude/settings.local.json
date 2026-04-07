@@ -62,7 +62,30 @@
       "Bash(cp scaffold/docs/prompts/AI_BEHAVIOR_SCAN_PROMPT.md docs/prompts/)",
       "Bash(cp scaffold/docs/prompts/AI_PRODUCT_DOC_PROMPT.md docs/prompts/)",
       "Bash(cp scaffold/docs/USAGE_GUIDE.md docs/)",
-      "Bash(cp scaffold/docs/CHANGELOG.md docs/)"
+      "Bash(cp scaffold/docs/CHANGELOG.md docs/)",
+      "Bash(npx vitest:*)",
+      "Bash(cd:*)",
+      "Bash(pnpm add:*)",
+      "Bash(curl -sL -o dm-sans-400.woff2 \"https://fonts.gstatic.com/s/dmsans/v15/rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwA.woff2\")",
+      "Bash(curl -sL -o dm-sans-500.woff2 \"https://fonts.gstatic.com/s/dmsans/v15/rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwAkl0.woff2\")",
+      "Bash(curl -sL -o dm-sans-600.woff2 \"https://fonts.gstatic.com/s/dmsans/v15/rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwArl0.woff2\")",
+      "Bash(curl -sL -o outfit-600.woff2 \"https://fonts.gstatic.com/s/outfit/v11/QGYyz_MVcBeNP4NjuGObqx1XmO1I4e61C4G-EiAou6Y.woff2\")",
+      "Bash(curl -sL -o outfit-700.woff2 \"https://fonts.gstatic.com/s/outfit/v11/QGYyz_MVcBeNP4NjuGObqx1XmO1I4dW1C4G-EiAou6Y.woff2\")",
+      "Bash(curl -sL -o outfit-800.woff2 \"https://fonts.gstatic.com/s/outfit/v11/QGYyz_MVcBeNP4NjuGObqx1XmO1I4bC1C4G-EiAou6Y.woff2\")",
+      "Bash(curl -sL -o ibm-plex-mono-400.woff2 \"https://fonts.gstatic.com/s/ibmplexmono/v19/-F63fjptAgt5VM-kVkqdyU8n5igg1l9kn27C.woff2\")",
+      "Bash(curl -sL -o ibm-plex-mono-600.woff2 \"https://fonts.gstatic.com/s/ibmplexmono/v19/-F6qfjptAgt5VM-kVkqdyU8n3oQIwlBFgsAXHNlY.woff2\")",
+      "Bash(curl -sL -H \"User-Agent: Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36\" \"https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Outfit:wght@600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap\")",
+      "Bash(curl -sL -o dm-sans-400.ttf \"https://fonts.gstatic.com/s/dmsans/v17/rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwAopxhTg.ttf\")",
+      "Bash(curl -sL -o dm-sans-500.ttf \"https://fonts.gstatic.com/s/dmsans/v17/rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwAkJxhTg.ttf\")",
+      "Bash(curl -sL -o dm-sans-600.ttf \"https://fonts.gstatic.com/s/dmsans/v17/rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwAfJthTg.ttf\")",
+      "Bash(curl -sL -o ibm-plex-mono-400.ttf \"https://fonts.gstatic.com/s/ibmplexmono/v20/-F63fjptAgt5VM-kVkqdyU8n5ig.ttf\")",
+      "Bash(curl -sL -o ibm-plex-mono-600.ttf \"https://fonts.gstatic.com/s/ibmplexmono/v20/-F6qfjptAgt5VM-kVkqdyU8n3vAO8lc.ttf\")",
+      "Bash(npm list:*)",
+      "Bash(grep -E '\\\\.\\(ts|js\\)$')",
+      "Bash(node -e ':*)",
+      "Bash(grep -E '\\\\.ts$|\\\\.js$')",
+      "Bash(cmd.exe //c \"mvnw.cmd compile -q\")",
+      "Bash(\"./mvnw.cmd\" compile:*)"
     ]
   }
 }

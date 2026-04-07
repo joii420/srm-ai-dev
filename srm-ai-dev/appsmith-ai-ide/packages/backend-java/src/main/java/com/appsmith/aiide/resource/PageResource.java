@@ -1269,14 +1269,19 @@ public class PageResource {
     @Path("/{pageId}/chat")
     @Produces(MediaType.SERVER_SENT_EVENTS)
     public Response proxyChat(@PathParam("pageId") String pageId, String body) {
-        // AI context is now provided by .agent/memory.json inside the container
-        // (no longer injecting DB chat history into request body)
+        // Inject DB chat history for short-term conversation context
+        body = injectChatHistory(pageId, body);
+
+        // Inject user memory for global user preferences
+        body = injectUserMemory(body);
 
         // Try container first
         Response containerResponse = proxyToContainer(pageId, "POST", "/api/chat", body, MediaType.SERVER_SENT_EVENTS);
         if (containerResponse.getStatus() < 400) {
             return containerResponse;
         }
+        LOG.errorf("Chat proxy to container failed for page %s: HTTP %d, body length=%d",
+                pageId, containerResponse.getStatus(), body != null ? body.length() : 0);
 
         // Container unavailable — fallback to external AI agent
         String agentUrl = appConfig.getAiAgentUrl();
@@ -1520,6 +1525,33 @@ public class PageResource {
      * Queries recent messages from DB, truncates by character budget,
      * and adds as "history" field to the JSON body.
      */
+    /**
+     * Inject user memory (global preferences) into the request body.
+     */
+    private String injectUserMemory(String body) {
+        try {
+            String userId = requestContext.getUserId();
+            if (userId == null) return body;
+
+            com.appsmith.aiide.entity.UserMemory um =
+                    com.appsmith.aiide.entity.UserMemory.findByUserId(UUID.fromString(userId));
+
+            String memoryJson = um != null ? um.memoryJson : null;
+            if (memoryJson == null || memoryJson.isBlank()) return body;
+
+            com.fasterxml.jackson.databind.JsonNode bodyNode = OBJECT_MAPPER.readTree(body != null ? body : "{}");
+            com.fasterxml.jackson.databind.node.ObjectNode bodyObj = bodyNode.isObject()
+                    ? (com.fasterxml.jackson.databind.node.ObjectNode) bodyNode
+                    : OBJECT_MAPPER.createObjectNode();
+            bodyObj.set("userMemory", OBJECT_MAPPER.readTree(memoryJson));
+
+            return OBJECT_MAPPER.writeValueAsString(bodyObj);
+        } catch (Exception e) {
+            LOG.warnf("Failed to inject user memory: %s", e.getMessage());
+            return body;
+        }
+    }
+
     private String injectChatHistory(String pageId, String body) {
         try {
             String userId = requestContext.getUserId();
@@ -1530,7 +1562,9 @@ public class PageResource {
 
             // Get clear point
             java.time.OffsetDateTime clearedAt = com.appsmith.aiide.entity.ChatClearRecord.getLastClearedAt(pageUuid, userUuid);
-            java.time.OffsetDateTime after = clearedAt != null ? clearedAt : java.time.OffsetDateTime.MIN;
+            // Use epoch (1970) as minimum, not OffsetDateTime.MIN which is year -999999999 (out of PostgreSQL range)
+            java.time.OffsetDateTime after = clearedAt != null ? clearedAt
+                    : java.time.OffsetDateTime.of(1970, 1, 1, 0, 0, 0, 0, java.time.ZoneOffset.UTC);
 
             // Query recent messages (up to 50 for truncation)
             List<com.appsmith.aiide.entity.ChatMessage> recent =

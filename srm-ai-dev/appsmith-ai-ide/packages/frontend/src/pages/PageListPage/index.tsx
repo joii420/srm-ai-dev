@@ -220,7 +220,6 @@ const CreatePageDialog: React.FC<CreatePageDialogProps> = ({ onClose, onSuccess 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<'appsmith' | 'normal'>('appsmith');
-  const [gitBranch, setGitBranch] = useState('dev');
   const [appsmithPageId, setAppsmithPageId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -235,7 +234,7 @@ const CreatePageDialog: React.FC<CreatePageDialogProps> = ({ onClose, onSuccess 
         name: name.trim(),
         description: description.trim() || undefined,
         type,
-        gitBranch: gitBranch.trim() || 'dev',
+        gitBranch: 'dev',
         ...(type === 'appsmith' && appsmithPageId.trim() ? { appsmithPageId: appsmithPageId.trim() } : {}),
       });
       onSuccess();
@@ -268,12 +267,14 @@ const CreatePageDialog: React.FC<CreatePageDialogProps> = ({ onClose, onSuccess 
 
           <label style={labelStyle}>
             <span>描述</span>
-            <input
+            <textarea
               className="commit-input"
               placeholder="程序描述（选填）"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={submitting}
+              rows={3}
+              style={{ resize: 'vertical' }}
             />
           </label>
 
@@ -285,6 +286,7 @@ const CreatePageDialog: React.FC<CreatePageDialogProps> = ({ onClose, onSuccess 
                 onClick={() => setType('appsmith')}
                 disabled={submitting}
                 type="button"
+                style={type === 'appsmith' ? { border: '2px solid var(--acc)', background: 'var(--acc-dim)' } : {}}
               >
                 Appsmith 程序
               </button>
@@ -293,21 +295,11 @@ const CreatePageDialog: React.FC<CreatePageDialogProps> = ({ onClose, onSuccess 
                 onClick={() => setType('normal')}
                 disabled={submitting}
                 type="button"
+                style={type === 'normal' ? { border: '2px solid var(--acc)', background: 'var(--acc-dim)' } : {}}
               >
                 普通程序
               </button>
             </div>
-          </label>
-
-          <label style={labelStyle}>
-            <span>默认分支</span>
-            <input
-              className="commit-input"
-              placeholder="dev"
-              value={gitBranch}
-              onChange={(e) => setGitBranch(e.target.value)}
-              disabled={submitting}
-            />
           </label>
 
           {type === 'appsmith' && (

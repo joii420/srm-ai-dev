@@ -43,7 +43,7 @@ public class SkillField extends PanacheEntityBase {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
-    public Object options;
+    public String options;
 
     @Column(length = 100, nullable = false)
     public String token;

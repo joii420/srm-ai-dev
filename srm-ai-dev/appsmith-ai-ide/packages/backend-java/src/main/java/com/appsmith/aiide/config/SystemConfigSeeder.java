@@ -41,24 +41,37 @@ public class SystemConfigSeeder {
     void onStart(@Observes StartupEvent ev) {
         LOG.info("SystemConfigSeeder: checking managed config entries...");
 
-        seedIfMissing(SystemConfigService.APPSMITH_SESSION, "APPSMITH会话",
-                defaultAppsmithSession, "Appsmith API 会话标识", "input");
-        seedIfMissing(SystemConfigService.GITLAB_API_BASE_URL, "GIT仓库地址",
-                defaultGitlabApiBaseUrl, "GitLab API 基础地址", "input");
+        // GIT 相关 (10-19)
         seedIfMissing(SystemConfigService.GITLAB_REPO_PREFIX, "GIT仓库团队地址",
-                defaultGitlabRepoPrefix, "GitLab 仓库前缀（SSH/HTTPS）", "input");
+                defaultGitlabRepoPrefix, "GitLab 仓库前缀（SSH/HTTPS）", "input", 10);
+        seedIfMissing(SystemConfigService.GITLAB_API_BASE_URL, "GIT仓库地址",
+                defaultGitlabApiBaseUrl, "GitLab API 基础地址", "input", 11);
         seedIfMissing(SystemConfigService.GIT_TOKEN, "GIT仓库token",
-                defaultGitToken, "GitLab/GitHub API Token", "input");
+                defaultGitToken, "GitLab/GitHub API Token", "input", 12);
+
+        // Appsmith 相关 (20-29)
+        seedIfMissing(SystemConfigService.APPSMITH_SESSION, "APPSMITH会话",
+                defaultAppsmithSession, "Appsmith API 会话标识", "input", 20);
+
+        // Claude AI 相关 (30-39)
         seedIfMissing(SystemConfigService.CLAUDE_API_KEY, "Claude API Key",
-                "", "Anthropic Claude API 密钥", "input");
+                "", "Anthropic Claude API 密钥", "input", 30);
         seedIfMissing(SystemConfigService.CLAUDE_MODEL, "Claude 模型",
-                "claude-sonnet-4-20250514", "Claude 模型名称", "input");
+                "claude-sonnet-4-20250514", "Claude 模型名称", "input", 31);
         seedIfMissing(SystemConfigService.CLAUDE_BASE_URL, "Claude API 地址",
-                "https://api.anthropic.com", "Claude API 基础地址（支持代理）", "input");
+                "https://api.anthropic.com", "Claude API 基础地址（支持代理）", "input", 32);
+        seedIfMissing(SystemConfigService.CLAUDE_MODEL_LIGHT, "Claude 轻量模型",
+                "claude-haiku-4-5-20251001", "记忆更新等后台任务使用的轻量模型（省 token）", "input", 33);
+
+        // Claude 输出限制 (34-39)
+        seedIfMissing(SystemConfigService.CLAUDE_MAX_TOKENS, "Claude 最大输出 Token",
+                "128000", "AI 单次回复最大 token 数（大文件需要更大值）", "input", 34);
+
+        // 聊天相关 (40-49)
         seedIfMissing(SystemConfigService.CHAT_CONTEXT_MAX_CHARS, "AI上下文历史长度",
-                "30000", "注入 Claude 的历史消息最大字符数", "input");
+                "30000", "注入 Claude 的历史消息最大字符数", "input", 40);
         seedIfMissing(SystemConfigService.CHAT_HISTORY_PAGE_SIZE, "聊天历史每页条数",
-                "10", "前端每次滚动加载的消息条数", "input");
+                "10", "前端每次滚动加载的消息条数", "input", 41);
 
         // Clear cache so values are loaded fresh on first access
         systemConfigService.refreshCache();
@@ -67,26 +80,26 @@ public class SystemConfigSeeder {
     }
 
     private void seedIfMissing(String key, String name, String defaultValue,
-                                String description, String type) {
+                                String description, String type, int sortOrder) {
         SystemConfig existing = SystemConfig.findByKey(key);
         if (existing == null) {
             SystemConfig config = new SystemConfig();
             config.key = key;
             config.name = name;
-            // JSONB column requires valid JSON — wrap string value in quotes
             String val = (defaultValue != null && !defaultValue.isEmpty()) ? defaultValue : "";
             config.value = "\"" + val.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
             config.description = description;
             config.type = type;
+            config.sortOrder = sortOrder;
             config.persist();
-            LOG.infof("SystemConfigSeeder: seeded '%s' (%s)", key, name);
+            LOG.infof("SystemConfigSeeder: seeded '%s' (%s) sort=%d", key, name, sortOrder);
         } else {
-            // Update name if it was null (migration from old data)
             if (existing.name == null || existing.name.isBlank()) {
                 existing.name = name;
                 if (existing.type == null) existing.type = type;
-                LOG.infof("SystemConfigSeeder: updated name for '%s' -> '%s'", key, name);
             }
+            // Always update sort order
+            existing.sortOrder = sortOrder;
         }
     }
 }

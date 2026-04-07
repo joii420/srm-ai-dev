@@ -48,7 +48,9 @@ public class SystemConfigResource {
             SystemConfigService.GIT_TOKEN,
             SystemConfigService.CLAUDE_API_KEY,
             SystemConfigService.CLAUDE_MODEL,
+            SystemConfigService.CLAUDE_MODEL_LIGHT,
             SystemConfigService.CLAUDE_BASE_URL,
+            SystemConfigService.CLAUDE_MAX_TOKENS,
             SystemConfigService.CHAT_CONTEXT_MAX_CHARS,
             SystemConfigService.CHAT_HISTORY_PAGE_SIZE
     );
@@ -58,7 +60,7 @@ public class SystemConfigResource {
      */
     @GET
     public Response listAll() {
-        List<SystemConfig> configs = SystemConfig.listAll();
+        List<SystemConfig> configs = SystemConfig.listAll(io.quarkus.panache.common.Sort.by("sortOrder").and("name"));
         var dtos = configs.stream()
                 .filter(c -> MANAGED_KEYS.contains(c.key))
                 .map(this::toDto)

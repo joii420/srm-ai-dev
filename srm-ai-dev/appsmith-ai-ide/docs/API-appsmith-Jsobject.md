@@ -414,9 +414,9 @@ PUT  http://test.srm.wzhf.com:9000/api/v1/collections/actions/{{collectionId}}/b
 1.如果上述的调用记录list在本次容器会话中未曾进行调用,则使用最初得到的editResponse,如果在本次容器会话中变更过文件名或新增删除过文件,则在这里再次调用http://test.srm.wzhf.com:9000/api/v1/consolidated-api/edit?defaultPageId=688c57ebee8a04352be1bfd0&viewPageId=688c57ebee8a04352be1bfd0更新最新的editResponse
 2.调用获取会话: POST http://localhost:3200/sessions
 3.调用初始化会话: POST /sessions/:id/biz/init
-4.将所有有过内容变更的文件,依次调用获取变更内容:  POST /sessions/:id/biz/update/js-action, 如果response中的success = true ,并且result.edit=true,并且result.httpActions数组不为空,则遍历输出
- - 4.1 调用
- - 4.2 根据数组的内容进行发起http请求(此操作是将变更内容入库)
+4.将所有有过内容变更的文件,依次调用获取变更内容:  POST /sessions/:id/biz/update/js-action, 如果response中的success = true ,并且result.edit=true,并且result.httpActions数组不为空
+ - 4.1 调用4.JSOBJECT内容更新接口,更新文件全文内容入库
+ - 4.2 遍历数组,根据数组的内容进行发起http请求(此操作是将变更内容入库)
 5.所有文件内容变更内容入库结束,调用删除会话接口:　DELETE /sessions/:id　，关闭刚刚开始的会话．注意：这个接口在创建会话之后的操作最后必须调用，请使用try finally方式保证调用.
     6.本次编辑完成,开始关闭容器并且调用程序签入状态接口恢复程序可签出状态.
     7.以下是用到的接口内容

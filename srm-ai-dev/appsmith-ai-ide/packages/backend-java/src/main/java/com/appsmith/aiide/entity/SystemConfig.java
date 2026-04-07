@@ -48,6 +48,10 @@ public class SystemConfig extends PanacheEntityBase {
     @Column(columnDefinition = "jsonb")
     public Object datasource;
 
+    /** Sort order for config page display */
+    @Column(name = "sort_order")
+    public Integer sortOrder = 0;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by")
     public User updatedBy;
